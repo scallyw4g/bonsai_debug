@@ -393,9 +393,13 @@ GetMemoryArenaStats(memory_arena *ArenaIn)
   while (Arena)
   {
     Result.Allocations++;
-    Result.Pushes += Arena->Pushes;
     Result.TotalAllocated += TotalSize(Arena);
     Result.Remaining += Remaining(Arena);
+
+// TODO(Jesse): Shouldn't this whole thing be internal?
+#if BONSAI_INTERNAL
+    Result.Pushes += Arena->Pushes;
+#endif
 
     Arena = Arena->Prev;
   }
