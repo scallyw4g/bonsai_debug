@@ -1311,7 +1311,7 @@ FindAbsoluteDrawBoundsBetween(ui_render_command_buffer* CommandBuffer, u32 First
     switch(Command->Type)
     {
 
-      meta(
+      poof(
         func (ui_render_command RenderCommandDef)
         {
           (

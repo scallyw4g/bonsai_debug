@@ -227,7 +227,7 @@ struct ui_render_command_table_start
   ui_element_reference RelativeTo;
 };
 
-meta(
+poof(
   d_union ui_render_command
   {
     ui_render_command_window_start
