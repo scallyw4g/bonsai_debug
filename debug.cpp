@@ -7,8 +7,6 @@
 #include <engine/engine.h>
 #include <engine/engine.cpp>
 
-#include <poof/functions.h>
-
 #include <debug_data_system.cpp>
 #include <interactable.cpp>
 #include <debug_render_system.cpp>
