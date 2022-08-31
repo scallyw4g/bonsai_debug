@@ -7,9 +7,9 @@
 #include <engine/engine.h>
 #include <engine/engine.cpp>
 
-#include <debug_data_system.cpp>
-#include <interactable.cpp>
-#include <debug_render_system.cpp>
+#include <bonsai_debug/debug_data_system.cpp>
+#include <bonsai_debug/interactable.cpp>
+#include <bonsai_debug/debug_render_system.cpp>
 
 global_variable debug_state Internal_DebugState = {};
 

@@ -1315,18 +1315,24 @@ FindAbsoluteDrawBoundsBetween(ui_render_command_buffer* CommandBuffer, u32 First
         func (ui_render_command RenderCommandDef)
         {
           (
-            RenderCommandDef.map_members(Member).containing(layout)
+            RenderCommandDef.map_members(Member)
             {
-              case type_(Member.type):
+              (Member.is_union?
               {
-                Result.Max = Max(Result.Max, GetAbsoluteDrawBoundsMax(&Command->(Member.name).Layout));
-                Result.Min = Min(Result.Min, GetAbsoluteDrawBoundsMin(&Command->(Member.name).Layout));
-              } break;
+                (Member.map_members(UMember).containing(layout)
+                {
+                  case type_(UMember.type):
+                  {
+                    Result.Max = Max(Result.Max, GetAbsoluteDrawBoundsMax(&Command->(UMember.name).Layout));
+                    Result.Min = Min(Result.Min, GetAbsoluteDrawBoundsMin(&Command->(UMember.name).Layout));
+                  } break;
+                })
+              })
             }
           )
         }
       )
-#include <poof/generated/anonymous_function_ui_render_command_RuTTrHiW.h>
+#include <generated/anonymous_function_ui_render_command_RuTTrHiW.h>
 
       default: {} break;
     }
@@ -3003,7 +3009,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
 
-#ifndef BONSAI_WIN32
+#if BONSAI_NETWORK_IMPLEMENTATION
 bonsai_function void
 DebugDrawNetworkHud(debug_ui_render_group *Group, network_connection *Network, server_state *ServerState)
 {

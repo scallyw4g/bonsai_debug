@@ -64,7 +64,7 @@ struct memory_arena_stats
   u64 Remaining;
 };
 poof(are_equal(memory_arena_stats))
-#include <poof/generated/are_equal_memory_arena_stats.h>
+#include <generated/are_equal_memory_arena_stats.h>
 
 struct min_max_avg_dt
 {
