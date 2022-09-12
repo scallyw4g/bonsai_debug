@@ -1,5 +1,3 @@
-#if BONSAI_INTERNAL
-
 debug_global thread_local u32 ThreadLocal_ThreadIndex = 0;
 debug_global b32 DebugGlobal_RedrawEveryPush = 0;
 
@@ -825,5 +823,3 @@ InitDebugDataSystem(debug_state *DebugState)
 
   return;
 }
-
-#endif

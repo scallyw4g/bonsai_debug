@@ -13,7 +13,7 @@
 
 global_variable debug_state Internal_DebugState = {};
 
-bonsai_function void
+link_internal void
 DebugFrameEnd(platform *Plat, server_state* ServerState = 0)
 {
   TIMED_FUNCTION();
@@ -213,7 +213,7 @@ DebugFrameEnd(platform *Plat, server_state* ServerState = 0)
   return;
 }
 
-bonsai_function void
+link_internal void
 DebugFrameBegin(hotkeys *Hotkeys)
 {
   debug_state *State = GetDebugState();
