@@ -74,6 +74,7 @@ SelectColorState(render_state* RenderState, ui_style *Style)
 link_internal void
 ClearFramebuffers()
 {
+  TIMED_FUNCTION();
   GL.BindFramebuffer(GL_FRAMEBUFFER, GetDebugState()->GameGeoFBO.ID);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

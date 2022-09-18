@@ -325,6 +325,8 @@ struct debug_timed_function
 
   debug_timed_function(const char *Name)
   {
+    Clear(this);
+
     // This if doesn't have to be here in internal builds, because we know
     // statically that it'll be present
 #if !DEBUG_LIB_INTERNAL_BUILD
@@ -334,7 +336,6 @@ struct debug_timed_function
     debug_state *DebugState = GetDebugState();
     if (DebugState)
     {
-      Clear(this);
       if (!DebugState->DebugDoScopeProfiling) return;
 
       ++DebugState->NumScopes;
