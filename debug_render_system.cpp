@@ -433,7 +433,7 @@ BufferChar(debug_ui_render_group *Group, u8 Char, v2 MinP, v2 FontSize, v3 Color
 link_internal r32
 BufferChar(debug_ui_render_group *Group, u8 Char, v2 MinP, v2 FontSize, u32 Color, r32 Z, v2 MaxClip)
 {
-  v3 ColorVector = GetColorData(Color).xyz;
+  v3 ColorVector = GetColorData(DefaultPalette, Color).xyz;
   r32 Result = BufferChar(Group, Char, MinP, FontSize, ColorVector, Z, MaxClip);
   return Result;
 }
@@ -1792,7 +1792,7 @@ PushChunkView(debug_ui_render_group* Group, world_chunk* Chunk, window_layout* W
   input* WindowInput = 0;
   if (Pressed(Group, &ViewportButton))
     { WindowInput = Group->Input; }
-  UpdateGameCamera( -0.005f*(*Group->MouseDP), WindowInput, Canonical_Position(0), DebugState->Camera, Chunk_Dimension(0,0,0));
+  UpdateGameCamera( -0.005f*(*Group->MouseDP), WindowInput, Canonical_Position(0), DebugState->Camera, Chunk_Dimension(32,32,8));
 }
 
 link_internal void
