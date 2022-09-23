@@ -2052,7 +2052,7 @@ DebugDrawFlamegraph(debug_ui_render_group *Group, debug_state *SharedState, v2 B
 {
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
-  local_persist window_layout CycleGraphWindow = WindowLayout("Cycle Graph", BasisP);
+  local_persist window_layout CycleGraphWindow = WindowLayout("Flame Graph", BasisP);
 
   PushWindowStart(Group, &CycleGraphWindow);
 
@@ -2359,7 +2359,10 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
       v2 HorizontalOffset = V2(MaxBarDim.x*FrameIndex, 0);
       v2 Offset = VerticalOffset + HorizontalOffset;
 
-      ui_style Style = UiStyleFromLightestColor(V3(1,1,0));
+      ui_style Style =
+        FrameIndex == DebugState->ReadScopeIndex ?
+        UiStyleFromLightestColor(V3(0.75f, 0.0f , 0.75f)) :
+        UiStyleFromLightestColor(V3(0.75f, 0.75f, 0.0f));
 
       interactable_handle B = PushButtonStart(Group, (umm)"FrameTickerHoverInteraction"+(umm)FrameIndex);
         PushUntexturedQuad(Group, Offset, QuadDim, zDepth_Background, &Style, Pad);
@@ -2458,7 +2461,7 @@ OpenDebugWindowAndLetUsDoStuff()
   debug_state* DebugState = GetDebugState();
 
   DEBUG_FRAME_BEGIN(&HotkeyThing);
-  DEBUG_FRAME_END(DebugState->Plat, 0);
+  DEBUG_FRAME_END(DebugState->Plat);
   RewindArena(TranArena);
 }
 

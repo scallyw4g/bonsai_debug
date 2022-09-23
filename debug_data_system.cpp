@@ -349,14 +349,12 @@ AdvanceThreadState(debug_thread_state *ThreadState, u32 NextFrameId)
   // badly when turned on
 
   u32 NextWriteIndex = NextFrameId % DEBUG_FRAMES_TRACKED;
-
   debug_scope_tree *NextWriteTree = ThreadState->ScopeTrees + NextWriteIndex;
 
   FreeScopes(ThreadState, NextWriteTree->Root);
   InitScopeTree(NextWriteTree);
 
   ThreadState->MutexOps[NextWriteIndex].NextRecord = 0;
-  ThreadState->WriteIndex = NextFrameId;
 
   NextWriteTree->FrameRecorded = NextFrameId;
 
@@ -380,6 +378,7 @@ WorkerThreadAdvanceDebugSystem()
 
   if (NextFrameId != ThreadState->WriteIndex)
   {
+    ThreadState->WriteIndex = NextFrameId;
     AdvanceThreadState(ThreadState, NextFrameId);
   }
 
@@ -413,12 +412,13 @@ MainThreadAdvanceDebugSystem(r64 Dt)
     u64 CurrentCycles = GetCycleCount();
 
     u32 ThisFrameWriteIndex = MainThreadState->WriteIndex % DEBUG_FRAMES_TRACKED;
-    u32 NextFrameWriteIndex = GetNextDebugFrameIndex(ThisFrameWriteIndex);
 
     AtomicIncrement(&MainThreadState->WriteIndex);
     AdvanceThreadState(MainThreadState, MainThreadState->WriteIndex);
 
-    SharedState->ReadScopeIndex = GetNextDebugFrameIndex(SharedState->ReadScopeIndex);
+    /* SharedState->ReadScopeIndex = GetNextDebugFrameIndex(SharedState->ReadScopeIndex); */
+    SharedState->ReadScopeIndex = ThisFrameWriteIndex;
+
 
     /* Record frame cycle counts */
 
@@ -426,8 +426,12 @@ MainThreadAdvanceDebugSystem(r64 Dt)
     ThisFrame->FrameMs = Dt * 1000.0;
     ThisFrame->TotalCycles = CurrentCycles - ThisFrame->StartingCycle;
 
+
+    u32 NextFrameWriteIndex = GetNextDebugFrameIndex(ThisFrameWriteIndex);
     frame_stats *NextFrame = SharedState->Frames + NextFrameWriteIndex;
+    Clear(NextFrame);
     NextFrame->StartingCycle = CurrentCycles;
+
   }
 }
 

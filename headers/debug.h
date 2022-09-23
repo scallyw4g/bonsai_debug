@@ -9,7 +9,7 @@ struct debug_profile_scope;
 struct debug_thread_state;
 
 typedef void                 (*debug_clear_framebuffers_proc)          ();
-typedef void                 (*debug_frame_end_proc)                   (platform*, server_state*);
+typedef void                 (*debug_frame_end_proc)                   (platform*);
 typedef void                 (*debug_frame_begin_proc)                 (hotkeys*);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
@@ -417,7 +417,7 @@ GetMemoryArenaStats(memory_arena *ArenaIn)
 #define DEBUG_VALUE(Pointer) if (GetDebugState) {GetDebugState()->DebugValue(Pointer, #Pointer);}
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(Plat, ServerState) if (GetDebugState) {GetDebugState()->FrameEnd(Plat, ServerState);}
+#define DEBUG_FRAME_END(Plat) if (GetDebugState) {GetDebugState()->FrameEnd(Plat);}
 #define DEBUG_FRAME_BEGIN(Hotkeys) if (GetDebugState) {GetDebugState()->FrameBegin(Hotkeys);}
 
 void DebugTimedMutexWaiting(mutex *Mut);

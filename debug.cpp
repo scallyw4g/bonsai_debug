@@ -14,7 +14,7 @@
 global_variable debug_state Internal_DebugState = {};
 
 link_internal void
-DebugFrameEnd(platform *Plat, server_state* ServerState = 0)
+DebugFrameEnd(platform *Plat)
 {
   TIMED_FUNCTION();
 
