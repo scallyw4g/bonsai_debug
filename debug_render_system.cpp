@@ -244,6 +244,9 @@ BufferColors(debug_ui_render_group *Group, T *Geo, v3 Color)
 template <typename T>link_internal clip_result
 BufferQuadDirect(T *Geo, v2 MinP, v2 Dim, r32 Z, v2 ScreenDim, v2 MaxClip)
 {
+  Assert(ScreenDim.x > 0);
+  Assert(ScreenDim.y > 0);
+
   // Note(Jesse): Z==0 | far-clip
   // Note(Jesse): Z==1 | near-clip
   clip_result Result = {};
