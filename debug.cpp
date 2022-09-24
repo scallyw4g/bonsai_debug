@@ -275,7 +275,7 @@ GetDebugState()
 }
 
 link_export get_debug_state_proc
-InitDebugSystem(opengl *LoadedGLImpl)
+InitDebugSystem()
 {
   LastMs = GetHighPrecisionClock();
   Internal_DebugState.Frames[1].StartingCycle = GetCycleCount();
@@ -305,11 +305,8 @@ InitDebugSystem(opengl *LoadedGLImpl)
 
   InitDebugDataSystem(&Internal_DebugState);
 
-  if (LoadedGLImpl) {
-    Assert(LoadedGLImpl->Initialized);
-    heap_allocator Heap = InitHeap(Megabytes(128));
-    InitDebugRenderSystem(&Internal_DebugState, &Heap, LoadedGLImpl);
-  }
+  heap_allocator Heap = InitHeap(Megabytes(128));
+  InitDebugRenderSystem(&Internal_DebugState, &Heap);
 
   return GetDebugState;
 }

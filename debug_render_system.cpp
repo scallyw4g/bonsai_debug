@@ -3179,9 +3179,10 @@ MakeRenderToTextureShader(memory_arena *Memory, m4 *ViewProjection)
 }
 
 link_internal b32
-InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap, opengl *LoadedGLImpl)
+InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
 {
-  GL = *LoadedGLImpl;
+  InitializeOpenglFunctions();
+
   AllocateMesh(&DebugState->LineMesh, 1024, Heap);
 
   DebugState->UiGroup.TextGroup = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
