@@ -2024,6 +2024,17 @@ PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Fram
   return;
 }
 
+link_internal u8
+GetByte(u32 ByteIndex, u64 Source )
+{
+  u32 ShiftWidth = ByteIndex * 8;
+  Assert(ShiftWidth < (sizeof(Source)*8));
+
+  u64 Mask = (u64)(0xff << ShiftWidth);
+  u8 Result = (u8)((Source & Mask) >> ShiftWidth);
+  return Result;
+}
+
 link_internal void
 PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope, cycle_range *Frame, r32 TotalGraphWidth, random_series *Entropy, u32 Depth = 0)
 {
@@ -2031,7 +2042,18 @@ PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope,
   {
     cycle_range Range = {Scope->StartingCycle, Scope->CycleCount};
 
-    ui_style Style = UiStyleFromLightestColor(RandomV3(Entropy));
+    umm NameHash = Hash(CS(Scope->Name));
+
+    u8 R = GetByte(0, NameHash);
+    u8 G = GetByte(1, NameHash);
+    u8 B = GetByte(2, NameHash);
+
+    random_series ScopeSeries = {.Seed = (u64)Scope};
+    r32 Tint = RandomBetween(0.5f, &ScopeSeries, 1.0f);
+
+    v3 Color = V3( R / 255.0f, G / 255.0f, B / 255.0f ) * Tint;
+
+    ui_style Style = UiStyleFromLightestColor(Color);
 
     interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope, &Style);
       PushCycleBar(Group, &Range, Frame, TotalGraphWidth, Depth, &Style);
