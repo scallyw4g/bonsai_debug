@@ -250,7 +250,7 @@ DebugFrameBegin(hotkeys *Hotkeys)
   return;
 }
 
-dll_export debug_state *
+link_export debug_state *
 GetDebugState()
 {
   debug_state *Result = 0;
@@ -274,7 +274,7 @@ GetDebugState()
   return Result;
 }
 
-dll_export get_debug_state_proc
+link_export get_debug_state_proc
 InitDebugSystem(opengl *LoadedGLImpl)
 {
   LastMs = GetHighPrecisionClock();

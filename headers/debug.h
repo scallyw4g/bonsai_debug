@@ -34,7 +34,7 @@ typedef debug_state*         (*get_debug_state_proc)  ();
 typedef get_debug_state_proc (*init_debug_system_proc)(opengl *);
 
 #if DEBUG_LIB_INTERNAL_BUILD
-  dll_export debug_state* GetDebugState();
+  link_export debug_state* GetDebugState();
 
 #else
   link_internal get_debug_state_proc GetDebugState;

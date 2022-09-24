@@ -2465,7 +2465,7 @@ OpenDebugWindowAndLetUsDoStuff()
   RewindArena(TranArena);
 }
 
-dll_export void
+link_export void
 DumpScopeTreeDataToConsole()
 {
   memory_arena* Temp = AllocateArena();
