@@ -176,7 +176,7 @@ struct called_function
 };
 
 #define REGISTERED_MEMORY_ARENA_COUNT 128
-#define META_TABLE_SIZE (16 * 1024)
+#define META_TABLE_SIZE (1024)
 #define MAX_PICKED_WORLD_CHUNKS 32
 struct debug_state
 {

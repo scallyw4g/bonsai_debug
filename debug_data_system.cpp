@@ -133,6 +133,8 @@ PushesMatchExactly(push_metadata *First, push_metadata *Second)
 inline void
 ClearMetaRecordsFor(memory_arena *Arena)
 {
+  TIMED_FUNCTION();
+
   u32 TotalThreadCount = GetWorkerThreadCount() + 1;
   for ( u32 ThreadIndex = 0;
       ThreadIndex < TotalThreadCount;
@@ -364,25 +366,26 @@ AdvanceThreadState(debug_thread_state *ThreadState, u32 NextFrameId)
 inline void
 WorkerThreadAdvanceDebugSystem()
 {
-  Assert(ThreadLocal_ThreadIndex != 0);
+  /* Assert(ThreadLocal_ThreadIndex != 0); */
 
   debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
-  Assert(ThreadState != MainThreadState);
 
-  u32 NextFrameId = MainThreadState->WriteIndex;
-
-  // Note(Jesse): WriteIndex must not straddle a cache line!
-  Assert(sizeof(MainThreadState->WriteIndex) == 4);
-  Assert((umm)(&MainThreadState->WriteIndex)%64 <= 60 );
-
-  if (NextFrameId != ThreadState->WriteIndex)
+  if (ThreadState != MainThreadState)
   {
-    ThreadState->WriteIndex = NextFrameId;
-    AdvanceThreadState(ThreadState, NextFrameId);
-  }
+    u32 NextFrameId = MainThreadState->WriteIndex;
 
-  return;
+    // Note(Jesse): WriteIndex must not straddle a cache line!
+    Assert(sizeof(MainThreadState->WriteIndex) == 4);
+    Assert((umm)(&MainThreadState->WriteIndex)%64 <= 60 );
+
+    if (NextFrameId != ThreadState->WriteIndex)
+    {
+      ThreadState->WriteIndex = NextFrameId;
+      AdvanceThreadState(ThreadState, NextFrameId);
+    }
+
+  }
 }
 
 global_variable r64 LastMs;
