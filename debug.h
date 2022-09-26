@@ -15,6 +15,8 @@
 #define TIMED_BLOCK(...)
 #define END_BLOCK(...)
 
+#define DEBUG_VALUE(...)
+
 #define TIMED_MUTEX_WAITING(...)
 #define TIMED_MUTEX_AQUIRED(...)
 #define TIMED_MUTEX_RELEASED(...)

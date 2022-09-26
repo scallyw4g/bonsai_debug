@@ -25,7 +25,7 @@ typedef void                 (*debug_track_draw_call_proc)             (const ch
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_pick_chunk)                       (world_chunk*, aabb);
 typedef void                 (*debug_compute_pick_ray)                 (platform*, m4*);
-typedef void                 (*debug_value)                            (u32,const char*);
+typedef void                 (*debug_value)                            (r32, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
 typedef void                 (*debug_open_window_and_let_us_do_stuff)  ();
 
