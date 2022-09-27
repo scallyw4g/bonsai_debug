@@ -202,7 +202,7 @@ WriteToMetaTable(push_metadata *Query, push_metadata *Table, meta_comparator Com
     PickMeta = Table + HashValue;
     if (HashValue == FirstHashValue)
     {
-      Warn("Meta Table is full, discarding allocation metadata for (%s)", Query->Name);
+      /* Warn("Meta Table is full, discarding allocation metadata for (%s)", Query->Name); */
       return;
     }
   }
