@@ -1,6 +1,7 @@
 #define BONSAI_DEBUG_SYSTEM_API 1
 #define DEBUG_LIB_INTERNAL_BUILD 1
 #define PLATFORM_GL_IMPLEMENTATIONS 1
+#define PLATFORM_LIBRARY_AND_WINDOW_IMPLEMENTATIONS 1
 
 #include <bonsai_stdlib/bonsai_stdlib.h>
 #include <bonsai_stdlib/bonsai_stdlib.cpp>
@@ -311,6 +312,32 @@ InitDebugSystem()
 
   heap_allocator Heap = InitHeap(Megabytes(128));
   InitDebugRenderSystem(&Internal_DebugState, &Heap);
+
+  return GetDebugState;
+}
+
+link_export get_debug_state_proc
+OpenAndInitializeDebugWindow(os *Os, platform *Plat)
+{
+  b32 WindowSuccess = OpenAndInitializeWindow(Os, Plat, 1);
+  if (!WindowSuccess) { Error("Initializing Window :( "); return False; }
+  Assert(Os->Window);
+
+  InitializeOpenglFunctions();
+
+  InitDebugSystem();
+
+  /* debug_state* DebugState = GetDebugState(); */
+  /* DebugState->DebugDoScopeProfiling = True; */
+  /* DebugState->Plat = &Plat; */
+
+  GL.ClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+  GL.ClearDepth(1.0f);
+
+  GetDebugState()->ClearFramebuffers();
+
+  GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
+  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   return GetDebugState;
 }
