@@ -400,16 +400,6 @@ MainThreadAdvanceDebugSystem(r64 Dt)
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
   debug_state *SharedState = GetDebugState();
 
-  /* DEBUG_VALUE(SharedState->ReadScopeIndex); */
-  /* DEBUG_VALUE(MainThreadState->WriteIndex); */
-  /* for (u32 ThreadIndex = 1; */
-  /*     ThreadIndex < GetTotalThreadCount(); */
-  /*     ++ThreadIndex) */
-  /* { */
-  /*   debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex); */
-  /*   DEBUG_VALUE(ThreadState->WriteIndex); */
-  /* } */
-
   if (SharedState->DebugDoScopeProfiling)
   {
     u64 CurrentCycles = GetCycleCount();

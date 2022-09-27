@@ -420,11 +420,16 @@ BufferChar(debug_ui_render_group *Group, u8 Char, v2 MinP, v2 FontSize, v3 Color
 {
   rect2 UV = UVsForChar(Char);
 
-  // @shadow_epsilon
-  r32 e = DEBUG_FONT_SHADOW_EPSILON;
+  // Lightly text gets a dark shadow, dark text gets a light shadow
+  v3 ShadowColor = V3(0.1f);
+  if (Length(Color) < 0.6f)
+  {
+    ShadowColor = V3(0.9f);
+  }
+
   v2 ShadowOffset = 0.075f*FontSize;
   BufferTexturedQuad( Group, DebugTextureArraySlice_Font,
-                      MinP+ShadowOffset, FontSize, UV, V3(0.1f), Z-e, MaxClip);
+                      MinP+ShadowOffset, FontSize, UV, ShadowColor, Z, MaxClip);
 
   BufferTexturedQuad( Group, DebugTextureArraySlice_Font,
                       MinP, FontSize, UV, Color, Z, MaxClip);
@@ -849,8 +854,9 @@ PushWindowStart(debug_ui_render_group *Group, window_layout *Window)
 
   PushUiRenderCommand(Group, &Command);
 
+  ui_style TextStyle = UiStyleFromLightestColor(V3(0.25f));
   PushButtonStart(Group, TitleBarInteractionId);
-    Text(Group, Window->Title);
+    Text(Group, Window->Title, &TextStyle);
     /* Text(Group, CS(Window->InteractionStackIndex)); */
     PushUntexturedQuadAt(Group, Window->Basis, V2(Window->MaxClip.x, Global_Font.Size.y), zDepth_TitleBar);
   PushButtonEnd(Group);
@@ -2039,8 +2045,9 @@ PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope,
 {
   while (Scope)
   {
-    cycle_range Range = {Scope->StartingCycle, Scope->CycleCount};
+    cycle_range Range = {Scope->StartingCycle, GetCycleCount(Scope)};
 
+    /* umm NameHash = Hash(CS(Scope->Name)) ^ Hash(CS(Scope->Location)); */
     umm NameHash = Hash(CS(Scope->Name));
 
     u8 R = GetByte(0, NameHash);
@@ -2281,9 +2288,10 @@ DumpScopeTreeDataToConsole_Internal(debug_profile_scope *Scope_in, debug_profile
 
     GotUniqueScope->Name = CurrentUniqueScopeQuery->Name;
     GotUniqueScope->CallCount++;
-    GotUniqueScope->TotalCycles += CurrentUniqueScopeQuery->CycleCount;
-    GotUniqueScope->MinCycles = Min(CurrentUniqueScopeQuery->CycleCount, GotUniqueScope->MinCycles);
-    GotUniqueScope->MaxCycles = Max(CurrentUniqueScopeQuery->CycleCount, GotUniqueScope->MaxCycles);
+    u64 CycleCount = GetCycleCount(CurrentUniqueScopeQuery);
+    GotUniqueScope->TotalCycles += CycleCount;
+    GotUniqueScope->MinCycles = Min(CycleCount, GotUniqueScope->MinCycles);
+    GotUniqueScope->MaxCycles = Max(CycleCount, GotUniqueScope->MaxCycles);
     GotUniqueScope->Scope = CurrentUniqueScopeQuery;
 
     CurrentUniqueScopeQuery = CurrentUniqueScopeQuery->Sibling;
@@ -2330,9 +2338,11 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
     }
 
     GotUniqueScope->CallCount++;
-    GotUniqueScope->TotalCycles += CurrentUniqueScopeQuery->CycleCount;
-    GotUniqueScope->MinCycles = Min(CurrentUniqueScopeQuery->CycleCount, GotUniqueScope->MinCycles);
-    GotUniqueScope->MaxCycles = Max(CurrentUniqueScopeQuery->CycleCount, GotUniqueScope->MaxCycles);
+
+    u64 CycleCount = GetCycleCount(CurrentUniqueScopeQuery);
+    GotUniqueScope->TotalCycles += CycleCount;
+    GotUniqueScope->MinCycles = Min(CycleCount, GotUniqueScope->MinCycles);
+    GotUniqueScope->MaxCycles = Max(CycleCount, GotUniqueScope->MaxCycles);
 
     CurrentUniqueScopeQuery = CurrentUniqueScopeQuery->Sibling;
   }
@@ -2525,8 +2535,9 @@ PushCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At)
 {
   if (At)
   {
+    u64 CycleCount = GetCycleCount(At);
     PushColumn(Group, CS(At->Name));
-    PushColumn(Group, CS(At->CycleCount));
+    PushColumn(Group, CS(CycleCount));
     PushNewRow(Group);
 
     if (At->Child)
@@ -2553,7 +2564,8 @@ DumpCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At, u3
     DebugChars("  ");
   }
 
-  DebugChars("%s (%lu) \n", At->Name, At->CycleCount);
+  u64 CycleCount = GetCycleCount(At);
+  DebugChars("%s (%lu) \n", At->Name, CycleCount);
 
   if (At->Child)
   {
@@ -2630,7 +2642,7 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
           {
             Assert(CurrentSortKeyIndex < SortKeyCount);
             SortBuffer[CurrentSortKeyIndex].Index = (u64)CurrentScope;
-            SortBuffer[CurrentSortKeyIndex].Value = CurrentScope->CycleCount;
+            SortBuffer[CurrentSortKeyIndex].Value = GetCycleCount(CurrentScope);
             ++CurrentSortKeyIndex;
           }
           CurrentScope = CurrentScope->Sibling;
@@ -2653,14 +2665,14 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
 #if TEXT_OUTPUT_FOR_FUNCTION_CALLS
           Print(CS(CurrentScope->Name));
           DebugChars("\n");
-          Print(CS(CurrentScope->CycleCount));
+          Print(CS(GetCycleCount(CurrentScope)));
           DebugChars("\n");
           DumpCallgraphRecursive(Group, CurrentScope->Child);
           DebugChars("\n");
 #else
           PushColumn(Group, CS(CurrentScope->Name));
           PushNewRow(Group);
-          PushColumn(Group, CS(CurrentScope->CycleCount));
+          PushColumn(Group, CS(GetCycleCount(CurrentScope)));
           PushNewRow(Group);
           PushCallgraphRecursive(Group, CurrentScope->Child);
 #endif

@@ -75,8 +75,8 @@ struct min_max_avg_dt
 
 struct debug_profile_scope
 {
-  u64 CycleCount;
   u64 StartingCycle;
+  u64 EndingCycle;
   const char* Name;
 
   b32 Expanded;
@@ -84,7 +84,16 @@ struct debug_profile_scope
   debug_profile_scope* Sibling;
   debug_profile_scope* Child;
   debug_profile_scope* Parent;
+
+  /* b64 Pad; */
 };
+// NOTE(Jesse): I thought maybe this would increase perf .. it had a negligible
+// effect These structs are per-thread so there's no sense in having them
+// cache-line sized.  Something that would probably speed this up is not storing
+// the sibling/child/parent pointers and instead store a one-past-last index into
+// a statically allocated buffer (instead of dynamically allocating new scopes
+// every time we need another one)
+/* CAssert(sizeof(debug_profile_scope) == CACHE_LINE_SIZE); */
 
 struct unique_debug_profile_scope
 {
@@ -373,9 +382,9 @@ struct debug_timed_function
       if (!DebugState->DebugDoScopeProfiling) return;
       if (!this->Scope) return;
 
-      u64 EndingCycleCount = GetCycleCount(); // Intentionally first
-      u64 CycleCount = (EndingCycleCount - this->Scope->StartingCycle);
-      this->Scope->CycleCount = CycleCount;
+      this->Scope->EndingCycle = GetCycleCount(); // Intentionally first;
+
+      Assert(this->Scope->EndingCycle > this->Scope->StartingCycle);
 
       // 'Pop' the scope stack
       this->Tree->WriteScope = &this->Scope->Sibling;
@@ -405,6 +414,18 @@ GetMemoryArenaStats(memory_arena *ArenaIn)
     Arena = Arena->Prev;
   }
 
+  return Result;
+}
+
+link_internal u64
+GetCycleCount(debug_profile_scope *Scope)
+{
+  u64 Result = 0;
+  if (Scope->EndingCycle)
+  {
+    Assert(Scope->EndingCycle > Scope->StartingCycle);
+    Result = Scope->EndingCycle - Scope->StartingCycle;
+  }
   return Result;
 }
 
