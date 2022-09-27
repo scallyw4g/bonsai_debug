@@ -122,6 +122,7 @@ struct ui_style
 
 link_internal ui_style UiStyleFromLightestColor(v3 Color);
 debug_global ui_style DefaultUiStyle = UiStyleFromLightestColor(V3(1));
+debug_global v4 DefaultColumnPadding = V4(0, 0, 25, 0);
 
 struct layout
 {
@@ -333,7 +334,6 @@ struct find_command_result
 link_internal r32
 GetZ(z_depth zDepth, window_layout* Window)
 {
-  u32 fourtytwo = (40 + 2);
   // @shadow_epsilon
   r32 Result = DEBUG_FONT_SHADOW_EPSILON;
 
@@ -394,8 +394,11 @@ UiStyleFromLightestColor(v3 Color)
   return Style;
 }
 
+global_variable v2
+DefaultWindowSize = V2(1800, 800);
+
 link_internal window_layout
-WindowLayout(const char* Title, v2 Basis, v2 MaxClip = V2(1800, 800))
+WindowLayout(const char* Title, v2 Basis, v2 MaxClip = DefaultWindowSize)
 {
   local_persist u32 NextWindowStackIndex = 0;
 

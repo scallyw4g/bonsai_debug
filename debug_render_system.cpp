@@ -449,10 +449,11 @@ BufferBorder(debug_ui_render_group *Group, rect2 Rect, v3 Color, r32 Z, v2 MaxCl
   v2 TopRight    = V2(Rect.Max.x, Rect.Min.y);
   v2 BottomLeft  = V2(Rect.Min.x, Rect.Max.y);
 
-  rect2 TopRect    = RectMinMax(TopLeft ,    TopRight    + V2(0, 1));
-  rect2 BottomRect = RectMinMax(BottomLeft,  BottomRight - V2(0, 1));
-  rect2 LeftRect   = RectMinMax(TopLeft ,    BottomLeft  + V2(1, 0));
-  rect2 RightRect  = RectMinMax(TopRight,    BottomRight + V2(1, 0));
+  r32 BorderWidth = 1;
+  rect2 TopRect    = RectMinMax(TopLeft ,    TopRight    + V2(0, BorderWidth));
+  rect2 BottomRect = RectMinMax(BottomLeft,  BottomRight - V2(0, BorderWidth));
+  rect2 LeftRect   = RectMinMax(TopLeft ,    BottomLeft  + V2(BorderWidth, 0));
+  rect2 RightRect  = RectMinMax(TopRight,    BottomRight + V2(BorderWidth, 0));
 
   BufferUntexturedQuad(Group, &Group->Geo, TopRect,    Color, Z, MaxClip);
   BufferUntexturedQuad(Group, &Group->Geo, LeftRect,   Color, Z, MaxClip);
@@ -581,13 +582,13 @@ PushNewRow(debug_ui_render_group *Group)
 }
 
 link_internal void
-Text(debug_ui_render_group* Group, counted_string String)
+Text(debug_ui_render_group* Group, counted_string String, ui_style *Style = 0)
 {
   ui_render_command Command = {
     .Type = type_ui_render_command_text,
     .ui_render_command_text = {
       .String = String,
-      .Style = DefaultUiStyle // TODO(Jesse, id: 106, tags: cleanup, speed): Pass this in!
+      .Style = Style ? *Style : DefaultUiStyle
     }
   };
 
@@ -626,10 +627,10 @@ EndColumn(debug_ui_render_group* Group)
 }
 
 link_internal void
-PushColumn(debug_ui_render_group *Group, counted_string String, ui_style* Style = 0, v4 Padding = V4(0), column_render_params Params = ColumnRenderParam_RightAlign)
+PushColumn(debug_ui_render_group *Group, counted_string String, ui_style* Style = 0, v4 Padding = DefaultColumnPadding, column_render_params Params = ColumnRenderParam_RightAlign)
 {
   StartColumn(Group, Style, Padding, Params);
-    Text(Group, String);
+    Text(Group, String, Style);
   EndColumn(Group);
 
   return;
@@ -826,8 +827,6 @@ PushWindowStart(debug_ui_render_group *Group, window_layout *Window)
 
     if (Group->MouseP->y > AbsoluteTitleBounds.y )
     {
-    /*
-     */
       Window->MaxClip.y = Max(TitleBounds.y, TestMaxClip.y);
     }
     else
@@ -852,16 +851,16 @@ PushWindowStart(debug_ui_render_group *Group, window_layout *Window)
 
   PushButtonStart(Group, TitleBarInteractionId);
     Text(Group, Window->Title);
-    Text(Group, CS(Window->InteractionStackIndex));
+    /* Text(Group, CS(Window->InteractionStackIndex)); */
     PushUntexturedQuadAt(Group, Window->Basis, V2(Window->MaxClip.x, Global_Font.Size.y), zDepth_TitleBar);
   PushButtonEnd(Group);
 
-  v2 Dim = V2(12);
+  v2 Dim = V2(15);
   PushButtonStart(Group, ResizeHandleInteractionId);
     PushUntexturedQuadAt(Group, GetAbsoluteMaxClip(Window)-Dim, Dim, zDepth_Border, &DefaultUiStyle);
   PushButtonEnd(Group);
 
-  PushBorder(Group, GetBounds(Window), V3(1));
+  PushBorder(Group, GetBounds(Window), V3(1.f));
 
   ui_style BackgroundStyle = UiStyleFromLightestColor(V3(0.25f));
   PushUntexturedQuadAt(Group, Window->Basis, Window->MaxClip, zDepth_Background, &BackgroundStyle);
@@ -1937,9 +1936,9 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
   r32 Percentage = 100.0f * (r32)SafeDivide0((r64)TotalCycles, (r64)TotalFrameCycles);
   u64 AvgCycles = (u64)SafeDivide0(TotalCycles, CallCount);
 
-  PushColumn(Group, CS(Percentage));
-  PushColumn(Group, CS(AvgCycles));
-  PushColumn(Group, CS(CallCount));
+  PushColumn(Group, CS(Percentage), 0, DefaultColumnPadding);
+  PushColumn(Group, CS(AvgCycles), 0, DefaultColumnPadding);
+  PushColumn(Group, CS(CallCount), 0, DefaultColumnPadding);
 
   char Prefix = ' ';
   if (Scope->Expanded && Scope->Child)
@@ -1953,7 +1952,7 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 
   u32 DepthSpaces = (Depth*2)+1;
   counted_string NameString = BuildNameStringFor(Prefix, CS(Scope->Name), DepthSpaces);
-  PushColumn(Group, NameString, 0, V4(0), ColumnRenderParam_LeftAlign);
+  PushColumn(Group, NameString, 0, DefaultColumnPadding, ColumnRenderParam_LeftAlign);
 
   return;
 }
@@ -2428,6 +2427,14 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
   return;
 }
 
+link_internal v2
+DefaultWindowBasis(v2 ScreenDim)
+{
+  v2 Basis = V2(20, ScreenDim.y - DefaultWindowSize.y - 20);
+  return Basis;
+}
+
+
 link_internal void
 DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs)
 {
@@ -2438,7 +2445,8 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
 
-  local_persist window_layout CallgraphWindow = WindowLayout("Callgraph", V2(0));
+  v2 Basis = DefaultWindowBasis(Group->ScreenDim);
+  local_persist window_layout CallgraphWindow = WindowLayout("Callgraph", Basis);
 
   TIMED_BLOCK("Call Graph");
 
@@ -2446,10 +2454,10 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
 
     PushTableStart(Group);
 
-    PushColumn(Group, CSz("Frame %"));
-    PushColumn(Group, CSz("Cycles"));;
-    PushColumn(Group, CSz("Calls"));
-    PushColumn(Group, CSz("Name"));
+    PushColumn(Group, CSz("Frame %"), 0, DefaultColumnPadding);
+    PushColumn(Group, CSz("Cycles"), 0, DefaultColumnPadding);;
+    PushColumn(Group, CSz("Calls"), 0, DefaultColumnPadding);
+    PushColumn(Group, CSz("Name"), 0, DefaultColumnPadding);
     PushNewRow(Group);
 
     for ( u32 ThreadIndex = 0;
@@ -2758,7 +2766,7 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
 
 
 link_internal void
-PushBargraph(debug_ui_render_group *Group, r32 PercFilled)
+PushBargraph(debug_ui_render_group *Group, r32 PercFilled, v3 Color)
 {
   r32 BarHeight = Global_Font.Size.y;
   r32 BarWidth = 200.0f;
@@ -2767,25 +2775,26 @@ PushBargraph(debug_ui_render_group *Group, r32 PercFilled)
   v2 PercBarDim = BackgroundQuad * V2(PercFilled, 1);
 
   ui_style Style = UiStyleFromLightestColor(V3(0.6f));
-  PushUntexturedQuad(Group, V2(0), BackgroundQuad, zDepth_Text, &Style);
+  PushUntexturedQuad(Group, V2(0), BackgroundQuad, zDepth_TitleBar, &Style);
 
-  Style = UiStyleFromLightestColor(V3(1,1,0));
-  PushUntexturedQuad(Group, V2(0), PercBarDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
+  Style = UiStyleFromLightestColor(Color);
+  PushUntexturedQuad(Group, V2(0), PercBarDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance);
 
   return;
 }
 
 link_internal interactable_handle
-PushArenaBargraph(debug_ui_render_group *Group, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId)
+PushArenaBargraph(debug_ui_render_group *Group, v3 Color, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId)
 {
   PushColumn(Group, MemorySize(TotalUsed));
 
   interactable_handle Handle = PushButtonStart(Group, InteractionId);
-    PushBargraph(Group, TotalPerc);
+    PushBargraph(Group, TotalPerc, Color);
   PushButtonEnd(Group);
 
   PushColumn(Group, MemorySize(Remaining));
   PushNewRow(Group);
+
   return Handle;
 }
 
@@ -2815,11 +2824,11 @@ link_internal void
 PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
 {
   PushNewRow(Group);
-  v3 DefaultColor = V3(0.5f, 0.5f, 0.0);
+  v3 DefaultColor = V3(0.75f, 0.75f, 0.0);
 
   r32 TotalPerc = (r32)SafeDivide0(TotalUsed, MemStats.TotalAllocated);
   // TODO(Jesse, id: 110, tags: ui, semantic): Should we do something special when interacting with this thing instead of Ignored-ing it?
-  PushArenaBargraph(Group, TotalUsed, TotalPerc, MemStats.Remaining, (umm)"Ignored");
+  PushArenaBargraph(Group, DefaultColor, TotalUsed, TotalPerc, MemStats.Remaining, (umm)"Ignored");
   PushNewRow(Group);
 
   memory_arena *CurrentArena = HeadArena;
@@ -2833,14 +2842,14 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedA
       selected_memory_arena *Selected = &SelectedArenas->Arenas[ArenaIndex];
       if (Selected->ArenaHash == HashArena(CurrentArena))
       {
-        Color = V3(0.85f, 0.85f, 0.0f);
+        Color = V3(.75f, .0f, .75f);
       }
     }
 
     u64 CurrentUsed = TotalSize(CurrentArena) - Remaining(CurrentArena);
     r32 CurrentPerc = (r32)SafeDivide0(CurrentUsed, TotalSize(CurrentArena));
 
-    interactable_handle Handle = PushArenaBargraph(Group, CurrentUsed, CurrentPerc, Remaining(CurrentArena), HashArena(CurrentArena));
+    interactable_handle Handle = PushArenaBargraph(Group, Color, CurrentUsed, CurrentPerc, Remaining(CurrentArena), HashArena(CurrentArena));
     if (Clicked(Group, &Handle))
     {
       selected_memory_arena *Found = 0;
@@ -2975,10 +2984,52 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
 link_internal void
 DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 {
-  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arenas", V2(0));
-  window_layout* MemoryArenaWindow = &MemoryArenaWindowInstance;
+  v2 Basis = DefaultWindowBasis(Group->ScreenDim);
+  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis);
 
-  PushWindowStart(Group, MemoryArenaWindow);
+  window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
+  PushWindowStart(Group, MemoryArenaList);
+  PushTableStart(Group);
+  for ( u32 Index = 0;
+        Index < REGISTERED_MEMORY_ARENA_COUNT;
+        ++Index )
+  {
+    registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+    if (!Current->Arena) continue;
+
+    memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
+    u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
+
+    v3 Color = V3(.7f,.7f,.7f);
+    if (Current->Expanded)
+    {
+      Color = V3(1,1,1);
+    }
+
+    ui_style Style = UiStyleFromLightestColor(Color);
+
+    interactable_handle ExpandInteraction = PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+      PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
+      PushColumn(Group, CS(MemStats.Pushes), &Style);
+      PushColumn(Group, CS(Current->Name), &Style);
+      PushNewRow(Group);
+    PushButtonEnd(Group);
+
+    if (Clicked(Group, &ExpandInteraction))
+    {
+      Current->Expanded = !Current->Expanded;
+    }
+  }
+
+  PushTableEnd(Group);
+  PushWindowEnd(Group, MemoryArenaList);
+
+
+  Basis = BasisRightOf(MemoryArenaList);
+  local_persist window_layout MemoryArenaDetailsInstance = WindowLayout("Memory Arena Details", Basis);
+  window_layout* MemoryArenaDetails = &MemoryArenaDetailsInstance;
+
+  PushWindowStart(Group, MemoryArenaDetails);
 
   for ( u32 Index = 0;
         Index < REGISTERED_MEMORY_ARENA_COUNT;
@@ -2990,21 +3041,14 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
     u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
 
-    PushTableStart(Group);
-      interactable_handle ExpandInteraction = PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
-        PushColumn(Group, CS(Current->Name));
-        PushColumn(Group, MemorySize(MemStats.TotalAllocated));
-        PushColumn(Group, CS(MemStats.Pushes));
-      PushButtonEnd(Group);
-    PushTableEnd(Group);
-
-    if (Clicked(Group, &ExpandInteraction))
-    {
-      Current->Expanded = !Current->Expanded;
-    }
-
     if (Current->Expanded)
     {
+      PushNewRow(Group);
+      PushNewRow(Group);
+      PushColumn(Group, CS(Current->Name));
+      PushNewRow(Group);
+      PushNewRow(Group);
+
       ui_element_reference StatsTable =
       PushTableStart(Group);
         PushMemoryStatsTable(MemStats, Group);
@@ -3023,7 +3067,9 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     continue;
   }
 
-  PushWindowEnd(Group, MemoryArenaWindow);
+
+  PushWindowEnd(Group, MemoryArenaDetails);
+
 
   return;
 }

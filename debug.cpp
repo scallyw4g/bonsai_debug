@@ -19,6 +19,8 @@ DebugFrameEnd(platform *Plat)
 {
   TIMED_FUNCTION();
 
+  GL.Disable(GL_CULL_FACE);
+
   debug_state *DebugState = GetDebugState();
 
   min_max_avg_dt Dt = {};
@@ -210,6 +212,8 @@ DebugFrameEnd(platform *Plat)
   {
     DebugState->DoChunkPicking = False;
   }
+
+  GL.Enable(GL_CULL_FACE);
 
   return;
 }
