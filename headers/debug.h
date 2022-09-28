@@ -1,7 +1,6 @@
 struct debug_state;
 struct game_state;
 struct os;
-struct platform;
 struct server_state;
 struct hotkeys;
 struct world_chunk;
@@ -9,7 +8,7 @@ struct debug_profile_scope;
 struct debug_thread_state;
 
 typedef void                 (*debug_clear_framebuffers_proc)          ();
-typedef void                 (*debug_frame_end_proc)                   (platform*);
+typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
 typedef void                 (*debug_frame_begin_proc)                 (hotkeys*);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
@@ -24,7 +23,7 @@ typedef void                 (*debug_clear_meta_records_proc)          (memory_a
 typedef void                 (*debug_track_draw_call_proc)             (const char*, u32);
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_pick_chunk)                       (world_chunk*, aabb);
-typedef void                 (*debug_compute_pick_ray)                 (platform*, m4*);
+typedef void                 (*debug_compute_pick_ray)                 (m4*);
 typedef void                 (*debug_value)                            (r32, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
 typedef void                 (*debug_open_window_and_let_us_do_stuff)  ();
@@ -189,7 +188,6 @@ struct called_function
 #define MAX_PICKED_WORLD_CHUNKS 32
 struct debug_state
 {
-  platform* Plat;
   game_state* GameState;
 
   u32 UIType = DebugUIType_None;
@@ -438,7 +436,7 @@ GetCycleCount(debug_profile_scope *Scope)
 #define DEBUG_VALUE(Pointer) if (GetDebugState) {GetDebugState()->DebugValue(Pointer, #Pointer);}
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(Plat) if (GetDebugState) {GetDebugState()->FrameEnd(Plat);}
+#define DEBUG_FRAME_END(a, b, c, d, e) if (GetDebugState) {GetDebugState()->FrameEnd(a, b, c, d, e);}
 #define DEBUG_FRAME_BEGIN(Hotkeys) if (GetDebugState) {GetDebugState()->FrameBegin(Hotkeys);}
 
 void DebugTimedMutexWaiting(mutex *Mut);
@@ -455,5 +453,5 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  if (GetDebugState) {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);}
 
 #define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) if (GetDebugState) {GetDebugState()->ViewProjection = ViewProjPtr;}
-#define DEBUG_COMPUTE_PICK_RAY(Plat, ViewProjPtr)          if (GetDebugState) {GetDebugState()->ComputePickRay(Plat, ViewProjPtr);}
+#define DEBUG_COMPUTE_PICK_RAY(ViewProjPtr)          if (GetDebugState) {GetDebugState()->ComputePickRay(ViewProjPtr);}
 #define DEBUG_PICK_CHUNK(Chunk, ChunkAABB)                 if (GetDebugState) {GetDebugState()->PickChunk(Chunk, ChunkAABB);}

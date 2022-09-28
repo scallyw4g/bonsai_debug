@@ -1704,15 +1704,17 @@ DrawWaitingBar(mutex_op_record *WaitRecord, mutex_op_record *AquiredRecord, mute
 
 
 link_internal void
-ComputePickRay(platform *Plat, m4* ViewProjection)
+ComputePickRay(m4* ViewProjection)
 {
+  NotImplemented;
+#if 0
   debug_state *DebugState = GetDebugState();
 
   m4 InverseViewProjection = {};
   b32 Inverted = Inverse((r32*)ViewProjection, (r32*)&InverseViewProjection);
   Assert(Inverted);
 
-  v3 MouseMinWorldP = Unproject( Plat->MouseP,
+  v3 MouseMinWorldP = Unproject( MouseP,
                                  0.0f,
                                  V2(Plat->WindowWidth, Plat->WindowHeight),
                                  &InverseViewProjection);
@@ -1732,6 +1734,7 @@ ComputePickRay(platform *Plat, m4* ViewProjection)
     DebugState->HotChunk = 0;
   }
 
+#endif
   return;
 }
 
@@ -1783,7 +1786,8 @@ PushChunkView(debug_ui_render_group* Group, world_chunk* Chunk, window_layout* W
         Chunk->Mesh = 0;
         Chunk->FilledCount = 0;
         Chunk->Data->Flags = Chunk_Uninitialized;
-        QueueChunkForInit( &DebugState->Plat->HighPriority, Chunk);
+        NotImplemented;
+        /* QueueChunkForInit( &DebugState->Plat->HighPriority, Chunk); */
       }
 
       PushNewRow(Group);
@@ -2498,11 +2502,13 @@ debug_global hotkeys HotkeyThing;
 link_internal void
 OpenDebugWindowAndLetUsDoStuff()
 {
+#if 0
   debug_state* DebugState = GetDebugState();
 
   DEBUG_FRAME_BEGIN(&HotkeyThing);
-  DEBUG_FRAME_END(DebugState->Plat);
+  DEBUG_FRAME_END(&Plat->MouseP, &Plat->MouseDP, V2(Plat->WindowWidth, Plat->WindowHeight), &Plat->Input, Plat->dt);
   RewindArena(TranArena);
+#endif
 }
 
 link_export void

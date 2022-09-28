@@ -15,8 +15,20 @@
 
 global_variable debug_state Internal_DebugState = {};
 
+/* struct input_event */
+/* { */
+/*   b32 Clicked; */
+/*   b32 Pressed; */
+/* }; */
+
+/* struct debug_input_events */
+/* { */
+/*   input_event LMBPressed; */
+/*   input_event RMBPressed; */
+/* }; */
+
 link_internal void
-DebugFrameEnd(platform *Plat)
+DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
 {
   TIMED_FUNCTION();
 
@@ -30,12 +42,12 @@ DebugFrameEnd(platform *Plat)
 
   UiGroup->GameGeo               = &DebugState->GameGeo;
   UiGroup->GameGeoShader         = &DebugState->GameGeoShader;
-  UiGroup->Input                 = &Plat->Input;
-  UiGroup->ScreenDim             = V2(Plat->WindowWidth, Plat->WindowHeight);
-  UiGroup->MouseP                = &Plat->MouseP;
-  UiGroup->MouseDP               = &Plat->MouseDP;
+  UiGroup->Input                 = Input;
+  UiGroup->ScreenDim             = ScreenDim;
+  UiGroup->MouseP                = MouseP;
+  UiGroup->MouseDP               = MouseDP;
 
-  if ( ! (Plat->Input.LMB.Pressed || Plat->Input.RMB.Pressed) )
+  if ( ! (Input->LMB.Pressed || Input->RMB.Pressed) )
   {
     UiGroup->PressedInteractionId = 0;
   }
@@ -71,7 +83,7 @@ DebugFrameEnd(platform *Plat)
     PushNewRow(UiGroup);
 
     PushColumn(UiGroup, CS(Dt.Avg), &Style, Padding);
-    PushColumn(UiGroup, CS(Plat->dt*1000.0f));
+    PushColumn(UiGroup, CS(dt*1000.0f));
 
     PushNewRow(UiGroup);
 
@@ -204,12 +216,12 @@ DebugFrameEnd(platform *Plat)
   }
 
   if (UiGroup->PressedInteractionId == 0 &&
-      (Plat->Input.LMB.Pressed || Plat->Input.RMB.Pressed))
+      (Input->LMB.Pressed || Input->RMB.Pressed))
   {
     UiGroup->PressedInteractionId = StringHash("GameViewport");
   }
 
-  if (DebugState->DoChunkPicking && Plat->Input.LMB.Clicked)
+  if (DebugState->DoChunkPicking && Input->LMB.Clicked)
   {
     DebugState->DoChunkPicking = False;
   }
