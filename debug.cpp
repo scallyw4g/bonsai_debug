@@ -118,10 +118,11 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
     ui_style Style =  UiStyleFromLightestColor(V3(1));
 
     PushTableStart(UiGroup);
-    if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", &Style, Padding))
-    {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
-    }
+
+    /* if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", &Style, Padding)) */
+    /* { */
+    /*   ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks); */
+    /* } */
 
     if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", &Style, Padding))
     {
@@ -157,10 +158,12 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
 
 
 
+#if 0
     if (DebugState->UIType & DebugUIType_PickedChunks)
     {
       DrawPickedChunks(UiGroup);
     }
+#endif
 
     if (DebugState->UIType & DebugUIType_Graphics)
     {
@@ -221,10 +224,12 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
     UiGroup->PressedInteractionId = StringHash("GameViewport");
   }
 
+#if 0
   if (DebugState->DoChunkPicking && Input->LMB.Clicked)
   {
     DebugState->DoChunkPicking = False;
   }
+#endif
 
   GL.Enable(GL_CULL_FACE);
 
@@ -232,39 +237,18 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
 }
 
 link_internal void
-DebugFrameBegin(hotkeys *Hotkeys)
+DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
 {
   debug_state *State = GetDebugState();
-
-  if ( Hotkeys->Debug_RedrawEveryPush )
+  if (ToggleMenu)
   {
-     State->Debug_RedrawEveryPush = !State->Debug_RedrawEveryPush;
-  }
-
-  if ( Hotkeys->Debug_ToggleTriggeredRuntimeBreak )
-  {
-    Hotkeys->Debug_ToggleTriggeredRuntimeBreak = False;
-    State->TriggerRuntimeBreak = !State->TriggerRuntimeBreak;
-  }
-
-  if ( Hotkeys->Debug_ToggleProfile )
-  {
-    Hotkeys->Debug_ToggleProfile = False;
-    State->DebugDoScopeProfiling = !State->DebugDoScopeProfiling;
-  }
-
-  if ( Hotkeys->Debug_ToggleMenu )
-  {
-    Hotkeys->Debug_ToggleMenu = False;
     State->DisplayDebugMenu = !State->DisplayDebugMenu;
   }
 
-  if (Hotkeys->Debug_MousePick)
+  if (ToggleProfiling)
   {
-    State->DoChunkPicking = True;
+    State->DebugDoScopeProfiling = !State->DebugDoScopeProfiling;
   }
-
-  return;
 }
 
 link_export debug_state *
@@ -312,8 +296,8 @@ InitDebugSystem()
   Internal_DebugState.ClearMetaRecordsFor             = ClearMetaRecordsFor;
   Internal_DebugState.TrackDrawCall                   = TrackDrawCall;
   Internal_DebugState.GetThreadLocalState             = GetThreadLocalState;
-  Internal_DebugState.PickChunk                       = PickChunk;
-  Internal_DebugState.ComputePickRay                  = ComputePickRay;
+  /* Internal_DebugState.PickChunk                       = PickChunk; */
+  /* Internal_DebugState.ComputePickRay                  = ComputePickRay; */
   Internal_DebugState.DebugValue                      = DebugValue;
   Internal_DebugState.DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
   Internal_DebugState.OpenDebugWindowAndLetUsDoStuff  = OpenDebugWindowAndLetUsDoStuff;

@@ -1,6 +1,70 @@
 
 #if BONSAI_DEBUG_SYSTEM_API
 
+
+// TODO(Jesse, id: 161, tags: back_burner, debug_recording): Reinstate this!
+/* enum debug_recording_mode */
+/* { */
+/*   RecordingMode_Clear, */
+/*   RecordingMode_Record, */
+/*   RecordingMode_Playback, */
+
+/*   RecordingMode_Count, */
+/* }; */
+
+/* #define DEBUG_RECORD_INPUT_SIZE 3600 */
+/* struct debug_recording_state */
+/* { */
+/*   s32 FramesRecorded; */
+/*   s32 FramesPlayedBack; */
+/*   debug_recording_mode Mode; */
+
+/*   memory_arena RecordedMainMemory; */
+
+/*   hotkeys Inputs[DEBUG_RECORD_INPUT_SIZE]; */
+/* }; */
+
+
+typedef b32 (*meta_comparator)(push_metadata*, push_metadata*);
+
+struct called_function
+{
+  const char* Name;
+  u32 CallCount;
+};
+
+struct debug_draw_call
+{
+  const char * Caller;
+  u32 N;
+  u32 Calls;
+};
+
+struct min_max_avg_dt
+{
+  r64 Min;
+  r64 Max;
+  r64 Avg;
+};
+
+struct cycle_range
+{
+  u64 StartCycle;
+  u64 TotalCycles;
+};
+
+struct memory_arena_stats
+{
+  u64 Allocations;
+  u64 Pushes;
+
+  u64 TotalAllocated;
+  u64 Remaining;
+};
+poof(are_equal(memory_arena_stats))
+#include <generated/are_equal_memory_arena_stats.h>
+
+
 #if DEBUG_LIB_INTERNAL_BUILD
 #include <bonsai_debug/headers/debug_ui.h>
 #include <bonsai_debug/headers/interactable.h>
@@ -8,6 +72,10 @@
 #endif
 
 #include <bonsai_debug/headers/api.h>
+global_variable debug_profile_scope NullDebugProfileScope = {};
+
+
+
 
 #else
 

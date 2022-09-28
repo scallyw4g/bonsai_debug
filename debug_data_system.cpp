@@ -9,6 +9,7 @@ debug_global b32 DebugGlobal_RedrawEveryPush = 0;
 
 
 
+#if 0
 void
 PickChunk(world_chunk* Chunk, aabb ChunkAABB)
 {
@@ -25,6 +26,7 @@ PickChunk(world_chunk* Chunk, aabb ChunkAABB)
 
   return;
 }
+#endif
 
 
 
@@ -130,6 +132,7 @@ PushesMatchExactly(push_metadata *First, push_metadata *Second)
   return Result;
 }
 
+#define META_TABLE_SIZE (1024*4)
 inline void
 ClearMetaRecordsFor(memory_arena *Arena)
 {
@@ -261,6 +264,29 @@ DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char*
 }
 
 memory_arena_stats
+GetMemoryArenaStats(memory_arena *ArenaIn)
+{
+  memory_arena_stats Result = {};
+
+  memory_arena *Arena = ArenaIn;
+  while (Arena)
+  {
+    Result.Allocations++;
+    Result.TotalAllocated += TotalSize(Arena);
+    Result.Remaining += Remaining(Arena);
+
+// TODO(Jesse): Shouldn't this whole thing be internal?
+#if BONSAI_INTERNAL
+    Result.Pushes += Arena->Pushes;
+#endif
+
+    Arena = Arena->Prev;
+  }
+
+  return Result;
+}
+
+memory_arena_stats
 GetTotalMemoryArenaStats()
 {
   TIMED_FUNCTION();
@@ -292,6 +318,18 @@ GetTotalMemoryArenaStats()
 /**************************                     ******************************/
 
 
+
+link_internal u64
+GetCycleCount(debug_profile_scope *Scope)
+{
+  u64 Result = 0;
+  if (Scope->EndingCycle)
+  {
+    Assert(Scope->EndingCycle > Scope->StartingCycle);
+    Result = Scope->EndingCycle - Scope->StartingCycle;
+  }
+  return Result;
+}
 
 void
 InitScopeTree(debug_scope_tree *Tree)

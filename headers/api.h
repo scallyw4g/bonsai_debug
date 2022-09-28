@@ -1,15 +1,10 @@
 struct debug_state;
-struct game_state;
-struct os;
-struct server_state;
-struct hotkeys;
-struct world_chunk;
 struct debug_profile_scope;
 struct debug_thread_state;
 
 typedef void                 (*debug_clear_framebuffers_proc)          ();
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
-typedef void                 (*debug_frame_begin_proc)                 (hotkeys*);
+typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
 typedef void                 (*debug_main_thread_advance_data_system)  (r64);
@@ -22,8 +17,8 @@ typedef void                 (*debug_register_thread_proc)             (u32);
 typedef void                 (*debug_clear_meta_records_proc)          (memory_arena*);
 typedef void                 (*debug_track_draw_call_proc)             (const char*, u32);
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
-typedef void                 (*debug_pick_chunk)                       (world_chunk*, aabb);
-typedef void                 (*debug_compute_pick_ray)                 (m4*);
+/* typedef void                 (*debug_pick_chunk)                       (world_chunk*, aabb); */
+/* typedef void                 (*debug_compute_pick_ray)                 (m4*); */
 typedef void                 (*debug_value)                            (r32, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
 typedef void                 (*debug_open_window_and_let_us_do_stuff)  ();
@@ -46,31 +41,6 @@ typedef get_debug_state_proc (*init_debug_system_proc)();
 #define DEFAULT_DEBUG_LIB "./bin/lib_debug_system" PLATFORM_RUNTIME_LIB_EXTENSION
 
 
-#define DEBUG_FRAMES_TRACKED (128)
-
-struct cycle_range
-{
-  u64 StartCycle;
-  u64 TotalCycles;
-};
-
-struct memory_arena_stats
-{
-  u64 Allocations;
-  u64 Pushes;
-
-  u64 TotalAllocated;
-  u64 Remaining;
-};
-poof(are_equal(memory_arena_stats))
-#include <generated/are_equal_memory_arena_stats.h>
-
-struct min_max_avg_dt
-{
-  r64 Min;
-  r64 Max;
-  r64 Avg;
-};
 
 struct debug_profile_scope
 {
@@ -141,7 +111,7 @@ enum debug_ui_type
 {
   DebugUIType_None = 0,
 
-  DebugUIType_PickedChunks          = (1 << 0),
+  /* DebugUIType_PickedChunks          = (1 << 0), */
   DebugUIType_CallGraph             = (1 << 1),
   DebugUIType_CollatedFunctionCalls = (1 << 2),
   DebugUIType_Memory                = (1 << 3),
@@ -177,23 +147,17 @@ struct frame_stats
   r64 FrameMs;
 };
 
-struct called_function
-{
-  const char* Name;
-  u32 CallCount;
-};
+#define REGISTERED_MEMORY_ARENA_COUNT (128)
+#define DEBUG_FRAMES_TRACKED (128)
 
-#define REGISTERED_MEMORY_ARENA_COUNT 128
-#define META_TABLE_SIZE (1024*4)
-#define MAX_PICKED_WORLD_CHUNKS 32
 struct debug_state
 {
-  game_state* GameState;
-
   u32 UIType = DebugUIType_None;
 
   selected_arenas *SelectedArenas;
 
+#if 0
+#define MAX_PICKED_WORLD_CHUNKS (32)
   // Chunk Picking
   b32 DoChunkPicking;
 
@@ -202,11 +166,11 @@ struct debug_state
   u32 PickedChunkCount;
 
   ray PickRay;
-  //
+#endif
 
   u64 BytesBufferedToCard;
   b32 Initialized;
-  b32 Debug_RedrawEveryPush;
+  /* b32 Debug_RedrawEveryPush; */
   b32 DebugDoScopeProfiling = True;
   b32 TriggerRuntimeBreak;
   b32 DisplayDebugMenu;
@@ -259,8 +223,8 @@ struct debug_state
   debug_clear_meta_records_proc             ClearMetaRecordsFor;
   debug_track_draw_call_proc                TrackDrawCall;
   debug_get_thread_local_state              GetThreadLocalState;
-  debug_pick_chunk                          PickChunk;
-  debug_compute_pick_ray                    ComputePickRay;
+  /* debug_pick_chunk                          PickChunk; */
+  /* debug_compute_pick_ray                    ComputePickRay; */
   debug_value                               DebugValue;
   debug_dump_scope_tree_data_to_console     DumpScopeTreeDataToConsole;
   debug_open_window_and_let_us_do_stuff     OpenDebugWindowAndLetUsDoStuff;
@@ -287,43 +251,6 @@ struct debug_state
 #endif
 
 };
-
-struct debug_draw_call
-{
-  const char * Caller;
-  u32 N;
-  u32 Calls;
-};
-
-typedef b32 (*meta_comparator)(push_metadata*, push_metadata*);
-
-#if 0
-
-// TODO(Jesse, id: 161, tags: back_burner, debug_recording): Reinstate this!
-/* enum debug_recording_mode */
-/* { */
-/*   RecordingMode_Clear, */
-/*   RecordingMode_Record, */
-/*   RecordingMode_Playback, */
-
-/*   RecordingMode_Count, */
-/* }; */
-
-/* #define DEBUG_RECORD_INPUT_SIZE 3600 */
-/* struct debug_recording_state */
-/* { */
-/*   s32 FramesRecorded; */
-/*   s32 FramesPlayedBack; */
-/*   debug_recording_mode Mode; */
-
-/*   memory_arena RecordedMainMemory; */
-
-/*   hotkeys Inputs[DEBUG_RECORD_INPUT_SIZE]; */
-/* }; */
-
-#endif
-
-global_variable debug_profile_scope NullDebugProfileScope = {};
 
 struct debug_timed_function
 {
@@ -392,41 +319,6 @@ struct debug_timed_function
 
 };
 
-memory_arena_stats
-GetMemoryArenaStats(memory_arena *ArenaIn)
-{
-  memory_arena_stats Result = {};
-
-  memory_arena *Arena = ArenaIn;
-  while (Arena)
-  {
-    Result.Allocations++;
-    Result.TotalAllocated += TotalSize(Arena);
-    Result.Remaining += Remaining(Arena);
-
-// TODO(Jesse): Shouldn't this whole thing be internal?
-#if BONSAI_INTERNAL
-    Result.Pushes += Arena->Pushes;
-#endif
-
-    Arena = Arena->Prev;
-  }
-
-  return Result;
-}
-
-link_internal u64
-GetCycleCount(debug_profile_scope *Scope)
-{
-  u64 Result = 0;
-  if (Scope->EndingCycle)
-  {
-    Assert(Scope->EndingCycle > Scope->StartingCycle);
-    Result = Scope->EndingCycle - Scope->StartingCycle;
-  }
-  return Result;
-}
-
 #define TIMED_FUNCTION() debug_timed_function FunctionTimer(__func__)
 #define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockTimer(BlockName)
 
@@ -437,7 +329,7 @@ GetCycleCount(debug_profile_scope *Scope)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
 #define DEBUG_FRAME_END(a, b, c, d, e) if (GetDebugState) {GetDebugState()->FrameEnd(a, b, c, d, e);}
-#define DEBUG_FRAME_BEGIN(Hotkeys) if (GetDebugState) {GetDebugState()->FrameBegin(Hotkeys);}
+#define DEBUG_FRAME_BEGIN(a, b) if (GetDebugState) {GetDebugState()->FrameBegin(a, b);}
 
 void DebugTimedMutexWaiting(mutex *Mut);
 void DebugTimedMutexAquired(mutex *Mut);

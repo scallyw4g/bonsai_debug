@@ -7,7 +7,6 @@
 /*****************************                ********************************/
 
 
-
 link_internal void
 AdvanceSpaces(u32 N, layout *Layout, v2 FontSize)
 {
@@ -1840,6 +1839,7 @@ BasisRightOf(window_layout* Window, v2 WindowSpacing = V2(50, 0))
   return Result;
 }
 
+#if 0
 link_internal void
 DrawPickedChunks(debug_ui_render_group* Group)
 {
@@ -1921,6 +1921,7 @@ DrawPickedChunks(debug_ui_render_group* Group)
 
   return;
 }
+#endif
 
 
 
