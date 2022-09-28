@@ -7,7 +7,7 @@
 #include <bonsai_debug/headers/debug_render.h>
 #endif
 
-#include <bonsai_debug/headers/debug.h>
+#include <bonsai_debug/headers/api.h>
 
 #else
 
