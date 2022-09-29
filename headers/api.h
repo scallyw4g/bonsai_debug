@@ -2,23 +2,28 @@ struct debug_state;
 struct debug_profile_scope;
 struct debug_thread_state;
 
+struct input;
+struct memory_arena;
+struct mutex;
+
+
 typedef void                 (*debug_clear_framebuffers_proc)          ();
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
 typedef void                 (*debug_main_thread_advance_data_system)  (r64);
+
 typedef void                 (*debug_mutex_waiting_proc)               (mutex*);
 typedef void                 (*debug_mutex_aquired_proc)               (mutex*);
 typedef void                 (*debug_mutex_released_proc)              (mutex*);
+
 typedef debug_profile_scope* (*debug_get_profile_scope_proc)           ();
 typedef void*                (*debug_allocate_proc)                    (memory_arena*, umm, umm, const char*, s32 , const char*, umm, b32);
 typedef void                 (*debug_register_thread_proc)             (u32);
 typedef void                 (*debug_clear_meta_records_proc)          (memory_arena*);
 typedef void                 (*debug_track_draw_call_proc)             (const char*, u32);
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
-/* typedef void                 (*debug_pick_chunk)                       (world_chunk*, aabb); */
-/* typedef void                 (*debug_compute_pick_ray)                 (m4*); */
 typedef void                 (*debug_value)                            (r32, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
 typedef void                 (*debug_open_window_and_let_us_do_stuff)  ();
@@ -152,42 +157,11 @@ struct frame_stats
 
 struct debug_state
 {
+  b32 Initialized;
   u32 UIType = DebugUIType_None;
 
-  selected_arenas *SelectedArenas;
-
-#if 0
-#define MAX_PICKED_WORLD_CHUNKS (32)
-  // Chunk Picking
-  b32 DoChunkPicking;
-
-  world_chunk *HotChunk;
-  world_chunk *PickedChunks[MAX_PICKED_WORLD_CHUNKS];
-  u32 PickedChunkCount;
-
-  ray PickRay;
-#endif
-
   u64 BytesBufferedToCard;
-  b32 Initialized;
-  /* b32 Debug_RedrawEveryPush; */
   b32 DebugDoScopeProfiling = True;
-  b32 TriggerRuntimeBreak;
-  b32 DisplayDebugMenu;
-
-  debug_profile_scope* HotFunction;
-
-  debug_profile_scope FreeScopeSentinel;
-  mutex FreeScopeMutex;
-
-  frame_stats Frames[DEBUG_FRAMES_TRACKED];
-  debug_thread_state *ThreadStates;
-
-  u32 ReadScopeIndex;
-  s32 FreeScopeCount;
-  u64 NumScopes;
-
-  registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
 
   debug_scope_tree* GetReadScopeTree(u32 ThreadIndex)
   {
@@ -214,9 +188,11 @@ struct debug_state
   debug_register_arena_proc                 RegisterArena;
   debug_worker_thread_advance_data_system   WorkerThreadAdvanceDebugSystem;
   debug_main_thread_advance_data_system     MainThreadAdvanceDebugSystem;
+
   debug_mutex_waiting_proc                  MutexWait;
   debug_mutex_aquired_proc                  MutexAquired;
   debug_mutex_released_proc                 MutexReleased;
+
   debug_get_profile_scope_proc              GetProfileScope;
   debug_allocate_proc                       Debug_Allocate;
   debug_register_thread_proc                RegisterThread;
@@ -248,6 +224,25 @@ struct debug_state
   m4 ViewProjection;
   gpu_mapped_element_buffer GameGeo;
   shader DebugGameGeoTextureShader;
+
+  selected_arenas *SelectedArenas;
+
+  b32 TriggerRuntimeBreak;
+  b32 DisplayDebugMenu;
+
+  debug_profile_scope* HotFunction;
+
+  debug_profile_scope FreeScopeSentinel;
+  debug_thread_state *ThreadStates;
+
+  frame_stats Frames[DEBUG_FRAMES_TRACKED];
+
+  u32 ReadScopeIndex;
+  s32 FreeScopeCount;
+  u64 NumScopes;
+
+  registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
+
 #endif
 
 };
@@ -286,7 +281,7 @@ struct debug_timed_function
         this->Tree->ParentOfNextScope = this->Scope;
 
         this->Scope->Name = Name;
-        this->Scope->StartingCycle = GetCycleCount(); // Intentionally last
+        this->Scope->StartingCycle = __rdtsc(); // Intentionally last
       }
     }
 
@@ -307,7 +302,7 @@ struct debug_timed_function
       if (!DebugState->DebugDoScopeProfiling) return;
       if (!this->Scope) return;
 
-      this->Scope->EndingCycle = GetCycleCount(); // Intentionally first;
+      this->Scope->EndingCycle = __rdtsc(); // Intentionally first;
 
       Assert(this->Scope->EndingCycle > this->Scope->StartingCycle);
 
@@ -329,14 +324,17 @@ struct debug_timed_function
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
 #define DEBUG_FRAME_END(a, b, c, d, e) if (GetDebugState) {GetDebugState()->FrameEnd(a, b, c, d, e);}
-#define DEBUG_FRAME_BEGIN(a, b) if (GetDebugState) {GetDebugState()->FrameBegin(a, b);}
+#define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) if (GetDebugState) {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);}
 
+#if 1
 void DebugTimedMutexWaiting(mutex *Mut);
 void DebugTimedMutexAquired(mutex *Mut);
 void DebugTimedMutexReleased(mutex *Mut);
+
 #define TIMED_MUTEX_WAITING(Mut)  if (GetDebugState) {GetDebugState()->MutexWait(Mut);}
 #define TIMED_MUTEX_AQUIRED(Mut)  if (GetDebugState) {GetDebugState()->MutexAquired(Mut);}
 #define TIMED_MUTEX_RELEASED(Mut) if (GetDebugState) {GetDebugState()->MutexReleased(Mut);}
+#endif
 
 #define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               if (GetDebugState) {GetDebugState()->MainThreadAdvanceDebugSystem(dt);}
 #define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               if (GetDebugState) {GetDebugState()->WorkerThreadAdvanceDebugSystem();}
