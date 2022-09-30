@@ -1,6 +1,24 @@
 debug_global thread_local u32 ThreadLocal_ThreadIndex = 0;
 debug_global b32 DebugGlobal_RedrawEveryPush = 0;
 
+debug_scope_tree* GetReadScopeTree(u32 ThreadIndex)
+{
+  debug_scope_tree *RootScope = &GetDebugState()->ThreadStates[ThreadIndex].ScopeTrees[GetDebugState()->ReadScopeIndex];
+  return RootScope;
+}
+
+debug_scope_tree* GetWriteScopeTree()
+{
+  debug_scope_tree* Result = 0;
+
+  debug_thread_state* ThreadState = GetDebugState()->GetThreadLocalState();
+  if (ThreadState)
+  {
+    Result = ThreadState->ScopeTrees + (ThreadState->WriteIndex % DEBUG_FRAMES_TRACKED);
+  }
+
+  return Result;
+}
 
 
 /****************************                 ********************************/

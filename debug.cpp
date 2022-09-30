@@ -13,19 +13,11 @@
 #include <bonsai_debug/interactable.cpp>
 #include <bonsai_debug/debug_render_system.cpp>
 
-global_variable debug_state Internal_DebugState = {};
+debug_state *Global_DebugStatePointer;
 
-/* struct input_event */
-/* { */
-/*   b32 Clicked; */
-/*   b32 Pressed; */
-/* }; */
-
-/* struct debug_input_events */
-/* { */
-/*   input_event LMBPressed; */
-/*   input_event RMBPressed; */
-/* }; */
+global_variable os Os = {};
+global_variable platform Plat = {};
+global_variable hotkeys Hotkeys = {};
 
 link_internal void
 DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
@@ -251,77 +243,24 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
   }
 }
 
-link_export debug_state *
-GetDebugState()
+link_export u64
+QueryMemoryRequirements()
 {
-  debug_state *Result = 0;
-  if (Internal_DebugState.Initialized)
-  {
-    Result = &Internal_DebugState;
-  }
-  else
-  {
-    // It's an error to call this without first initializing the debug_state.
-    //
-    // At the time of this writing we're unable to write to stdout here because
-    // that path calls "FormatCountedString_", which is a TIMED_FUNCTION, which
-    // interally calls GetDebugState.
-    //
-    // This path only happens when we compile the entire debug lib statically
-    // inside another app (tests/ui_command_buffer.cpp), which should go away
-    // eventaully.  When it does, this will no longer have to check Initialized
-  }
-
-  return Result;
+  return sizeof(debug_state);
 }
 
-link_export get_debug_state_proc
-InitDebugSystem()
+link_internal b32
+OpenAndInitializeDebugWindow()
 {
-  LastMs = GetHighPrecisionClock();
-  Internal_DebugState.Frames[1].StartingCycle = GetCycleCount();
+  Assert(GetDebugState());
+  Assert(GetDebugState()->Initialized);
 
-  Internal_DebugState.ClearFramebuffers               = ClearFramebuffers;
-  Internal_DebugState.FrameEnd                        = DebugFrameEnd;
-  Internal_DebugState.FrameBegin                      = DebugFrameBegin;
-  Internal_DebugState.RegisterArena                   = RegisterArena;
-  Internal_DebugState.WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
-  Internal_DebugState.MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;
-  Internal_DebugState.MutexWait                       = MutexWait;
-  Internal_DebugState.MutexAquired                    = MutexAquired;
-  Internal_DebugState.MutexReleased                   = MutexReleased;
-  Internal_DebugState.GetProfileScope                 = GetProfileScope;
-  Internal_DebugState.Debug_Allocate                  = DEBUG_Allocate;
-  Internal_DebugState.RegisterThread                  = RegisterThread;
-  Internal_DebugState.ClearMetaRecordsFor             = ClearMetaRecordsFor;
-  Internal_DebugState.TrackDrawCall                   = TrackDrawCall;
-  Internal_DebugState.GetThreadLocalState             = GetThreadLocalState;
-  /* Internal_DebugState.PickChunk                       = PickChunk; */
-  /* Internal_DebugState.ComputePickRay                  = ComputePickRay; */
-  Internal_DebugState.DebugValue                      = DebugValue;
-  Internal_DebugState.DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
-  Internal_DebugState.OpenDebugWindowAndLetUsDoStuff  = OpenDebugWindowAndLetUsDoStuff;
-
-  Internal_DebugState.Initialized = True;
-
-  InitDebugDataSystem(&Internal_DebugState);
+  b32 WindowSuccess = OpenAndInitializeWindow(&Os, &Plat, 1);
+  if (!WindowSuccess) { Error("Initializing Window :( "); return False; }
+  Assert(Os.Window);
 
   heap_allocator Heap = InitHeap(Megabytes(128));
-  InitDebugRenderSystem(&Internal_DebugState, &Heap);
-
-  return GetDebugState;
-}
-
-link_export get_debug_state_proc
-OpenAndInitializeDebugWindow(os *Os, platform *Plat)
-{
-  b32 WindowSuccess = OpenAndInitializeWindow(Os, Plat, 1);
-  if (!WindowSuccess) { Error("Initializing Window :( "); return False; }
-  Assert(Os->Window);
-
-  InitializeOpenglFunctions();
-
-  InitDebugSystem();
+  b32 Result = InitDebugRenderSystem(GetDebugState(), &Heap);
 
   /* debug_state* DebugState = GetDebugState(); */
   /* DebugState->DebugDoScopeProfiling = True; */
@@ -335,5 +274,78 @@ OpenAndInitializeDebugWindow(os *Os, platform *Plat)
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  return GetDebugState;
+  return Result;
 }
+
+link_internal b32
+ProcessInputAndRedrawWindow()
+{
+  ClearClickedFlags(&Plat.Input);
+
+  v2 LastMouseP = Plat.MouseP;
+  while ( ProcessOsMessages(&Os, &Plat) );
+  Plat.MouseDP = LastMouseP - Plat.MouseP;
+
+  Assert(Plat.WindowWidth && Plat.WindowHeight);
+
+  BindHotkeysToInput(&Hotkeys, &Plat.Input);
+
+  DebugFrameBegin(false, false);
+  DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt);
+
+  RewindArena(TranArena);
+
+  BonsaiSwapBuffers(&Os);
+
+  GetDebugState()->ClearFramebuffers();
+
+  GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
+  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  return Os.ContinueRunning;
+}
+
+link_export b32
+InitDebugState(debug_state *DebugState, u64 AllocationSize)
+{
+  Assert(AllocationSize >= QueryMemoryRequirements());
+  Assert(DebugState->Initialized == False);
+
+  LastMs = GetHighPrecisionClock();
+
+  DebugState->Frames[1].StartingCycle = GetCycleCount();
+
+  DebugState->ClearFramebuffers               = ClearFramebuffers;
+  DebugState->FrameEnd                        = DebugFrameEnd;
+  DebugState->FrameBegin                      = DebugFrameBegin;
+  DebugState->RegisterArena                   = RegisterArena;
+  DebugState->WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
+  DebugState->MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;
+  DebugState->MutexWait                       = MutexWait;
+  DebugState->MutexAquired                    = MutexAquired;
+  DebugState->MutexReleased                   = MutexReleased;
+  DebugState->GetProfileScope                 = GetProfileScope;
+  DebugState->Debug_Allocate                  = DEBUG_Allocate;
+  DebugState->RegisterThread                  = RegisterThread;
+  DebugState->ClearMetaRecordsFor             = ClearMetaRecordsFor;
+  DebugState->TrackDrawCall                   = TrackDrawCall;
+  DebugState->GetThreadLocalState             = GetThreadLocalState;
+  DebugState->DebugValue                      = DebugValue;
+  DebugState->DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
+  /* DebugState->OpenDebugWindowAndLetUsDoStuff  = OpenDebugWindowAndLetUsDoStuff; */
+  DebugState->GetReadScopeTree                = GetReadScopeTree;
+  DebugState->GetWriteScopeTree               = GetWriteScopeTree;
+
+  DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow;
+  DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
+
+  DebugState->Initialized = True;
+
+  Global_DebugStatePointer = DebugState;
+
+  InitDebugDataSystem(DebugState);
+
+  b32 Result = True;
+  return Result;
+}
+

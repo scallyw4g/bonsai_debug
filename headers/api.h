@@ -7,6 +7,10 @@ struct memory_arena;
 struct mutex;
 
 
+
+
+typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32); 
+typedef debug_scope_tree*    (*get_write_scope_tree_proc)(); 
 typedef void                 (*debug_clear_framebuffers_proc)          ();
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
@@ -26,25 +30,14 @@ typedef void                 (*debug_track_draw_call_proc)             (const ch
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_value)                            (r32, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
-typedef void                 (*debug_open_window_and_let_us_do_stuff)  ();
+
+typedef b32                  (*debug_open_window_proc)                 ();
+typedef b32                  (*debug_redraw_window_proc)               ();
 
 
 typedef debug_state*         (*get_debug_state_proc)  ();
-typedef get_debug_state_proc (*init_debug_system_proc)();
-
-#if DEBUG_LIB_INTERNAL_BUILD
-  link_export debug_state* GetDebugState();
-
-#else
-  link_internal get_debug_state_proc GetDebugState;
-
-#endif
-
-#define DebugLibName_InitDebugSystem "InitDebugSystem"
-#define DebugLibName_GetDebugState "GetDebugState"
-
-#define DEFAULT_DEBUG_LIB "./bin/lib_debug_system" PLATFORM_RUNTIME_LIB_EXTENSION
-
+typedef u64                  (*query_memory_requirements_proc)();
+typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *, u64 DebugStateSize);
 
 
 struct debug_profile_scope
@@ -69,18 +62,6 @@ struct debug_profile_scope
 // every time we need another one)
 /* CAssert(sizeof(debug_profile_scope) == CACHE_LINE_SIZE); */
 
-struct unique_debug_profile_scope
-{
-  const char* Name;
-  u32 CallCount;
-  u64 TotalCycles;
-  u64 MinCycles = u64_MAX;
-  u64 MaxCycles;
-
-  debug_profile_scope* Scope;
-  unique_debug_profile_scope* NextUnique;
-};
-
 struct debug_scope_tree
 {
   debug_profile_scope *Root;
@@ -91,32 +72,10 @@ struct debug_scope_tree
   u64 FrameRecorded;
 };
 
-struct debug_thread_state
-{
-  memory_arena *Memory;
-  memory_arena *MemoryFor_debug_profile_scope; // Specifically for allocationg debug_profile_scope structs
-  push_metadata *MetaTable;
-
-  debug_scope_tree *ScopeTrees;
-  debug_profile_scope *FirstFreeScope;
-
-  mutex_op_array *MutexOps;
-
-  volatile u32 WriteIndex; // Note(Jesse): This must not straddle a cache line on x86 because multiple threads read from the main threads copy of this
-
-#if EMCC // NOTE(Jesse): Uhh, wtf?  Oh, EMCC pointers are 32 bits..? FML
-  u8 Pad[36];
-#else
-  u8 Pad[12];
-#endif
-};
-CAssert(sizeof(debug_thread_state) == CACHE_LINE_SIZE);
-
 enum debug_ui_type
 {
   DebugUIType_None = 0,
 
-  /* DebugUIType_PickedChunks          = (1 << 0), */
   DebugUIType_CallGraph             = (1 << 1),
   DebugUIType_CollatedFunctionCalls = (1 << 2),
   DebugUIType_Memory                = (1 << 3),
@@ -124,36 +83,6 @@ enum debug_ui_type
   DebugUIType_Network               = (1 << 5),
   DebugUIType_DrawCalls             = (1 << 6)
 };
-
-struct registered_memory_arena
-{
-  memory_arena *Arena;
-  const char* Name;
-  b32 Expanded;
-};
-
-struct selected_memory_arena
-{
-  umm ArenaHash;
-  umm HeadArenaHash;
-};
-
-#define MAX_SELECTED_ARENAS 128
-struct selected_arenas
-{
-  u32 Count;
-  selected_memory_arena Arenas[MAX_SELECTED_ARENAS];
-};
-
-struct frame_stats
-{
-  u64 TotalCycles;
-  u64 StartingCycle;
-  r64 FrameMs;
-};
-
-#define REGISTERED_MEMORY_ARENA_COUNT (128)
-#define DEBUG_FRAMES_TRACKED (128)
 
 struct debug_state
 {
@@ -163,24 +92,7 @@ struct debug_state
   u64 BytesBufferedToCard;
   b32 DebugDoScopeProfiling = True;
 
-  debug_scope_tree* GetReadScopeTree(u32 ThreadIndex)
-  {
-    debug_scope_tree *RootScope = &this->ThreadStates[ThreadIndex].ScopeTrees[this->ReadScopeIndex];
-    return RootScope;
-  }
-
-  debug_scope_tree* GetWriteScopeTree()
-  {
-    debug_scope_tree* Result = 0;
-
-    debug_thread_state* ThreadState = GetDebugState()->GetThreadLocalState();
-    if (ThreadState)
-    {
-      Result = ThreadState->ScopeTrees + (ThreadState->WriteIndex % DEBUG_FRAMES_TRACKED);
-    }
-
-    return Result;
-  }
+  u64 NumScopes;
 
   debug_clear_framebuffers_proc             ClearFramebuffers;
   debug_frame_end_proc                      FrameEnd;
@@ -203,7 +115,12 @@ struct debug_state
   /* debug_compute_pick_ray                    ComputePickRay; */
   debug_value                               DebugValue;
   debug_dump_scope_tree_data_to_console     DumpScopeTreeDataToConsole;
-  debug_open_window_and_let_us_do_stuff     OpenDebugWindowAndLetUsDoStuff;
+
+  debug_open_window_proc                    OpenAndInitializeDebugWindow;
+  debug_redraw_window_proc                  ProcessInputAndRedrawWindow;
+
+  get_read_scope_tree_proc GetReadScopeTree;
+  get_write_scope_tree_proc GetWriteScopeTree;
 
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
@@ -235,17 +152,21 @@ struct debug_state
   debug_profile_scope FreeScopeSentinel;
   debug_thread_state *ThreadStates;
 
+#define DEBUG_FRAMES_TRACKED (128)
   frame_stats Frames[DEBUG_FRAMES_TRACKED];
 
   u32 ReadScopeIndex;
   s32 FreeScopeCount;
-  u64 NumScopes;
 
+#define REGISTERED_MEMORY_ARENA_COUNT (128)
   registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
 
 #endif
 
 };
+
+#define GetDebugState() Global_DebugStatePointer
+link_external debug_state *Global_DebugStatePointer;
 
 struct debug_timed_function
 {
@@ -254,13 +175,8 @@ struct debug_timed_function
 
   debug_timed_function(const char *Name)
   {
-    Clear(this);
-
-    // This if doesn't have to be here in internal builds, because we know
-    // statically that it'll be present
-#if !DEBUG_LIB_INTERNAL_BUILD
-    if (!GetDebugState) return;
-#endif
+    this->Scope = 0;
+    this->Tree = 0;
 
     debug_state *DebugState = GetDebugState();
     if (DebugState)
@@ -290,12 +206,6 @@ struct debug_timed_function
 
   ~debug_timed_function()
   {
-    // This if doesn't have to be here in internal builds, because we know
-    // statically that it'll be present
-#if !DEBUG_LIB_INTERNAL_BUILD
-    if (!GetDebugState) return;
-#endif
-
     debug_state *DebugState = GetDebugState();
     if (DebugState)
     {
@@ -320,28 +230,94 @@ struct debug_timed_function
 #define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer(BlockName)
 #define END_BLOCK(BlockName) } do {} while (0)
 
-#define DEBUG_VALUE(Pointer) if (GetDebugState) {GetDebugState()->DebugValue(Pointer, #Pointer);}
+#define DEBUG_VALUE(Pointer) do {GetDebugState()->DebugValue(Pointer, #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(a, b, c, d, e) if (GetDebugState) {GetDebugState()->FrameEnd(a, b, c, d, e);}
-#define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) if (GetDebugState) {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);}
+#define DEBUG_FRAME_END(a, b, c, d, e) do {GetDebugState()->FrameEnd(a, b, c, d, e);} while (false)
+#define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);} while (false)
 
 #if 1
 void DebugTimedMutexWaiting(mutex *Mut);
 void DebugTimedMutexAquired(mutex *Mut);
 void DebugTimedMutexReleased(mutex *Mut);
 
-#define TIMED_MUTEX_WAITING(Mut)  if (GetDebugState) {GetDebugState()->MutexWait(Mut);}
-#define TIMED_MUTEX_AQUIRED(Mut)  if (GetDebugState) {GetDebugState()->MutexAquired(Mut);}
-#define TIMED_MUTEX_RELEASED(Mut) if (GetDebugState) {GetDebugState()->MutexReleased(Mut);}
+#define TIMED_MUTEX_WAITING(Mut)  do {GetDebugState()->MutexWait(Mut);} while (false)
+#define TIMED_MUTEX_AQUIRED(Mut)  do {GetDebugState()->MutexAquired(Mut);} while (false)
+#define TIMED_MUTEX_RELEASED(Mut) do {GetDebugState()->MutexReleased(Mut);} while (false)
 #endif
 
-#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               if (GetDebugState) {GetDebugState()->MainThreadAdvanceDebugSystem(dt);}
-#define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               if (GetDebugState) {GetDebugState()->WorkerThreadAdvanceDebugSystem();}
+#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt);} while (false)
+#define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {GetDebugState()->WorkerThreadAdvanceDebugSystem();} while (false)
 
-#define DEBUG_CLEAR_META_RECORDS_FOR(Arena)                if (GetDebugState) {GetDebugState()->ClearMetaRecordsFor(Arena);}
-#define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  if (GetDebugState) {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);}
+#define DEBUG_CLEAR_META_RECORDS_FOR(Arena)                do {GetDebugState()->ClearMetaRecordsFor(Arena);} while (false)
+#define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
-#define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) if (GetDebugState) {GetDebugState()->ViewProjection = ViewProjPtr;}
-#define DEBUG_COMPUTE_PICK_RAY(ViewProjPtr)          if (GetDebugState) {GetDebugState()->ComputePickRay(ViewProjPtr);}
-#define DEBUG_PICK_CHUNK(Chunk, ChunkAABB)                 if (GetDebugState) {GetDebugState()->PickChunk(Chunk, ChunkAABB);}
+#define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) do {GetDebugState()->ViewProjection = ViewProjPtr;} while (false)
+#define DEBUG_COMPUTE_PICK_RAY(ViewProjPtr)                do {GetDebugState()->ComputePickRay(ViewProjPtr);} while (false)
+#define DEBUG_PICK_CHUNK(Chunk, ChunkAABB)                 do {GetDebugState()->PickChunk(Chunk, ChunkAABB);} while (false)
+
+#if BONSAI_DEBUG_LIB_LOADER_API
+
+#include <dlfcn.h>
+
+#define BonsaiDebug_DefaultLibPath "lib_bonsai_debug/lib_bonsai_debug.so"
+debug_state *Global_DebugStatePointer;
+
+struct bonsai_debug_api
+{
+  query_memory_requirements_proc QueryMemoryRequirements;
+  init_debug_system_proc         InitDebugState;
+};
+
+
+bool
+InitializeBootstrapDebugApi(void* DebugLib, bonsai_debug_api *Api)
+{
+  b32 Result = 1;
+
+  Api->QueryMemoryRequirements = (query_memory_requirements_proc)dlsym(DebugLib, "QueryMemoryRequirements");
+  Result &= (Api->QueryMemoryRequirements != 0);
+
+  Api->InitDebugState = (init_debug_system_proc)dlsym(DebugLib, "InitDebugState");
+  Result &= (Api->InitDebugState != 0);
+
+  return Result;
+}
+
+bool
+InitializeBonsaiDebug(const char* DebugLibName)
+{
+  bool Result = false;
+  void* DebugLib = dlopen(DebugLibName, RTLD_NOW);
+
+  if (!DebugLib) { char *error = dlerror(); printf("OpenLibrary Failed (%s)\n", error); }
+  else
+  {
+    printf("Library (%s) loaded!\n", DebugLibName);
+
+    bonsai_debug_api DebugApi = {};
+    if (InitializeBootstrapDebugApi(DebugLib, &DebugApi))
+    {
+      u64 BytesRequested = DebugApi.QueryMemoryRequirements();
+      Global_DebugStatePointer = (debug_state*)calloc(BytesRequested, 1);
+
+      if (DebugApi.InitDebugState(Global_DebugStatePointer, BytesRequested))
+      {
+        printf("Success initializing lib_bonsai_debug\n");
+        Result = True;
+      }
+      else
+      {
+        printf("Error initializing lib_bonsai_debug\n");
+      }
+    }
+    else
+    {
+      printf("Error initializing lib_bonsai_debug bootstrap API\n");
+    }
+  }
+
+  return Result;
+}
+
+#endif

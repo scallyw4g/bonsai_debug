@@ -64,6 +64,70 @@ struct memory_arena_stats
 poof(are_equal(memory_arena_stats))
 #include <generated/are_equal_memory_arena_stats.h>
 
+struct debug_profile_scope;
+struct debug_scope_tree;
+
+
+struct debug_thread_state
+{
+  memory_arena *Memory;
+  memory_arena *MemoryFor_debug_profile_scope; // Specifically for allocationg debug_profile_scope structs
+  push_metadata *MetaTable;
+
+  debug_scope_tree *ScopeTrees;
+  debug_profile_scope *FirstFreeScope;
+
+  mutex_op_array *MutexOps;
+
+  volatile u32 WriteIndex; // Note(Jesse): This must not straddle a cache line on x86 because multiple threads read from the main threads copy of this
+
+#if EMCC // NOTE(Jesse): Uhh, wtf?  Oh, EMCC pointers are 32 bits..? FML
+  u8 Pad[36];
+#else
+  u8 Pad[12];
+#endif
+};
+CAssert(sizeof(debug_thread_state) == CACHE_LINE_SIZE);
+
+struct unique_debug_profile_scope
+{
+  const char* Name;
+  u32 CallCount;
+  u64 TotalCycles;
+  u64 MinCycles = u64_MAX;
+  u64 MaxCycles;
+
+  debug_profile_scope* Scope;
+  unique_debug_profile_scope* NextUnique;
+};
+
+struct selected_memory_arena
+{
+  umm ArenaHash;
+  umm HeadArenaHash;
+};
+
+#define MAX_SELECTED_ARENAS 128
+struct selected_arenas
+{
+  u32 Count;
+  selected_memory_arena Arenas[MAX_SELECTED_ARENAS];
+};
+
+struct frame_stats
+{
+  u64 TotalCycles;
+  u64 StartingCycle;
+  r64 FrameMs;
+};
+
+struct registered_memory_arena
+{
+  memory_arena *Arena;
+  const char* Name;
+  b32 Expanded;
+};
+
 
 #if DEBUG_LIB_INTERNAL_BUILD
 #include <bonsai_debug/headers/debug_ui.h>
