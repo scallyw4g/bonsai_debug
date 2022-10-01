@@ -5,12 +5,24 @@ struct debug_thread_state;
 struct input;
 struct memory_arena;
 struct mutex;
+struct heap_allocator;
 
 
 
+struct memory_record
+{
+  const char* Name;
+  umm ArenaAddress;
+  umm ArenaMemoryBlock;
+  umm StructSize;
+  umm StructCount;
 
-typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32); 
-typedef debug_scope_tree*    (*get_write_scope_tree_proc)(); 
+  u32 PushCount;
+};
+
+
+typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
+typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 typedef void                 (*debug_clear_framebuffers_proc)          ();
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
@@ -25,11 +37,13 @@ typedef void                 (*debug_mutex_released_proc)              (mutex*);
 typedef debug_profile_scope* (*debug_get_profile_scope_proc)           ();
 typedef void*                (*debug_allocate_proc)                    (memory_arena*, umm, umm, const char*, s32 , const char*, umm, b32);
 typedef void                 (*debug_register_thread_proc)             (u32);
-typedef void                 (*debug_clear_meta_records_proc)          (memory_arena*);
 typedef void                 (*debug_track_draw_call_proc)             (const char*, u32);
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_value)                            (r32, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
+
+typedef void                 (*debug_clear_memory_records_proc)          (memory_arena*);
+typedef void                 (*debug_write_memory_record_proc)           (memory_record*);
 
 typedef b32                  (*debug_open_window_proc)                 ();
 typedef b32                  (*debug_redraw_window_proc)               ();
@@ -108,7 +122,11 @@ struct debug_state
   debug_get_profile_scope_proc              GetProfileScope;
   debug_allocate_proc                       Debug_Allocate;
   debug_register_thread_proc                RegisterThread;
-  debug_clear_meta_records_proc             ClearMetaRecordsFor;
+
+  debug_write_memory_record_proc            WriteMemoryRecord;
+  debug_clear_memory_records_proc           ClearMemoryRecordsFor;
+
+
   debug_track_draw_call_proc                TrackDrawCall;
   debug_get_thread_local_state              GetThreadLocalState;
   /* debug_pick_chunk                          PickChunk; */
@@ -118,6 +136,8 @@ struct debug_state
 
   debug_open_window_proc                    OpenAndInitializeDebugWindow;
   debug_redraw_window_proc                  ProcessInputAndRedrawWindow;
+
+  b32 (*InitializeRenderSystem)(debug_state*, heap_allocator*);
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
@@ -249,7 +269,7 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt);} while (false)
 #define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {GetDebugState()->WorkerThreadAdvanceDebugSystem();} while (false)
 
-#define DEBUG_CLEAR_META_RECORDS_FOR(Arena)                do {GetDebugState()->ClearMetaRecordsFor(Arena);} while (false)
+#define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)                do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
 #define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) do {GetDebugState()->ViewProjection = ViewProjPtr;} while (false)
@@ -259,6 +279,8 @@ void DebugTimedMutexReleased(mutex *Mut);
 #if BONSAI_DEBUG_LIB_LOADER_API
 
 #include <dlfcn.h>
+#include <stdio.h>
+#include <time.h>
 
 #define BonsaiDebug_DefaultLibPath "lib_bonsai_debug/lib_bonsai_debug.so"
 debug_state *Global_DebugStatePointer;
@@ -269,6 +291,14 @@ struct bonsai_debug_api
   init_debug_system_proc         InitDebugState;
 };
 
+global_variable r64 Global_LastDebugTime = 0;
+r64 GetDt()
+{
+  r64 ThisTime = GetHighPrecisionClock();
+  r64 Result = ThisTime - Global_LastDebugTime;
+  Global_LastDebugTime = ThisTime;
+  return Result;
+}
 
 bool
 InitializeBootstrapDebugApi(void* DebugLib, bonsai_debug_api *Api)
@@ -319,5 +349,6 @@ InitializeBonsaiDebug(const char* DebugLibName)
 
   return Result;
 }
+
 
 #endif

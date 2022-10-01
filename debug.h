@@ -25,7 +25,8 @@
 /* }; */
 
 
-typedef b32 (*meta_comparator)(push_metadata*, push_metadata*);
+struct memory_record;
+typedef b32 (*meta_comparator)(memory_record*, memory_record*);
 
 struct called_function
 {
@@ -72,7 +73,7 @@ struct debug_thread_state
 {
   memory_arena *Memory;
   memory_arena *MemoryFor_debug_profile_scope; // Specifically for allocationg debug_profile_scope structs
-  push_metadata *MetaTable;
+  memory_record *MetaTable;
 
   debug_scope_tree *ScopeTrees;
   debug_profile_scope *FirstFreeScope;
@@ -103,8 +104,8 @@ struct unique_debug_profile_scope
 
 struct selected_memory_arena
 {
-  umm ArenaHash;
-  umm HeadArenaHash;
+  umm ArenaAddress;
+  umm ArenaBlockAddress;
 };
 
 #define MAX_SELECTED_ARENAS 128

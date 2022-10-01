@@ -254,6 +254,7 @@ OpenAndInitializeDebugWindow()
 {
   Assert(GetDebugState());
   Assert(GetDebugState()->Initialized);
+  GetDebugState()->DebugDoScopeProfiling = True;
 
   b32 WindowSuccess = OpenAndInitializeWindow(&Os, &Plat, 1);
   if (!WindowSuccess) { Error("Initializing Window :( "); return False; }
@@ -262,18 +263,6 @@ OpenAndInitializeDebugWindow()
   heap_allocator Heap = InitHeap(Megabytes(128));
   b32 Result = InitDebugRenderSystem(GetDebugState(), &Heap);
 
-  /* debug_state* DebugState = GetDebugState(); */
-  /* DebugState->DebugDoScopeProfiling = True; */
-  /* DebugState->Plat = &Plat; */
-
-  GL.ClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-  GL.ClearDepth(1.0f);
-
-  GetDebugState()->ClearFramebuffers();
-
-  GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
-  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   return Result;
 }
 
@@ -281,6 +270,7 @@ link_internal b32
 ProcessInputAndRedrawWindow()
 {
   ClearClickedFlags(&Plat.Input);
+  Clear(&Hotkeys);
 
   v2 LastMouseP = Plat.MouseP;
   while ( ProcessOsMessages(&Os, &Plat) );
@@ -290,7 +280,7 @@ ProcessInputAndRedrawWindow()
 
   BindHotkeysToInput(&Hotkeys, &Plat.Input);
 
-  DebugFrameBegin(false, false);
+  DebugFrameBegin(Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
   DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt);
 
   RewindArena(TranArena);
@@ -327,17 +317,19 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
   DebugState->GetProfileScope                 = GetProfileScope;
   DebugState->Debug_Allocate                  = DEBUG_Allocate;
   DebugState->RegisterThread                  = RegisterThread;
-  DebugState->ClearMetaRecordsFor             = ClearMetaRecordsFor;
   DebugState->TrackDrawCall                   = TrackDrawCall;
   DebugState->GetThreadLocalState             = GetThreadLocalState;
   DebugState->DebugValue                      = DebugValue;
   DebugState->DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
-  /* DebugState->OpenDebugWindowAndLetUsDoStuff  = OpenDebugWindowAndLetUsDoStuff; */
   DebugState->GetReadScopeTree                = GetReadScopeTree;
   DebugState->GetWriteScopeTree               = GetWriteScopeTree;
 
+  DebugState->WriteMemoryRecord               = WriteMemoryRecord;
+  DebugState->ClearMemoryRecordsFor           = ClearMetaRecordsFor;
+
   DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow;
   DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
+  DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
 
   DebugState->Initialized = True;
 

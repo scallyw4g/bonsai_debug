@@ -130,27 +130,27 @@ RegisterArena(const char *Name, memory_arena *Arena)
 }
 
 b32
-PushesShareHeadArena(push_metadata *First, push_metadata *Second)
+PushesShareHeadArena(memory_record *First, memory_record *Second)
 {
-  b32 Result = (First->HeadArenaHash == Second->HeadArenaHash &&
-                First->StructSize    == Second->StructSize    &&
-                First->StructCount   == Second->StructCount   &&
-                First->Name          == Second->Name);
+  b32 Result = (First->ArenaMemoryBlock == Second->ArenaMemoryBlock &&
+                First->StructSize       == Second->StructSize       &&
+                First->StructCount      == Second->StructCount      &&
+                StringsMatch(First->Name, Second->Name) );
   return Result;
 }
 
 b32
-PushesMatchExactly(push_metadata *First, push_metadata *Second)
+PushesMatchExactly(memory_record *First, memory_record *Second)
 {
-  b32 Result = (First->ArenaHash     == Second->ArenaHash     &&
-                First->HeadArenaHash == Second->HeadArenaHash &&
-                First->StructSize    == Second->StructSize    &&
-                First->StructCount   == Second->StructCount   &&
-                First->Name          == Second->Name);
+  b32 Result = (First->ArenaAddress     == Second->ArenaAddress     &&
+                First->ArenaMemoryBlock == Second->ArenaMemoryBlock &&
+                First->StructSize       == Second->StructSize       &&
+                First->StructCount      == Second->StructCount      &&
+                StringsMatch(First->Name, Second->Name) );
   return Result;
 }
 
-#define META_TABLE_SIZE (1024*4)
+#define META_TABLE_SIZE (1024*32)
 inline void
 ClearMetaRecordsFor(memory_arena *Arena)
 {
@@ -165,8 +165,8 @@ ClearMetaRecordsFor(memory_arena *Arena)
         MetaIndex < META_TABLE_SIZE;
         ++MetaIndex)
     {
-      push_metadata *Meta = GetThreadLocalStateFor(ThreadIndex)->MetaTable + MetaIndex;
-      if (Meta->ArenaHash == HashArena(Arena))
+      memory_record *Meta = GetThreadLocalStateFor(ThreadIndex)->MetaTable + MetaIndex;
+      if (Meta->ArenaAddress == HashArena(Arena))
       {
         Clear(Meta);
       }
@@ -205,13 +205,12 @@ GetRegisteredMemoryArena( memory_arena *Arena)
 }
 
 void
-WriteToMetaTable(push_metadata *Query, push_metadata *Table, meta_comparator Comparator)
+WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Comparator)
 {
-
-  u32 HashValue = (u32)(((u64)Query->Name & (u64)Query->ArenaHash) % META_TABLE_SIZE);
+  u32 HashValue = (u32)(((u64)Query->Name & (u64)Query->ArenaAddress) % META_TABLE_SIZE);
   u32 FirstHashValue = HashValue;
 
-  push_metadata *PickMeta = Table + HashValue;
+  memory_record *PickMeta = Table + HashValue;
   while (PickMeta->Name)
   {
     if (Comparator(PickMeta, Query))
@@ -241,15 +240,16 @@ WriteToMetaTable(push_metadata *Query, push_metadata *Table, meta_comparator Com
 }
 
 void
-CollateMetadata(push_metadata *InputMeta, push_metadata *MetaTable)
+CollateMetadata(memory_record *InputMeta, memory_record *MetaTable)
 {
   WriteToMetaTable(InputMeta, MetaTable, PushesShareHeadArena);
   return;
 }
 
 void
-WritePushMetadata(push_metadata *InputMeta, push_metadata *MetaTable)
+WriteMemoryRecord(memory_record *InputMeta)
 {
+  memory_record *MetaTable = GetThreadLocalStateFor(ThreadLocal_ThreadIndex)->MetaTable;
   WriteToMetaTable(InputMeta, MetaTable, PushesMatchExactly);
   return;
 }
@@ -268,8 +268,8 @@ DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char*
   umm PushSize = StructCount * StructSize;
   void* Result = PushStruct( Arena, PushSize, Alignment, MemProtect);
 
-  push_metadata ArenaMetadata = {Name, HashArena(Arena), HashArenaHead(Arena), StructSize, StructCount, 1};
-  WritePushMetadata(&ArenaMetadata, GetThreadLocalStateFor(ThreadLocal_ThreadIndex)->MetaTable);
+  memory_record ArenaMetadata = {Name, HashArena(Arena), HashArenaBlock(Arena), StructSize, StructCount, 1};
+  WriteMemoryRecord(&ArenaMetadata);
 
   if (!Result)
   {
@@ -796,7 +796,7 @@ GetTotalMutexOpsForReadFrame()
 }
 
 umm
-GetAllocationSize(push_metadata *Meta)
+GetAllocationSize(memory_record *Meta)
 {
   umm AllocationSize = Meta->StructSize*Meta->StructCount*Meta->PushCount;
   return AllocationSize;
@@ -841,7 +841,7 @@ InitDebugMemoryAllocationSystem(debug_state *State)
   }
 #endif
 
-  umm MetaTableSize = META_TABLE_SIZE * sizeof(push_metadata);
+  umm MetaTableSize = META_TABLE_SIZE * sizeof(memory_record);
   for (u32 ThreadIndex = 0;
       ThreadIndex < TotalThreadCount;
       ++ThreadIndex)
@@ -857,7 +857,7 @@ InitDebugMemoryAllocationSystem(debug_state *State)
     ThreadState->MemoryFor_debug_profile_scope = DebugThreadArenaFor_debug_profile_scope;
     DEBUG_REGISTER_ARENA(DebugThreadArenaFor_debug_profile_scope);
 
-    ThreadState->MetaTable = (push_metadata*)PushStruct(ThreadsafeDebugMemoryAllocator(), MetaTableSize, CACHE_LINE_SIZE);
+    ThreadState->MetaTable = (memory_record*)PushStruct(ThreadsafeDebugMemoryAllocator(), MetaTableSize, CACHE_LINE_SIZE);
     ThreadState->MutexOps = AllocateAligned(mutex_op_array, DebugThreadArena, DEBUG_FRAMES_TRACKED, CACHE_LINE_SIZE);
     ThreadState->ScopeTrees = AllocateAligned(debug_scope_tree, DebugThreadArena, DEBUG_FRAMES_TRACKED, CACHE_LINE_SIZE);
   }

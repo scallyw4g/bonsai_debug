@@ -95,6 +95,14 @@ struct font
   v2 Size;
 };
 
+inline font
+MakeFont(v2 Size)
+{
+  font Result = {};
+  Result.Size = Size;
+  return Result;
+}
+
 // TODO(Jesse, id: 77, tags: font, cleanup): Axe this!
 debug_global font Global_Font = {
   .Size = V2(26, 34) * 1.3f,
@@ -120,7 +128,7 @@ struct ui_style
 };
 
 
-link_internal ui_style UiStyleFromLightestColor(v3 Color);
+link_internal ui_style UiStyleFromLightestColor(v3 Color, font Font = Global_Font);
 debug_global ui_style DefaultUiStyle = UiStyleFromLightestColor(V3(1));
 debug_global v4 DefaultColumnPadding = V4(0, 0, 25, 0);
 
@@ -260,7 +268,7 @@ poof(
 
 
 
-#define MAX_UI_RENDER_COMMAND_COUNT (4096*8)
+#define MAX_UI_RENDER_COMMAND_COUNT (4096*4096)
 
 struct ui_render_command_buffer
 {
@@ -377,16 +385,16 @@ StandardStyling(v3 StartingColor, v3 HoverMultiplier = V3(1.3f), v3 ClickMultipl
 }
 
 link_internal ui_style
-UiStyleFromLightestColor(v3 Color)
+UiStyleFromLightestColor(v3 Color, font Font)
 {
   ui_style Style  = {
     .Color        = Color,
-    .HoverColor   = Color*0.75f,
+    .HoverColor   = Color*0.85f,
     .PressedColor = Color,
     .ClickedColor = Color,
     .ActiveColor  = Color,
 
-    .Font         = Global_Font,
+    .Font         = Font,
 
     .IsActive     = False,
   };

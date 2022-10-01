@@ -48,5 +48,7 @@ struct debug_ui_render_group
   untextured_2d_geometry_buffer Geo;
 
   ui_render_command_buffer *CommandBuffer;
+
+  memory_arena RenderCommandArena;
 };
 
