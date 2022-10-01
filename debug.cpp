@@ -295,15 +295,12 @@ ProcessInputAndRedrawWindow()
   return Os.ContinueRunning;
 }
 
-link_export b32
-InitDebugState(debug_state *DebugState, u64 AllocationSize)
+link_export void
+BonsaiDebug_OnLoad(debug_state *DebugState)
 {
-  Assert(AllocationSize >= QueryMemoryRequirements());
-  Assert(DebugState->Initialized == False);
+  InitializeOpenglFunctions();
 
-  LastMs = GetHighPrecisionClock();
-
-  DebugState->Frames[1].StartingCycle = GetCycleCount();
+  Global_DebugStatePointer = DebugState;
 
   DebugState->ClearFramebuffers               = ClearFramebuffers;
   DebugState->FrameEnd                        = DebugFrameEnd;
@@ -330,6 +327,17 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
   DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow;
   DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
+}
+
+link_export b32
+InitDebugState(debug_state *DebugState, u64 AllocationSize)
+{
+  Assert(AllocationSize >= QueryMemoryRequirements());
+  Assert(DebugState->Initialized == False);
+
+  LastMs = GetHighPrecisionClock();
+
+  DebugState->Frames[1].StartingCycle = GetCycleCount();
 
   DebugState->Initialized = True;
 

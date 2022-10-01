@@ -52,6 +52,7 @@ typedef b32                  (*debug_redraw_window_proc)               ();
 typedef debug_state*         (*get_debug_state_proc)  ();
 typedef u64                  (*query_memory_requirements_proc)();
 typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *, u64 DebugStateSize);
+typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *);
 
 
 struct debug_profile_scope
@@ -289,6 +290,7 @@ struct bonsai_debug_api
 {
   query_memory_requirements_proc QueryMemoryRequirements;
   init_debug_system_proc         InitDebugState;
+  patch_debug_lib_pointers_proc  BonsaiDebug_OnLoad;
 };
 
 global_variable r64 Global_LastDebugTime = 0;
@@ -311,17 +313,18 @@ InitializeBootstrapDebugApi(void* DebugLib, bonsai_debug_api *Api)
   Api->InitDebugState = (init_debug_system_proc)dlsym(DebugLib, "InitDebugState");
   Result &= (Api->InitDebugState != 0);
 
+  Api->BonsaiDebug_OnLoad = (patch_debug_lib_pointers_proc)dlsym(DebugLib, "BonsaiDebug_OnLoad");
+  Result &= (Api->InitDebugState != 0);
+
   return Result;
 }
 
-bool
+void*
 InitializeBonsaiDebug(const char* DebugLibName)
 {
-  bool Result = false;
   void* DebugLib = dlopen(DebugLibName, RTLD_NOW);
 
-  if (!DebugLib) { char *error = dlerror(); printf("OpenLibrary Failed (%s)\n", error); }
-  else
+  if (DebugLib)
   {
     printf("Library (%s) loaded!\n", DebugLibName);
 
@@ -331,23 +334,19 @@ InitializeBonsaiDebug(const char* DebugLibName)
       u64 BytesRequested = DebugApi.QueryMemoryRequirements();
       Global_DebugStatePointer = (debug_state*)calloc(BytesRequested, 1);
 
+      DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer);
+
       if (DebugApi.InitDebugState(Global_DebugStatePointer, BytesRequested))
       {
         printf("Success initializing lib_bonsai_debug\n");
-        Result = True;
       }
-      else
-      {
-        printf("Error initializing lib_bonsai_debug\n");
-      }
+      else { printf("Error initializing lib_bonsai_debug\n"); DebugLib = 0; }
     }
-    else
-    {
-      printf("Error initializing lib_bonsai_debug bootstrap API\n");
-    }
+    else { printf("Error initializing lib_bonsai_debug bootstrap API\n"); DebugLib = 0; }
   }
+  else { printf("OpenLibrary Failed (%s)\n", dlerror()); DebugLib = 0; }
 
-  return Result;
+  return DebugLib;
 }
 
 

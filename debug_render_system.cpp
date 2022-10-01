@@ -74,8 +74,8 @@ link_internal void
 ClearFramebuffers()
 {
   TIMED_FUNCTION();
-  GL.BindFramebuffer(GL_FRAMEBUFFER, GetDebugState()->GameGeoFBO.ID);
-  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  /* GL.BindFramebuffer(GL_FRAMEBUFFER, GetDebugState()->GameGeoFBO.ID); */
+  /* GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); */
 }
 
 link_internal void
@@ -2854,7 +2854,7 @@ link_internal void
 PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
 {
   PushNewRow(Group);
-  v3 DefaultColor = V3(0.75f, 0.75f, 0.0);
+  v3 DefaultColor =  V3(.25f, .1f, .35f);
 
   r32 TotalPerc = (r32)SafeDivide0(TotalUsed, MemStats.TotalAllocated);
   // TODO(Jesse, id: 110, tags: ui, semantic): Should we do something special when interacting with this thing instead of Ignored-ing it?
@@ -2872,7 +2872,7 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedA
       selected_memory_arena *Selected = &SelectedArenas->Arenas[ArenaIndex];
       if (Selected->ArenaAddress == HashArena(CurrentArena))
       {
-        Color = V3(.75f, .0f, .75f);
+        Color = DefaultColor * 1.8f;
       }
     }
 
@@ -3030,8 +3030,10 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
   PushWindowStart(Group, MemoryArenaList);
   PushTableStart(Group);
 
-  v3 TitleColor = V3(1.f);
-  ui_style TitleStyle = UiStyleFromLightestColor(TitleColor, MakeFont(Global_Font.Size*1.1f));
+  /* v3 TitleColor = V3(.5f); */
+  v3 TitleColor = V3(1.f, 1.f, 1.f);
+  ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
+
 
   PushColumn(Group, CSz("Total Size"), &TitleStyle);
   PushColumn(Group, CSz("Pushes"),     &TitleStyle);
@@ -3411,8 +3413,6 @@ MakeRenderToTextureShader(memory_arena *Memory, m4 *ViewProjection)
 link_internal b32
 InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
 {
-  InitializeOpenglFunctions();
-
   AllocateMesh(&DebugState->LineMesh, 1024, Heap);
 
   DebugState->UiGroup.TextGroup = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
