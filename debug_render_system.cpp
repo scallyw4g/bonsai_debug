@@ -3146,7 +3146,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
             registered_memory_arena *Current = DebugState->RegisteredMemoryArenas + ArenaIndex;
             if (Current->Arena)
             {
-              if (Meta->ArenaAddress == HashArena(Current->Arena))
+              if (Meta->ArenaMemoryBlock == HashArenaBlock(Current->Arena))
               {
                 FoundRecordOwner = True;
               }
@@ -3155,7 +3155,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
           if (!FoundRecordOwner)
           {
-            WriteToMetaTable(Meta, UnknownRecordTable, PushesMatchExactly);
+            WriteToMetaTable(Meta, UnknownRecordTable, PushesShareHeadArena);
             /* PushColumn(Group, CS(Meta->StructSize), &UnnamedStyle); */
             /* PushColumn(Group, CS(Meta->StructCount), &UnnamedStyle); */
             /* PushColumn(Group, CS(Meta->Name), &UnnamedStyle); */

@@ -166,7 +166,7 @@ ClearMetaRecordsFor(memory_arena *Arena)
         ++MetaIndex)
     {
       memory_record *Meta = GetThreadLocalStateFor(ThreadIndex)->MetaTable + MetaIndex;
-      if (Meta->ArenaAddress == HashArena(Arena))
+      if (Meta->ArenaMemoryBlock == HashArenaBlock(Arena))
       {
         Clear(Meta);
       }
@@ -268,8 +268,8 @@ DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char*
   umm PushSize = StructCount * StructSize;
   void* Result = PushStruct( Arena, PushSize, Alignment, MemProtect);
 
-  /* memory_record ArenaMetadata = {Name, HashArena(Arena), HashArenaBlock(Arena), StructSize, StructCount, 1}; */
-  /* WriteMemoryRecord(&ArenaMetadata); */
+  memory_record ArenaMetadata = {Name, HashArena(Arena), HashArenaBlock(Arena), StructSize, StructCount, 1};
+  WriteMemoryRecord(&ArenaMetadata);
 
   if (!Result)
   {

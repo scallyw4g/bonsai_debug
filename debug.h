@@ -1,28 +1,44 @@
 
 #if BONSAI_DEBUG_SYSTEM_API
 
+inline umm
+HashArenaBlock(memory_arena *Arena)
+{
+  umm Result = (umm)Arena;
+  return Result;
+}
 
+inline umm
+HashArena(memory_arena *Arena)
+{
+  umm Result = (umm)Arena->Start;
+  return Result;
+}
+
+
+#if 0
 // TODO(Jesse, id: 161, tags: back_burner, debug_recording): Reinstate this!
-/* enum debug_recording_mode */
-/* { */
-/*   RecordingMode_Clear, */
-/*   RecordingMode_Record, */
-/*   RecordingMode_Playback, */
+enum debug_recording_mode
+{
+  RecordingMode_Clear,
+  RecordingMode_Record,
+  RecordingMode_Playback,
 
-/*   RecordingMode_Count, */
-/* }; */
+  RecordingMode_Count,
+};
 
-/* #define DEBUG_RECORD_INPUT_SIZE 3600 */
-/* struct debug_recording_state */
-/* { */
-/*   s32 FramesRecorded; */
-/*   s32 FramesPlayedBack; */
-/*   debug_recording_mode Mode; */
+#define DEBUG_RECORD_INPUT_SIZE 3600
+struct debug_recording_state
+{
+  s32 FramesRecorded;
+  s32 FramesPlayedBack;
+  debug_recording_mode Mode;
 
-/*   memory_arena RecordedMainMemory; */
+  memory_arena RecordedMainMemory;
 
-/*   hotkeys Inputs[DEBUG_RECORD_INPUT_SIZE]; */
-/* }; */
+  hotkeys Inputs[DEBUG_RECORD_INPUT_SIZE];
+};
+#endif
 
 
 struct memory_record;
