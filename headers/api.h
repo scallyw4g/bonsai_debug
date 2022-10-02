@@ -9,11 +9,12 @@ struct heap_allocator;
 
 
 
+#define BONSAI_NO_ARENA (0xFFFFFFFFFFFFFFFF)
 struct memory_record
 {
   const char* Name;
-  umm ArenaAddress;
-  umm ArenaMemoryBlock;
+  umm ArenaAddress;     // If this is set to BONSAI_NO_ARENA you can set "ArenaMemoryBlock" to a null-terminated string identifying the allocation site
+  umm ArenaMemoryBlock; // @ArenaMemoryBlock-as-char-pointer
   umm StructSize;
   umm StructCount;
   u32 ThreadId;

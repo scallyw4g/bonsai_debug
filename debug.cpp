@@ -256,7 +256,6 @@ OpenAndInitializeDebugWindow()
 {
   Assert(GetDebugState());
   Assert(GetDebugState()->Initialized);
-  GetDebugState()->DebugDoScopeProfiling = True;
 
   b32 WindowSuccess = OpenAndInitializeWindow(&Os, &Plat, 1);
   if (!WindowSuccess) { Error("Initializing Window :( "); return False; }
@@ -346,6 +345,8 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
   InitDebugDataSystem(DebugState);
 
   DEBUG_REGISTER_ARENA(TranArena, 0);
+
+  DebugState->DebugDoScopeProfiling = True;
 
   b32 Result = True;
   return Result;

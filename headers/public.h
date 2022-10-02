@@ -6,4 +6,3 @@ struct debug_scope_tree;
 
 #define CAssert(condition) static_assert((condition), #condition )
 #define Assert(condition) assert(condition)
-

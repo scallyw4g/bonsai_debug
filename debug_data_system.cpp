@@ -133,8 +133,8 @@ RegisterArena(const char *Name, memory_arena *Arena, u32 ThreadId)
 b32
 PushesShareName(memory_record *First, memory_record *Second)
 {
-  b32 Result = ( First->ThreadId      == Second->ThreadId  &&
-                  StringsMatch(First->Name, Second->Name) );
+  b32 Result = ( First->ThreadId == Second->ThreadId  &&
+                 StringsMatch(First->Name, Second->Name) );
   return Result;
 }
 
@@ -221,7 +221,7 @@ GetRegisteredMemoryArena( memory_arena *Arena)
 void
 WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Comparator)
 {
-  u32 HashValue = (umm)Query->Name % META_TABLE_SIZE; //(u32)(((u64)Query->Name & (u64)Query->ArenaAddress) % META_TABLE_SIZE);
+  u32 HashValue = (umm)Hash(CS(Query->Name)) % META_TABLE_SIZE;
   u32 FirstHashValue = HashValue;
 
   memory_record *PickMeta = Table + HashValue;

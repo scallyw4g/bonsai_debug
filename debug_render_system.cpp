@@ -2972,7 +2972,17 @@ PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Reco
     {
       umm AllocationSize = GetAllocationSize(Collated);
       PushColumn(Group,  CS(Collated->ThreadId));
-      PushColumn(Group,  CS((u16)Collated->ArenaMemoryBlock), &ArenaStyle);
+
+      if (Collated->ArenaAddress == BONSAI_NO_ARENA && Collated->ArenaMemoryBlock)
+      {
+        // @ArenaMemoryBlock-as-char-pointer
+        PushColumn(Group,  CS((char*)Collated->ArenaMemoryBlock), &ArenaStyle);
+      }
+      else
+      {
+        PushColumn(Group,  CS(HashValue), &ArenaStyle);
+      }
+
       PushColumn(Group,  MemorySize(AllocationSize));
       PushColumn(Group,  FormatThousands(Collated->StructCount));
       PushColumn(Group,  FormatThousands(Collated->PushCount));
@@ -2985,11 +2995,8 @@ PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Reco
 }
 
 link_internal void
-PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedArenas, umm CurrentMemoryBlock)
+DebugMetadataHeading(debug_ui_render_group *Group)
 {
-  memory_record CollatedMetaTable[META_TABLE_SIZE] = {};
-
-
   PushColumn(Group, CSz("Thread"));
   PushColumn(Group, CSz("Arena"));
   PushColumn(Group, CSz("Total Size"));
@@ -2998,6 +3005,14 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
   PushColumn(Group, CSz("Name"));
   PushNewRow(Group);
 
+}
+
+link_internal void
+PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedArenas, umm CurrentMemoryBlock)
+{
+  memory_record CollatedMetaTable[META_TABLE_SIZE] = {};
+
+  DebugMetadataHeading(Group);
 
   // Pick out relevant metadata and write to collation table
   u32 TotalThreadCount = GetWorkerThreadCount() + 1;
@@ -3035,93 +3050,9 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
 link_internal void
 DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 {
-  v2 Basis = V2(20, 350);
-  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize + V2(300, 0));
-  window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
-
-  local_persist b32 UnknownAllocationsExpanded = {};
-
-
-  PushWindowStart(Group, MemoryArenaList);
-  PushTableStart(Group);
-
-  /* v3 TitleColor = V3(.5f); */
-  v3 TitleColor = V3(1.f, 1.f, 1.f);
-  ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
-
-
-  PushColumn(Group, CSz("Thread"), &TitleStyle);
-  PushColumn(Group, CSz("Total Size"), &TitleStyle);
-  PushColumn(Group, CSz("Pushes"),     &TitleStyle);
-  PushColumn(Group, CSz("Arena Name"), &TitleStyle);
-  PushNewRow(Group);
-
-  v3 DefaultColor = V3(.7f,.7f,.7f);
-
-  /* ui_style UnnamedStyle = UiStyleFromLightestColor(DefaultColor); */
-  /* interactable_handle UnknownAllocationsExpandInteraction = */
-  /* PushButtonStart(Group, (umm)"unnamed MemoryWindowExpandInteraction"); */
-  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
-  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
-  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
-  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
-  /*   PushNewRow(Group); */
-  /* PushButtonEnd(Group); */
-
-  /* if (Clicked(Group, &UnknownAllocationsExpandInteraction)) */
-  /* { */
-  /*   UnknownAllocationsExpanded = !UnknownAllocationsExpanded; */
-  /* } */
-
-  selected_arenas *SelectedArenas = GetDebugState()->SelectedArenas;
-
-
-
-  for ( u32 Index = 0;
-        Index < REGISTERED_MEMORY_ARENA_COUNT;
-        ++Index )
-  {
-    registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
-    if (!Current->Arena) continue;
-
-    memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
-    u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
-
-    v3 Color = DefaultColor;
-    if (Current->Expanded)
-    {
-      Color = V3(1,1,1);
-    }
-
-    ui_style Style = UiStyleFromLightestColor(Color);
-
-    interactable_handle ExpandInteraction =
-    PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
-      PushColumn(Group, CS(Current->ThreadId), &Style);
-      PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
-      PushColumn(Group, CS(MemStats.Pushes), &Style);
-      PushColumn(Group, CS(Current->Name), &Style);
-      PushNewRow(Group);
-    PushButtonEnd(Group);
-
-    if (Clicked(Group, &ExpandInteraction))
-    {
-      Current->Expanded = !Current->Expanded;
-    }
-  }
-
-  PushTableEnd(Group);
-  PushWindowEnd(Group, MemoryArenaList);
-
-
-  Basis = BasisBelow(MemoryArenaList);
-  local_persist window_layout MemoryArenaDetailsInstance = WindowLayout("Memory Arena Details", Basis, DefaultWindowSize * V2(2.f, 1.f));
-  window_layout* MemoryArenaDetails = &MemoryArenaDetailsInstance;
-
-
-
-  PushWindowStart(Group, MemoryArenaDetails);
-
+  local_persist b32 UntrackedAllocationsExpanded = {};
+  b32 FoundUntrackedAllocations = False;
+  memory_record UnknownRecordTable[META_TABLE_SIZE] = {};
   {
     u32 TotalThreadCount = GetWorkerThreadCount() + 1;
     for ( u32 ThreadIndex = 0;
@@ -3153,11 +3084,18 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
           if (!FoundRecordOwner)
           {
-            const char* Name = GetNullTerminated(CS(Meta->ArenaMemoryBlock), &Global_PermMemory);
-            RegisterArena(Name, (memory_arena*)Meta->ArenaMemoryBlock, ThreadIndex);
+            if (Meta->ArenaAddress == BONSAI_NO_ARENA)
+            {
+              FoundUntrackedAllocations = True;
+              WriteToMetaTable(Meta, UnknownRecordTable, PushesMatchExactly);
+            }
+            else
+            {
+              const char* Name = GetNullTerminated(CS(Meta->ArenaMemoryBlock), &Global_PermMemory);
+              RegisterArena(Name, (memory_arena*)Meta->ArenaMemoryBlock, ThreadIndex);
+            }
           }
         }
-
       }
     }
   }
@@ -3170,10 +3108,104 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
 
+  v2 Basis = V2(20, 350);
+  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize + V2(300, 0));
+  window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
+
+
+  PushWindowStart(Group, MemoryArenaList);
+  PushTableStart(Group);
+
+  /* v3 TitleColor = V3(.5f); */
+  v3 TitleColor = V3(1.f, 1.f, 1.f);
+  ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
+
+
+  PushColumn(Group, CSz("Thread"), &TitleStyle);
+  PushColumn(Group, CSz("Total Size"), &TitleStyle);
+  PushColumn(Group, CSz("Pushes"),     &TitleStyle);
+  PushColumn(Group, CSz("Arena Name"), &TitleStyle);
+  PushNewRow(Group);
+
+  v3 DefaultColor = V3(.7f,.7f,.7f);
+  v3 SelectedColor = V3(1.f);
+  ui_style DefaultStyle = UiStyleFromLightestColor(DefaultColor);
+  ui_style SelectedStyle = UiStyleFromLightestColor(SelectedColor);
+
+  if (FoundUntrackedAllocations)
+  {
+    ui_style UnnamedStyle = UntrackedAllocationsExpanded ? SelectedStyle : DefaultStyle;
+
+    interactable_handle UnknownAllocationsExpandInteraction =
+    PushButtonStart(Group, (umm)"unnamed MemoryWindowExpandInteraction");
+      PushColumn(Group, CSz("?"), &UnnamedStyle);
+      PushColumn(Group, CSz("?"), &UnnamedStyle);
+      PushColumn(Group, CSz("?"), &UnnamedStyle);
+      PushColumn(Group, CSz("Untracked Allocations"), &UnnamedStyle);
+      PushNewRow(Group);
+    PushButtonEnd(Group);
+    if (Clicked(Group, &UnknownAllocationsExpandInteraction))
+    {
+      UntrackedAllocationsExpanded = !UntrackedAllocationsExpanded;
+    }
+  }
+
+
+  selected_arenas *SelectedArenas = GetDebugState()->SelectedArenas;
+
+
+
+  for ( u32 Index = 0;
+        Index < REGISTERED_MEMORY_ARENA_COUNT;
+        ++Index )
+  {
+    registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+    if (!Current->Arena) continue;
+
+    memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
+    u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
+
+    ui_style Style = Current->Expanded? SelectedStyle : DefaultStyle;
+
+    interactable_handle ExpandInteraction =
+    PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+      PushColumn(Group, CS(Current->ThreadId), &Style);
+      PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
+      PushColumn(Group, CS(MemStats.Pushes), &Style);
+      PushColumn(Group, CS(Current->Name), &Style);
+      PushNewRow(Group);
+    PushButtonEnd(Group);
+
+    if (Clicked(Group, &ExpandInteraction))
+    {
+      Current->Expanded = !Current->Expanded;
+    }
+  }
+
+  PushTableEnd(Group);
+  PushWindowEnd(Group, MemoryArenaList);
 
 
 
 
+
+
+
+
+  Basis = BasisBelow(MemoryArenaList);
+  local_persist window_layout MemoryArenaDetailsInstance = WindowLayout("Memory Arena Details", Basis, DefaultWindowSize * V2(2.f, 1.f));
+  window_layout* MemoryArenaDetails = &MemoryArenaDetailsInstance;
+
+  PushWindowStart(Group, MemoryArenaDetails);
+
+  if (FoundUntrackedAllocations && UntrackedAllocationsExpanded)
+  {
+    PushTableStart(Group);
+    PushNewRow(Group);
+    DebugMetadataHeading(Group);
+    PackSortAndBufferMemoryRecords(Group, UnknownRecordTable, META_TABLE_SIZE);
+    PushTableEnd(Group);
+  }
 
   for ( u32 Index = 0;
         Index < REGISTERED_MEMORY_ARENA_COUNT;
