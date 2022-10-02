@@ -2056,6 +2056,17 @@ GetByte(u32 ByteIndex, u64 Source)
   return Result;
 }
 
+link_internal v3
+ColorFromHash(u64 HashValue)
+{
+  u8 R = GetByte(0, HashValue);
+  u8 G = GetByte(1, HashValue);
+  u8 B = GetByte(2, HashValue);
+
+  v3 Color = V3( R / 255.0f, G / 255.0f, B / 255.0f );
+  return Color;
+}
+
 link_internal void
 PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope, cycle_range *Frame, r32 TotalGraphWidth, random_series *Entropy, u32 Depth = 0)
 {
@@ -2066,14 +2077,10 @@ PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope,
     /* umm NameHash = Hash(CS(Scope->Name)) ^ Hash(CS(Scope->Location)); */
     umm NameHash = Hash(CS(Scope->Name));
 
-    u8 R = GetByte(0, NameHash);
-    u8 G = GetByte(1, NameHash);
-    u8 B = GetByte(2, NameHash);
-
     random_series ScopeSeries = {.Seed = (u64)Scope};
     r32 Tint = RandomBetween(0.5f, &ScopeSeries, 1.0f);
 
-    v3 Color = V3( R / 255.0f, G / 255.0f, B / 255.0f ) * Tint;
+    v3 Color = ColorFromHash(NameHash) * Tint;
 
     ui_style Style = UiStyleFromLightestColor(Color);
 
@@ -2951,15 +2958,21 @@ PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Reco
   }
 
 
+
   // Buffer collation table text
   for ( u32 MetaIndex = 0;
       MetaIndex < PackedRecords;
       ++MetaIndex)
   {
     memory_record *Collated = Records + MetaIndex;
+    u64 HashValue = (Collated->ArenaMemoryBlock) * 2654435761;
+    v3 ArenaColor = ColorFromHash(HashValue) * 1.2f;
+    ui_style ArenaStyle = UiStyleFromLightestColor(ArenaColor);
     if (Collated->Name)
     {
       umm AllocationSize = GetAllocationSize(Collated);
+      PushColumn(Group,  CS(Collated->ThreadId));
+      PushColumn(Group,  CS((u16)Collated->ArenaMemoryBlock), &ArenaStyle);
       PushColumn(Group,  MemorySize(AllocationSize));
       PushColumn(Group,  FormatThousands(Collated->StructCount));
       PushColumn(Group,  FormatThousands(Collated->PushCount));
@@ -2977,7 +2990,9 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
   memory_record CollatedMetaTable[META_TABLE_SIZE] = {};
 
 
-  PushColumn(Group, CSz("Allocation Size"));
+  PushColumn(Group, CSz("Thread"));
+  PushColumn(Group, CSz("Arena"));
+  PushColumn(Group, CSz("Total Size"));
   PushColumn(Group, CSz("Struct Count"));
   PushColumn(Group, CSz("Push Count"));
   PushColumn(Group, CSz("Name"));
@@ -3035,26 +3050,28 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
   ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
 
 
+  PushColumn(Group, CSz("Thread"), &TitleStyle);
   PushColumn(Group, CSz("Total Size"), &TitleStyle);
   PushColumn(Group, CSz("Pushes"),     &TitleStyle);
   PushColumn(Group, CSz("Arena Name"), &TitleStyle);
   PushNewRow(Group);
 
   v3 DefaultColor = V3(.7f,.7f,.7f);
-  ui_style UnnamedStyle = UiStyleFromLightestColor(DefaultColor);
 
-  interactable_handle UnknownAllocationsExpandInteraction =
-  PushButtonStart(Group, (umm)"unnamed MemoryWindowExpandInteraction");
-    PushColumn(Group, CSz("(unknown)"), &UnnamedStyle);
-    PushColumn(Group, CSz("(unknown)"), &UnnamedStyle);
-    PushColumn(Group, CSz("(unknown)"), &UnnamedStyle);
-    PushNewRow(Group);
-  PushButtonEnd(Group);
+  /* ui_style UnnamedStyle = UiStyleFromLightestColor(DefaultColor); */
+  /* interactable_handle UnknownAllocationsExpandInteraction = */
+  /* PushButtonStart(Group, (umm)"unnamed MemoryWindowExpandInteraction"); */
+  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
+  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
+  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
+  /*   PushColumn(Group, CSz("(unknown)"), &UnnamedStyle); */
+  /*   PushNewRow(Group); */
+  /* PushButtonEnd(Group); */
 
-  if (Clicked(Group, &UnknownAllocationsExpandInteraction))
-  {
-    UnknownAllocationsExpanded = !UnknownAllocationsExpanded;
-  }
+  /* if (Clicked(Group, &UnknownAllocationsExpandInteraction)) */
+  /* { */
+  /*   UnknownAllocationsExpanded = !UnknownAllocationsExpanded; */
+  /* } */
 
   selected_arenas *SelectedArenas = GetDebugState()->SelectedArenas;
 
@@ -3080,6 +3097,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
     interactable_handle ExpandInteraction =
     PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+      PushColumn(Group, CS(Current->ThreadId), &Style);
       PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
       PushColumn(Group, CS(MemStats.Pushes), &Style);
       PushColumn(Group, CS(Current->Name), &Style);
@@ -3104,27 +3122,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
   PushWindowStart(Group, MemoryArenaDetails);
 
-
-
-
-
-
-
-
-
-
-  PushTableStart(Group);
-  if (UnknownAllocationsExpanded)
   {
-    memory_record UnknownRecordTable[META_TABLE_SIZE] = {};
-    /* PushDebugPushMetaData(Group, SelectedArenas, 0); */
-
-    PushColumn(Group, CSz("Total Size"), &TitleStyle);
-    PushColumn(Group, CSz("Struct Count"), &TitleStyle);
-    PushColumn(Group, CSz("Push Count"), &TitleStyle);
-    PushColumn(Group, CSz("Name"), &TitleStyle);
-    PushNewRow(Group);
-
     u32 TotalThreadCount = GetWorkerThreadCount() + 1;
     for ( u32 ThreadIndex = 0;
         ThreadIndex < TotalThreadCount;
@@ -3155,23 +3153,14 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
           if (!FoundRecordOwner)
           {
-            WriteToMetaTable(Meta, UnknownRecordTable, PushesShareHeadArena);
-            /* PushColumn(Group, CS(Meta->StructSize), &UnnamedStyle); */
-            /* PushColumn(Group, CS(Meta->StructCount), &UnnamedStyle); */
-            /* PushColumn(Group, CS(Meta->Name), &UnnamedStyle); */
-            /* PushNewRow(Group); */
+            const char* Name = GetNullTerminated(CS(Meta->ArenaMemoryBlock), &Global_PermMemory);
+            RegisterArena(Name, (memory_arena*)Meta->ArenaMemoryBlock, ThreadIndex);
           }
         }
 
       }
     }
-
-    PackSortAndBufferMemoryRecords(Group, UnknownRecordTable, META_TABLE_SIZE);
   }
-
-  PushTableEnd(Group);
-
-
 
 
 
@@ -3201,6 +3190,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       PushNewRow(Group);
       PushNewRow(Group);
       PushColumn(Group, CS(Current->Name));
+      /* PushNewRow(Group); */
+      /* PushColumn(Group, CS(Current->Arena->InitializedAt)); */
       PushNewRow(Group);
       PushNewRow(Group);
 

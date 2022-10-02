@@ -94,7 +94,7 @@ GetThreadLocalState()
 
 
 void
-RegisterArena(const char *Name, memory_arena *Arena)
+RegisterArena(const char *Name, memory_arena *Arena, u32 ThreadId)
 {
   debug_state* DebugState = GetDebugState();
   b32 Registered = False;
@@ -110,6 +110,7 @@ RegisterArena(const char *Name, memory_arena *Arena)
       if (AtomicCompareExchange( (volatile void **)&Current->Name, (void*)Name, (void*)CurrentName ))
       {
         Current->Arena = Arena;
+        Current->ThreadId = ThreadId;
         Registered = True;
         break;
       }
@@ -130,11 +131,20 @@ RegisterArena(const char *Name, memory_arena *Arena)
 }
 
 b32
+PushesShareName(memory_record *First, memory_record *Second)
+{
+  b32 Result = ( First->ThreadId      == Second->ThreadId  &&
+                  StringsMatch(First->Name, Second->Name) );
+  return Result;
+}
+
+b32
 PushesShareHeadArena(memory_record *First, memory_record *Second)
 {
   b32 Result = (First->ArenaMemoryBlock == Second->ArenaMemoryBlock &&
                 First->StructSize       == Second->StructSize       &&
                 First->StructCount      == Second->StructCount      &&
+                First->ThreadId      == Second->ThreadId      &&
                 StringsMatch(First->Name, Second->Name) );
   return Result;
 }
@@ -146,17 +156,21 @@ PushesMatchExactly(memory_record *First, memory_record *Second)
                 First->ArenaMemoryBlock == Second->ArenaMemoryBlock &&
                 First->StructSize       == Second->StructSize       &&
                 First->StructCount      == Second->StructCount      &&
+                First->ThreadId      == Second->ThreadId      &&
                 StringsMatch(First->Name, Second->Name) );
   return Result;
 }
 
-#define META_TABLE_SIZE (1024*32)
+#define META_TABLE_SIZE (1024*4)
 inline void
 ClearMetaRecordsFor(memory_arena *Arena)
 {
   TIMED_FUNCTION();
 
+  umm ArenaBlockHash = HashArenaBlock(Arena);
+  umm ArenaHash = HashArena(Arena);
   u32 TotalThreadCount = GetWorkerThreadCount() + 1;
+
   for ( u32 ThreadIndex = 0;
       ThreadIndex < TotalThreadCount;
       ++ThreadIndex)
@@ -166,7 +180,7 @@ ClearMetaRecordsFor(memory_arena *Arena)
         ++MetaIndex)
     {
       memory_record *Meta = GetThreadLocalStateFor(ThreadIndex)->MetaTable + MetaIndex;
-      if (Meta->ArenaMemoryBlock == HashArenaBlock(Arena))
+      if (Meta->ArenaMemoryBlock == ArenaBlockHash || Meta->ArenaAddress == ArenaHash)
       {
         Clear(Meta);
       }
@@ -207,7 +221,7 @@ GetRegisteredMemoryArena( memory_arena *Arena)
 void
 WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Comparator)
 {
-  u32 HashValue = (u32)(((u64)Query->Name & (u64)Query->ArenaAddress) % META_TABLE_SIZE);
+  u32 HashValue = (umm)Query->Name % META_TABLE_SIZE; //(u32)(((u64)Query->Name & (u64)Query->ArenaAddress) % META_TABLE_SIZE);
   u32 FirstHashValue = HashValue;
 
   memory_record *PickMeta = Table + HashValue;
@@ -263,20 +277,25 @@ WriteMemoryRecord(memory_record *InputMeta)
 
 
 void*
-DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char* Name, s32 Line, const char* File, umm Alignment, b32 MemProtect)
+DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char* AllocationUUID, s32 Line, const char* File, umm Alignment, b32 MemProtect)
 {
   umm PushSize = StructCount * StructSize;
   void* Result = PushStruct( Arena, PushSize, Alignment, MemProtect);
 
-  memory_record ArenaMetadata = {Name, HashArena(Arena), HashArenaBlock(Arena), StructSize, StructCount, 1};
-  WriteMemoryRecord(&ArenaMetadata);
-
-  if (!Result)
+  memory_record ArenaMetadata =
   {
-    Error("Pushing %s on Line: %d, in file %s", Name, Line, File);
-    Assert(False);
-    return False;
-  }
+    .Name = AllocationUUID,
+    .ArenaAddress = HashArena(Arena),
+    .ArenaMemoryBlock = HashArenaBlock(Arena),
+    .StructSize = StructSize,
+    .StructCount = StructCount,
+    .ThreadId = ThreadLocal_ThreadIndex,
+    .PushCount = 1
+  };
+  WriteMemoryRecord(&ArenaMetadata);
+  Arena->Pushes++;
+
+  if (!Result) { Error("Pushing %s on Line: %d, in file %s", AllocationUUID, Line, File); }
 
   return Result;
 }
@@ -822,7 +841,7 @@ InitDebugMemoryAllocationSystem(debug_state *State)
   // for the Size parameter, however it seems to be under-allocating, which causes
   // the PushStruct to allocate again.  Bad bad bad.
   memory_arena *BoostrapArena = AllocateArena(Size);
-  DEBUG_REGISTER_ARENA(BoostrapArena);
+  DEBUG_REGISTER_ARENA(BoostrapArena, ThreadLocal_ThreadIndex);
   State->ThreadStates = (debug_thread_state*)PushStruct(BoostrapArena, Size, CACHE_LINE_SIZE);
 
 #if BONSAI_INTERNAL
@@ -850,12 +869,14 @@ InitDebugMemoryAllocationSystem(debug_state *State)
     Assert((umm)ThreadState % CACHE_LINE_SIZE == 0);
 
     memory_arena *DebugThreadArena = AllocateArena();
+    DEBUG_REGISTER_ARENA(DebugThreadArena, ThreadIndex);
+
     ThreadState->Memory = DebugThreadArena;
-    DEBUG_REGISTER_ARENA(DebugThreadArena);
 
     memory_arena *DebugThreadArenaFor_debug_profile_scope = AllocateArena();
+    DEBUG_REGISTER_ARENA(DebugThreadArenaFor_debug_profile_scope, ThreadIndex);
+
     ThreadState->MemoryFor_debug_profile_scope = DebugThreadArenaFor_debug_profile_scope;
-    DEBUG_REGISTER_ARENA(DebugThreadArenaFor_debug_profile_scope);
 
     ThreadState->MetaTable = (memory_record*)PushStruct(ThreadsafeDebugMemoryAllocator(), MetaTableSize, CACHE_LINE_SIZE);
     ThreadState->MutexOps = AllocateAligned(mutex_op_array, DebugThreadArena, DEBUG_FRAMES_TRACKED, CACHE_LINE_SIZE);

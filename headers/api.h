@@ -16,6 +16,7 @@ struct memory_record
   umm ArenaMemoryBlock;
   umm StructSize;
   umm StructCount;
+  u32 ThreadId;
 
   u32 PushCount;
 };
@@ -26,7 +27,7 @@ typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 typedef void                 (*debug_clear_framebuffers_proc)          ();
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
-typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*);
+typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, u32);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
 typedef void                 (*debug_main_thread_advance_data_system)  (r64);
 

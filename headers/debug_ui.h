@@ -130,7 +130,7 @@ struct ui_style
 
 link_internal ui_style UiStyleFromLightestColor(v3 Color, font Font = Global_Font);
 debug_global ui_style DefaultUiStyle = UiStyleFromLightestColor(V3(1));
-debug_global v4 DefaultColumnPadding = V4(0, 0, 25, 0);
+debug_global v4 DefaultColumnPadding = V4(0, 0, 30, 12);
 
 struct layout
 {

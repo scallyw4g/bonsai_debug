@@ -225,6 +225,8 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
 
   GL.Enable(GL_CULL_FACE);
 
+  Ensure( RewindArena(TranArena) );
+
   return;
 }
 
@@ -282,8 +284,6 @@ ProcessInputAndRedrawWindow()
 
   DebugFrameBegin(Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
   DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt);
-
-  RewindArena(TranArena);
 
   BonsaiSwapBuffers(&Os);
 
@@ -344,6 +344,8 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
   Global_DebugStatePointer = DebugState;
 
   InitDebugDataSystem(DebugState);
+
+  DEBUG_REGISTER_ARENA(TranArena, 0);
 
   b32 Result = True;
   return Result;
