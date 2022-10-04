@@ -2980,7 +2980,7 @@ PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Reco
       }
       else
       {
-        PushColumn(Group,  CS(HashValue), &ArenaStyle);
+        PushColumn(Group,  CS((u16)HashValue), &ArenaStyle);
       }
 
       PushColumn(Group,  MemorySize(AllocationSize));

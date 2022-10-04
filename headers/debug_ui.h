@@ -20,7 +20,7 @@ struct window_layout
   v2 Basis;
   v2 MaxClip;
 
-  u64 InteractionStackIndex;
+  u64 InteractionStackIndex = 1;
 
   r32 zBackground;
   r32 zText;

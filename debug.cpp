@@ -223,7 +223,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
   }
 #endif
 
-  GL.Enable(GL_CULL_FACE);
+  /* GL.Enable(GL_CULL_FACE); */
 
   Ensure( RewindArena(TranArena) );
 
@@ -344,7 +344,7 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
 
   InitDebugDataSystem(DebugState);
 
-  DEBUG_REGISTER_ARENA(TranArena, 0);
+  DEBUG_REGISTER_NAMED_ARENA(TranArena, 0, "debug_lib TranArena");
 
   DebugState->DebugDoScopeProfiling = True;
 
