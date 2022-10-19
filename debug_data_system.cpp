@@ -873,7 +873,13 @@ InitDebugMemoryAllocationSystem(debug_state *State)
 
     ThreadState->Memory = DebugThreadArena;
 
-    memory_arena *DebugThreadArenaFor_debug_profile_scope = AllocateArena();
+    umm DebugProfileScopeArenaSize = Megabytes(400);
+    if (ThreadIndex == 0)
+    {
+      DebugProfileScopeArenaSize = Megabytes(32);
+    }
+
+    memory_arena *DebugThreadArenaFor_debug_profile_scope = AllocateArena(DebugProfileScopeArenaSize);
     DEBUG_REGISTER_ARENA(DebugThreadArenaFor_debug_profile_scope, ThreadIndex);
 
     ThreadState->MemoryFor_debug_profile_scope = DebugThreadArenaFor_debug_profile_scope;
