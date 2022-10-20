@@ -20,7 +20,7 @@ global_variable platform Plat = {};
 global_variable hotkeys Hotkeys = {};
 
 link_internal void
-DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
+DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world_chunk_static_buffer *PickedChunks)
 {
   TIMED_FUNCTION();
 
@@ -111,10 +111,10 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
 
     PushTableStart(UiGroup);
 
-    /* if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", &Style, Padding)) */
-    /* { */
-    /*   ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks); */
-    /* } */
+    if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", &Style, Padding))
+    {
+      ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
+    }
 
     if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", &Style, Padding))
     {
@@ -150,10 +150,10 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt)
 
 
 
-#if 0
+#if 1
     if (DebugState->UIType & DebugUIType_PickedChunks)
     {
-      DrawPickedChunks(UiGroup);
+      DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunks, DebugState->PickedChunk);
     }
 #endif
 
@@ -282,7 +282,7 @@ ProcessInputAndRedrawWindow()
   BindHotkeysToInput(&Hotkeys, &Plat.Input);
 
   DebugFrameBegin(Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
-  DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt);
+  DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt, 0);
 
   BonsaiSwapBuffers(&Os);
 

@@ -6,6 +6,8 @@ struct input;
 struct memory_arena;
 struct mutex;
 struct heap_allocator;
+struct world_chunk_static_buffer;
+struct world_chunk;
 
 
 
@@ -26,7 +28,7 @@ struct memory_record
 typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
 typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 typedef void                 (*debug_clear_framebuffers_proc)          ();
-typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt);
+typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world_chunk_static_buffer*);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, u32);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
@@ -98,7 +100,8 @@ enum debug_ui_type
   DebugUIType_Memory                = (1 << 3),
   DebugUIType_Graphics              = (1 << 4),
   DebugUIType_Network               = (1 << 5),
-  DebugUIType_DrawCalls             = (1 << 6)
+  DebugUIType_DrawCalls             = (1 << 6),
+  DebugUIType_PickedChunks          = (1 << 7),
 };
 
 struct debug_state
@@ -145,6 +148,11 @@ struct debug_state
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
 
+  // TODO(Jesse): Remove these.  Need to expose the UI drawing code to the user
+  // of the library.
+  world_chunk *PickedChunk;
+  world_chunk *HoverChunk;
+
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
   // code that the library relies on.
@@ -185,7 +193,6 @@ struct debug_state
   registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
 
 #endif
-
 };
 
 #define GetDebugState() Global_DebugStatePointer
@@ -256,7 +263,7 @@ struct debug_timed_function
 #define DEBUG_VALUE(Pointer) do {GetDebugState()->DebugValue(Pointer, #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(a, b, c, d, e) do {GetDebugState()->FrameEnd(a, b, c, d, e);} while (false)
+#define DEBUG_FRAME_END(a, b, c, d, e, f) do {GetDebugState()->FrameEnd(a, b, c, d, e, f);} while (false)
 #define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);} while (false)
 
 #if 1
@@ -275,9 +282,9 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)                do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
-#define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) do {GetDebugState()->ViewProjection = ViewProjPtr;} while (false)
-#define DEBUG_COMPUTE_PICK_RAY(ViewProjPtr)                do {GetDebugState()->ComputePickRay(ViewProjPtr);} while (false)
-#define DEBUG_PICK_CHUNK(Chunk, ChunkAABB)                 do {GetDebugState()->PickChunk(Chunk, ChunkAABB);} while (false)
+/* #define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) do {GetDebugState()->ViewProjection = ViewProjPtr;} while (false) */
+/* #define DEBUG_COMPUTE_PICK_RAY(ViewProjPtr)                do {GetDebugState()->ComputePickRay(ViewProjPtr);} while (false) */
+/* #define DEBUG_PICK_CHUNK(Chunk, ChunkAABB)                 do {GetDebugState()->PickChunk(Chunk, ChunkAABB);} while (false) */
 
 #if BONSAI_DEBUG_LIB_LOADER_API
 

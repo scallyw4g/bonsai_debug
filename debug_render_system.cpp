@@ -74,8 +74,8 @@ link_internal void
 ClearFramebuffers()
 {
   TIMED_FUNCTION();
-  /* GL.BindFramebuffer(GL_FRAMEBUFFER, GetDebugState()->GameGeoFBO.ID); */
-  /* GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); */
+  GL.BindFramebuffer(GL_FRAMEBUFFER, GetDebugState()->GameGeoFBO.ID);
+  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 link_internal void
@@ -486,7 +486,7 @@ AdvanceLayoutStackBy(v2 Delta, layout* Layout)
 }
 
 link_internal void
-BufferValue(counted_string Text, debug_ui_render_group *Group, layout* Layout, v3 Color, ui_style* Style = &DefaultUiStyle, r32 Z = 1.0f, v2 MaxClip = DISABLE_CLIPPING)
+BufferValue(counted_string Text, debug_ui_render_group *Group, layout* Layout, v3 Color, ui_style* Style = &DefaultStyle, r32 Z = 1.0f, v2 MaxClip = DISABLE_CLIPPING)
 {
   r32 xDelta = 0;
 
@@ -592,7 +592,7 @@ Text(debug_ui_render_group* Group, counted_string String, ui_style *Style = 0)
     .Type = type_ui_render_command_text,
     .ui_render_command_text = {
       .String = String,
-      .Style = Style ? *Style : DefaultUiStyle
+      .Style = Style ? *Style : DefaultStyle
     }
   };
 
@@ -606,7 +606,7 @@ StartColumn(debug_ui_render_group *Group, ui_style* Style = 0, v4 Padding = V4(0
 {
   ui_render_command Command = {
     .Type = type_ui_render_command_column_start,
-    .ui_render_command_column_start.Style           = Style? *Style : DefaultUiStyle,
+    .ui_render_command_column_start.Style           = Style? *Style : DefaultStyle,
     .ui_render_command_column_start.Params          = Params,
     .ui_render_command_column_start.Layout = {
       .Padding = Padding,
@@ -688,7 +688,7 @@ PushUntexturedQuadAt(debug_ui_render_group* Group, v2 At, v2 QuadDim, z_depth zD
     {
       .QuadDim = QuadDim,
       .zDepth  = zDepth,
-      .Style = Style? *Style : DefaultUiStyle,
+      .Style = Style? *Style : DefaultStyle,
       .Layout  =
       {
         .DrawBounds = InvertedInfinityRectangle(),
@@ -711,7 +711,7 @@ PushUntexturedQuad(debug_ui_render_group* Group, v2 Offset, v2 QuadDim, z_depth 
       .QuadDim = QuadDim,
       .Params  = Params,
       .zDepth  = zDepth,
-      .Style   = Style? *Style : DefaultUiStyle,
+      .Style   = Style? *Style : DefaultStyle,
       .Layout  =
       {
         .At = Offset,
@@ -743,7 +743,7 @@ PushButtonStart(debug_ui_render_group *Group, umm InteractionId, ui_style* Style
   ui_render_command Command = {
     .Type = type_ui_render_command_button_start,
     .ui_render_command_button_start.ID = InteractionId,
-    .ui_render_command_button_start.Style = Style ? *Style : DefaultUiStyle,
+    .ui_render_command_button_start.Style = Style ? *Style : DefaultStyle,
   };
 
   PushUiRenderCommand(Group, &Command);
@@ -862,7 +862,7 @@ PushWindowStart(debug_ui_render_group *Group, window_layout *Window)
 
   v2 Dim = V2(15);
   PushButtonStart(Group, ResizeHandleInteractionId);
-    PushUntexturedQuadAt(Group, GetAbsoluteMaxClip(Window)-Dim, Dim, zDepth_Border, &DefaultUiStyle);
+    PushUntexturedQuadAt(Group, GetAbsoluteMaxClip(Window)-Dim, Dim, zDepth_Border, &DefaultStyle);
   PushButtonEnd(Group);
 
   PushBorder(Group, GetBounds(Window), V3(1.f));
@@ -1596,9 +1596,9 @@ FlushCommandBuffer(debug_ui_render_group *Group, ui_render_command_buffer *Comma
       case type_ui_render_command_textured_quad:
       {
         ui_render_command_textured_quad* TypedCommand = RenderCommandAs(textured_quad, Command);
-        PushLayout(&RenderState.Layout, &TypedCommand->Layout);
+        /* PushLayout(&RenderState.Layout, &TypedCommand->Layout); */
         ProcessTexturedQuadPush(Group, TypedCommand, &RenderState);
-        PopLayout(&RenderState.Layout);
+        /* PopLayout(&RenderState.Layout); */
       } break;
 
       case type_ui_render_command_untextured_quad_at:
@@ -1701,41 +1701,6 @@ DrawWaitingBar(mutex_op_record *WaitRecord, mutex_op_record *AquiredRecord, mute
 /****************************                 ********************************/
 
 
-
-link_internal void
-ComputePickRay(m4* ViewProjection)
-{
-  NotImplemented;
-#if 0
-  debug_state *DebugState = GetDebugState();
-
-  m4 InverseViewProjection = {};
-  b32 Inverted = Inverse((r32*)ViewProjection, (r32*)&InverseViewProjection);
-  Assert(Inverted);
-
-  v3 MouseMinWorldP = Unproject( MouseP,
-                                 0.0f,
-                                 V2(Plat->WindowWidth, Plat->WindowHeight),
-                                 &InverseViewProjection);
-
-  v3 MouseMaxWorldP = Unproject( Plat->MouseP,
-                                 1.0f,
-                                 V2(Plat->WindowWidth, Plat->WindowHeight),
-                                 &InverseViewProjection);
-
-  v3 RayDirection = Normalize(MouseMaxWorldP - MouseMinWorldP);
-
-  DebugState->PickRay = { MouseMinWorldP, RayDirection };
-
-  if (DebugState->DoChunkPicking)
-  {
-    DebugState->PickedChunkCount = 0;
-    DebugState->HotChunk = 0;
-  }
-
-#endif
-  return;
-}
 
 link_internal void
 PushChunkView(debug_ui_render_group* Group, world_chunk* Chunk, window_layout* Window)
@@ -1846,12 +1811,12 @@ BasisRightOf(window_layout* Window, v2 WindowSpacing = V2(50, 0))
   return Result;
 }
 
-#if 0
-link_internal void
-DrawPickedChunks(debug_ui_render_group* Group)
+link_internal world_chunk*
+DrawPickedChunks(debug_ui_render_group* Group, world_chunk_static_buffer *PickedChunks, world_chunk *HotChunk)
 {
   debug_state* DebugState = GetDebugState();
-  world_chunk** PickedChunks = DebugState->PickedChunks;
+  DebugState->HoverChunk = 0;
+
   MapGpuElementBuffer(&DebugState->GameGeo);
 
   local_persist window_layout ListingWindow = WindowLayout("Picked Chunks", V2(0), V2(400, 400));
@@ -1860,18 +1825,20 @@ DrawPickedChunks(debug_ui_render_group* Group)
   PushTableStart(Group);
 
   for (u32 ChunkIndex = 0;
-      ChunkIndex < DebugState->PickedChunkCount;
+      ChunkIndex < PickedChunks->At;
       ++ChunkIndex)
   {
-    world_chunk *Chunk = PickedChunks[ChunkIndex];
+    world_chunk *Chunk = PickedChunks->E[ChunkIndex];
 
     interactable_handle PositionButton = PushButtonStart(Group, (umm)"PositionButton"^(umm)Chunk);
-      PushColumn(Group, CS(Chunk->WorldP.x) );
-      PushColumn(Group, CS(Chunk->WorldP.y) );
-      PushColumn(Group, CS(Chunk->WorldP.z) );
+      ui_style Style = Chunk == DebugState->PickedChunk ? DefaultSelectedStyle : DefaultStyle;
+      PushColumn(Group, CS(Chunk->WorldP.x), &Style);
+      PushColumn(Group, CS(Chunk->WorldP.y), &Style);
+      PushColumn(Group, CS(Chunk->WorldP.z), &Style);
     PushButtonEnd(Group);
 
-    if (Clicked(Group, &PositionButton)) { DebugState->HotChunk = Chunk; }
+    if (Clicked(Group, &PositionButton)) { HotChunk = Chunk; }
+    if (Hover(Group, &PositionButton)) { DebugState->HoverChunk = Chunk; }
 
     interactable_handle CloseButton = PushButtonStart(Group, (umm)"CloseButton"^(umm)Chunk);
       PushColumn(Group, CSz("X"));
@@ -1879,9 +1846,9 @@ DrawPickedChunks(debug_ui_render_group* Group)
 
     if ( Clicked(Group, &CloseButton) )
     {
-      world_chunk** SwapChunk = PickedChunks+ChunkIndex;
-      if (*SwapChunk == DebugState->HotChunk) { DebugState->HotChunk = 0; }
-      *SwapChunk = PickedChunks[--DebugState->PickedChunkCount];
+      world_chunk** SwapChunk = PickedChunks->E + ChunkIndex;
+      if (*SwapChunk == HotChunk) { HotChunk = 0; }
+      *SwapChunk = PickedChunks->E[--PickedChunks->At];
     }
 
     PushNewRow(Group);
@@ -1890,11 +1857,10 @@ DrawPickedChunks(debug_ui_render_group* Group)
   PushTableEnd(Group);
   PushWindowEnd(Group, &ListingWindow);
 
-  world_chunk *HotChunk = DebugState->HotChunk;
   if (HotChunk)
   {
-    v3 Basis = -0.5f*V3(ChunkDimension(DebugState->HotChunk));
-    untextured_3d_geometry_buffer* Src = DebugState->HotChunk->LodMesh;
+    v3 Basis = -0.5f*V3(ChunkDimension(HotChunk));
+    untextured_3d_geometry_buffer* Src = HotChunk->LodMesh;
     untextured_3d_geometry_buffer* Dest = &Group->GameGeo->Buffer;
     BufferVertsChecked(Src, Dest, Basis, V3(1.0f));
   }
@@ -1926,9 +1892,8 @@ DrawPickedChunks(debug_ui_render_group* Group)
     PushChunkView(Group, HotChunk, &ChunkViewWindow);
   }
 
-  return;
+  return HotChunk;
 }
-#endif
 
 
 
@@ -3127,14 +3092,9 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
   PushColumn(Group, CSz("Arena Name"), &TitleStyle);
   PushNewRow(Group);
 
-  v3 DefaultColor = V3(.7f,.7f,.7f);
-  v3 SelectedColor = V3(1.f);
-  ui_style DefaultStyle = UiStyleFromLightestColor(DefaultColor);
-  ui_style SelectedStyle = UiStyleFromLightestColor(SelectedColor);
-
   if (FoundUntrackedAllocations)
   {
-    ui_style UnnamedStyle = UntrackedAllocationsExpanded ? SelectedStyle : DefaultStyle;
+    ui_style UnnamedStyle = UntrackedAllocationsExpanded ? DefaultSelectedStyle : DefaultStyle;
 
     interactable_handle UnknownAllocationsExpandInteraction =
     PushButtonStart(Group, (umm)"unnamed MemoryWindowExpandInteraction");
@@ -3165,7 +3125,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
     u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
 
-    ui_style Style = Current->Expanded? SelectedStyle : DefaultStyle;
+    ui_style Style = Current->Expanded? DefaultSelectedStyle : DefaultStyle;
 
     interactable_handle ExpandInteraction =
     PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);

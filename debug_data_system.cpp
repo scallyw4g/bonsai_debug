@@ -21,32 +21,6 @@ debug_scope_tree* GetWriteScopeTree()
 }
 
 
-/****************************                 ********************************/
-/****************************  Picked Chunks  ********************************/
-/****************************                 ********************************/
-
-
-
-#if 0
-void
-PickChunk(world_chunk* Chunk, aabb ChunkAABB)
-{
-  TIMED_FUNCTION();
-  debug_state* DebugState = GetDebugState();
-
-  if (DebugState->DoChunkPicking &&
-      DebugState->PickedChunkCount < MAX_PICKED_WORLD_CHUNKS &&
-      Intersect(ChunkAABB, DebugState->PickRay) )
-  {
-    DebugState->PickedChunks[DebugState->PickedChunkCount] = Chunk;
-    DebugState->PickedChunkCount++;
-  }
-
-  return;
-}
-#endif
-
-
 
 /*****************************                   *****************************/
 /*****************************  Thread Metadata  *****************************/
