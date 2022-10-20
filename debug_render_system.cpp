@@ -1819,7 +1819,8 @@ DrawPickedChunks(debug_ui_render_group* Group, world_chunk_static_buffer *Picked
 
   MapGpuElementBuffer(&DebugState->GameGeo);
 
-  local_persist window_layout ListingWindow = WindowLayout("Picked Chunks", V2(0), V2(400, 400));
+  v2 ListingWindowBasis = V2(20, 350);
+  local_persist window_layout ListingWindow = WindowLayout("Picked Chunks", ListingWindowBasis, V2(400, 1600));
 
   PushWindowStart(Group, &ListingWindow);
   PushTableStart(Group);
