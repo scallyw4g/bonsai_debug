@@ -662,39 +662,6 @@ InitScopeTrees(u32 TotalThreadCount)
 
 
 
-/*******************************              *********************************/
-/*******************************  DrawBounds  *********************************/
-/*******************************              *********************************/
-
-
-
-inline void
-AdvanceClip(layout *Layout, v2 TestP)
-{
-  v2 AbsP = TestP + Layout->Basis;
-  while (Layout)
-  {
-    v2 RelP = AbsP - Layout->Basis;
-    Layout->DrawBounds.Min = Min(RelP, Layout->DrawBounds.Min);
-    Layout->DrawBounds.Max = Max(RelP, Layout->DrawBounds.Max);
-
-    Layout = Layout->Prev;
-  }
-}
-
-inline void
-AdvanceClip(layout *Layout)
-{
-  AdvanceClip(Layout, Layout->At);
-}
-
-r32
-GetXOffsetForHorizontalBar(u64 StartCycleOffset, u64 FrameTotalCycles, r32 TotalGraphWidth)
-{
-  r32 XOffset = ((r32)StartCycleOffset/(r32)FrameTotalCycles)*TotalGraphWidth;
-  return XOffset;
-}
-
 inline mutex_op_record *
 ReserveMutexOpRecord(mutex *Mutex, mutex_op Op, debug_state *State)
 {

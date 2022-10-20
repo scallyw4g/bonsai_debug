@@ -1,16 +1,17 @@
-#define BONSAI_DEBUG_SYSTEM_API 1
-#define DEBUG_LIB_INTERNAL_BUILD 1
+#define DEBUG_SYSTEM_API 1
+#define DEBUG_SYSTEM_INTERNAL_BUILD 1
+
 #define PLATFORM_GL_IMPLEMENTATIONS 1
 #define PLATFORM_LIBRARY_AND_WINDOW_IMPLEMENTATIONS 1
 
 #include <bonsai_stdlib/bonsai_stdlib.h>
 #include <bonsai_stdlib/bonsai_stdlib.cpp>
 
+
 #include <engine/engine.h>
 #include <engine/engine.cpp>
 
 #include <bonsai_debug/debug_data_system.cpp>
-#include <bonsai_debug/interactable.cpp>
 #include <bonsai_debug/debug_render_system.cpp>
 
 debug_state *Global_DebugStatePointer;
@@ -150,12 +151,10 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
 
 
 
-#if 1
     if (DebugState->UIType & DebugUIType_PickedChunks)
     {
       DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunks, DebugState->PickedChunk);
     }
-#endif
 
     if (DebugState->UIType & DebugUIType_Graphics)
     {
@@ -245,12 +244,6 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
   }
 }
 
-link_export u64
-QueryMemoryRequirements()
-{
-  return sizeof(debug_state);
-}
-
 link_internal b32
 OpenAndInitializeDebugWindow()
 {
@@ -292,6 +285,16 @@ ProcessInputAndRedrawWindow()
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   return Os.ContinueRunning;
+}
+
+
+
+// DLL API
+
+link_export u64
+QueryMemoryRequirements()
+{
+  return sizeof(debug_state);
 }
 
 link_export void

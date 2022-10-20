@@ -132,7 +132,7 @@ link_internal ui_style UiStyleFromLightestColor(v3 Color, font Font = Global_Fon
 debug_global v4 DefaultColumnPadding = V4(0, 0, 30, 12);
 
 debug_global ui_style DefaultStyle = UiStyleFromLightestColor(V3(1));
-debug_global ui_style DefaultSelectedStyle = UiStyleFromLightestColor(V3(1.f, .8f, .8f));
+debug_global ui_style DefaultSelectedStyle = UiStyleFromLightestColor(V3(.6f, 1.f, .6f));
 
 
 

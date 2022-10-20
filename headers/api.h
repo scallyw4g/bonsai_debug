@@ -1,4 +1,7 @@
+#if DEBUG_SYSTEM_API
+
 struct debug_state;
+struct debug_scope_tree;
 struct debug_profile_scope;
 struct debug_thread_state;
 
@@ -6,6 +9,7 @@ struct input;
 struct memory_arena;
 struct mutex;
 struct heap_allocator;
+
 struct world_chunk_static_buffer;
 struct world_chunk;
 
@@ -135,8 +139,6 @@ struct debug_state
 
   debug_track_draw_call_proc                TrackDrawCall;
   debug_get_thread_local_state              GetThreadLocalState;
-  /* debug_pick_chunk                          PickChunk; */
-  /* debug_compute_pick_ray                    ComputePickRay; */
   debug_value                               DebugValue;
   debug_dump_scope_tree_data_to_console     DumpScopeTreeDataToConsole;
 
@@ -153,25 +155,24 @@ struct debug_state
   world_chunk *PickedChunk;
   world_chunk *HoverChunk;
 
+  // For the GameGeo
+  camera *Camera;
+  framebuffer GameGeoFBO;
+  shader GameGeoShader;
+  m4 ViewProjection;
+  gpu_mapped_element_buffer GameGeo;
+  shader DebugGameGeoTextureShader;
+
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
   // code that the library relies on.
   //
   // NOTE(Jesse): This stuff has to be "hidden" at the end of the struct so the
   // external ABI is the same as the internal ABI until this point
-#if DEBUG_LIB_INTERNAL_BUILD
+#if DEBUG_SYSTEM_INTERNAL_BUILD
   debug_ui_render_group UiGroup;
 
   untextured_3d_geometry_buffer LineMesh;
-
-  // For the GameGeo
-  camera *Camera;
-
-  framebuffer GameGeoFBO;
-  shader GameGeoShader;
-  m4 ViewProjection;
-  gpu_mapped_element_buffer GameGeo;
-  shader DebugGameGeoTextureShader;
 
   selected_arenas *SelectedArenas;
 
@@ -195,8 +196,10 @@ struct debug_state
 #endif
 };
 
+
 #define GetDebugState() Global_DebugStatePointer
 link_external debug_state *Global_DebugStatePointer;
+
 
 struct debug_timed_function
 {
@@ -266,7 +269,6 @@ struct debug_timed_function
 #define DEBUG_FRAME_END(a, b, c, d, e, f) do {GetDebugState()->FrameEnd(a, b, c, d, e, f);} while (false)
 #define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);} while (false)
 
-#if 1
 void DebugTimedMutexWaiting(mutex *Mut);
 void DebugTimedMutexAquired(mutex *Mut);
 void DebugTimedMutexReleased(mutex *Mut);
@@ -274,7 +276,6 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define TIMED_MUTEX_WAITING(Mut)  do {GetDebugState()->MutexWait(Mut);} while (false)
 #define TIMED_MUTEX_AQUIRED(Mut)  do {GetDebugState()->MutexAquired(Mut);} while (false)
 #define TIMED_MUTEX_RELEASED(Mut) do {GetDebugState()->MutexReleased(Mut);} while (false)
-#endif
 
 #define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt);} while (false)
 #define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {GetDebugState()->WorkerThreadAdvanceDebugSystem();} while (false)
@@ -282,11 +283,7 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)                do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
-/* #define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(ViewProjPtr) do {GetDebugState()->ViewProjection = ViewProjPtr;} while (false) */
-/* #define DEBUG_COMPUTE_PICK_RAY(ViewProjPtr)                do {GetDebugState()->ComputePickRay(ViewProjPtr);} while (false) */
-/* #define DEBUG_PICK_CHUNK(Chunk, ChunkAABB)                 do {GetDebugState()->PickChunk(Chunk, ChunkAABB);} while (false) */
-
-#if BONSAI_DEBUG_LIB_LOADER_API
+#if DEBUG_SYSTEM_LOADER_API
 
 #include <dlfcn.h>
 #include <stdio.h>
@@ -359,4 +356,32 @@ InitializeBonsaiDebug(const char* DebugLibName)
 }
 
 
-#endif
+#endif // DEBUG_SYSTEM_LOADER_API
+
+
+#else // DEBUG_SYSTEM_API
+
+
+#define TIMED_FUNCTION(...)
+#define TIMED_BLOCK(...)
+#define END_BLOCK(...)
+
+#define DEBUG_VALUE(...)
+
+#define TIMED_MUTEX_WAITING(...)
+#define TIMED_MUTEX_AQUIRED(...)
+#define TIMED_MUTEX_RELEASED(...)
+
+#define DEBUG_FRAME_RECORD(...)
+#define DEBUG_FRAME_END(...)
+#define DEBUG_FRAME_BEGIN(...)
+
+#define WORKER_THREAD_WAIT_FOR_DEBUG_SYSTEM(...)
+#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(...)
+#define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()
+
+#define DEBUG_CLEAR_META_RECORDS_FOR(...)
+#define DEBUG_TRACK_DRAW_CALL(...)
+
+
+#endif //  DEBUG_SYSTEM_API

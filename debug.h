@@ -1,5 +1,5 @@
 
-#if BONSAI_DEBUG_SYSTEM_API
+#if DEBUG_SYSTEM_API
 
 inline umm
 HashArenaBlock(memory_arena *Arena)
@@ -98,7 +98,8 @@ struct debug_thread_state
 
   volatile u32 WriteIndex; // Note(Jesse): This must not straddle a cache line on x86 because multiple threads read from the main threads copy of this
 
-#if EMCC // NOTE(Jesse): Uhh, wtf?  Oh, EMCC pointers are 32 bits..? FML
+  // TODO(Jesse): Make a 32-bit define instead
+#if EMCC
   u8 Pad[36];
 #else
   u8 Pad[12];
@@ -147,44 +148,8 @@ struct registered_memory_arena
 };
 
 
-#if DEBUG_LIB_INTERNAL_BUILD
-#include <bonsai_debug/headers/debug_ui.h>
-#include <bonsai_debug/headers/interactable.h>
-#include <bonsai_debug/headers/debug_render.h>
-#endif
-
-#include <bonsai_debug/headers/api.h>
-global_variable debug_profile_scope NullDebugProfileScope = {};
-
-
-
-
-#else
-
-#define TIMED_FUNCTION(...)
-#define TIMED_BLOCK(...)
-#define END_BLOCK(...)
-
-#define DEBUG_VALUE(...)
-
-#define TIMED_MUTEX_WAITING(...)
-#define TIMED_MUTEX_AQUIRED(...)
-#define TIMED_MUTEX_RELEASED(...)
-
-#define DEBUG_FRAME_RECORD(...)
-#define DEBUG_FRAME_END(...)
-#define DEBUG_FRAME_BEGIN(...)
-
-#define WORKER_THREAD_WAIT_FOR_DEBUG_SYSTEM(...)
-#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(...)
-#define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()
-
-#define DEBUG_CLEAR_META_RECORDS_FOR(...)
-#define DEBUG_TRACK_DRAW_CALL(...)
-
-#define DEBUG_REGISTER_VIEW_PROJECTION_MATRIX(...)
-
-#define DEBUG_COMPUTE_PICK_RAY(...)
-#define DEBUG_PICK_CHUNK(...)
+/* #include <bonsai_debug/headers/api.h> */
+/* global_variable debug_profile_scope NullDebugProfileScope = {}; */
 
 #endif
+
