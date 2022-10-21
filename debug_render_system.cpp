@@ -1719,53 +1719,61 @@ MakeRenderToTextureShader(memory_arena *Memory, m4 *ViewProjection)
   return Shader;
 }
 
+void
+InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group *Group)
+{
+  AllocateGpuElementBuffer(&Group->GameGeo, (u32)Megabytes(4));
+
+  Group->GameGeoFBO = GenFramebuffer();
+  GL.BindFramebuffer(GL_FRAMEBUFFER, Group->GameGeoFBO.ID);
+
+  FramebufferTextureLayer(&Group->GameGeoFBO, DebugState->UiGroup.TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
+  SetDrawBuffers(&Group->GameGeoFBO);
+  Group->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(),
+                                                        &Group->ViewProjection);
+  Group->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
+  StandardCamera(Group->Camera, 1000.0f, 100.0f, {});
+
+  GL.ClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+  GL.ClearDepth(1.0f);
+}
+
 link_internal b32
 InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
 {
   AllocateMesh(&DebugState->LineMesh, 1024, Heap);
 
-  DebugState->UiGroup.TextGroup = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
+  DebugState->UiGroup.TextGroup     = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
   DebugState->UiGroup.CommandBuffer = Allocate(ui_render_command_buffer, ThreadsafeDebugMemoryAllocator(), 1);
-
-  InitDebugOverlayFramebuffer(DebugState->UiGroup.TextGroup, ThreadsafeDebugMemoryAllocator(), "texture_atlas_0.bmp");
+  DebugState->SelectedArenas        = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
 
   AllocateAndInitGeoBuffer(&DebugState->UiGroup.TextGroup->Geo, 1024, ThreadsafeDebugMemoryAllocator());
   AllocateAndInitGeoBuffer(&DebugState->UiGroup.Geo, 1024, ThreadsafeDebugMemoryAllocator());
 
-  render_entity_to_texture_group *PickedChunksRenderGroup = &DebugState->PickedChunksRenderGroup;
+  InitDebugOverlayFramebuffer(DebugState->UiGroup.TextGroup, ThreadsafeDebugMemoryAllocator(), "texture_atlas_0.bmp");
+  AssertNoGlErrors;
 
-  AllocateGpuElementBuffer(&PickedChunksRenderGroup->GameGeo, (u32)Megabytes(4));
+  InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup);
+  AssertNoGlErrors;
 
   DebugState->UiGroup.TextGroup->SolidUIShader = MakeSolidUIShader(ThreadsafeDebugMemoryAllocator());
-
-  DebugState->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
-
-  PickedChunksRenderGroup->GameGeoFBO = GenFramebuffer();
-  GL.BindFramebuffer(GL_FRAMEBUFFER, PickedChunksRenderGroup->GameGeoFBO.ID);
-
-  FramebufferTextureLayer(&PickedChunksRenderGroup->GameGeoFBO, DebugState->UiGroup.TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
-  SetDrawBuffers(&PickedChunksRenderGroup->GameGeoFBO);
+  AssertNoGlErrors;
 
   v2i TextureDim = V2i(DEBUG_TEXTURE_DIM, DEBUG_TEXTURE_DIM);
   texture *DepthTexture = MakeDepthTexture( TextureDim, ThreadsafeDebugMemoryAllocator() );
   FramebufferDepthTexture(DepthTexture);
+  AssertNoGlErrors;
 
   b32 Result = CheckAndClearFramebuffer();
   Assert(Result);
+  AssertNoGlErrors;
 
-  PickedChunksRenderGroup->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(),
-                                                        &PickedChunksRenderGroup->ViewProjection);
+  /* GetDebugState()->ClearFramebuffers(Group); */
 
-  PickedChunksRenderGroup->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
-  StandardCamera(PickedChunksRenderGroup->Camera, 1000.0f, 100.0f, {});
-
-  GL.ClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-  GL.ClearDepth(1.0f);
-
-  GetDebugState()->ClearFramebuffers(PickedChunksRenderGroup);
 
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  AssertNoGlErrors;
 
   return Result;
 }
