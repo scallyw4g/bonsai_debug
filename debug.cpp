@@ -33,8 +33,8 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
 
   debug_ui_render_group *UiGroup = &DebugState->UiGroup;
 
-  UiGroup->GameGeo               = &DebugState->GameGeo;
-  UiGroup->GameGeoShader         = &DebugState->GameGeoShader;
+  /* UiGroup->GameGeo               = &DebugState->GameGeo; */
+  /* UiGroup->GameGeoShader         = &DebugState->GameGeoShader; */
   UiGroup->Input                 = Input;
   UiGroup->ScreenDim             = ScreenDim;
   UiGroup->MouseP                = MouseP;
@@ -153,7 +153,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
 
     if (DebugState->UIType & DebugUIType_PickedChunks)
     {
-      DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunks, DebugState->PickedChunk);
+      DebugState->PickedChunk = DrawPickedChunks(UiGroup, &DebugState->PickedChunksRenderGroup, PickedChunks, DebugState->PickedChunk);
     }
 
     if (DebugState->UIType & DebugUIType_Graphics)
@@ -279,7 +279,7 @@ ProcessInputAndRedrawWindow()
 
   BonsaiSwapBuffers(&Os);
 
-  GetDebugState()->ClearFramebuffers();
+  GetDebugState()->ClearFramebuffers(&GetDebugState()->PickedChunksRenderGroup);
 
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

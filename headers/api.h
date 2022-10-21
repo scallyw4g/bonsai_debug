@@ -10,6 +10,7 @@ struct memory_arena;
 struct mutex;
 struct heap_allocator;
 
+struct render_entity_to_texture_group;
 struct world_chunk_static_buffer;
 struct world_chunk;
 
@@ -31,7 +32,7 @@ struct memory_record
 
 typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
 typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
-typedef void                 (*debug_clear_framebuffers_proc)          ();
+typedef void                 (*debug_clear_framebuffers_proc)          (render_entity_to_texture_group*);
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world_chunk_static_buffer*);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, u32);
@@ -108,6 +109,18 @@ enum debug_ui_type
   DebugUIType_PickedChunks          = (1 << 7),
 };
 
+struct render_entity_to_texture_group
+{
+  // For the GameGeo
+  camera *Camera;
+  framebuffer GameGeoFBO;
+  shader GameGeoShader;
+  m4 ViewProjection;
+  gpu_mapped_element_buffer GameGeo;
+  shader DebugGameGeoTextureShader;
+
+};
+
 struct debug_state
 {
   b32 Initialized;
@@ -155,14 +168,7 @@ struct debug_state
   world_chunk *PickedChunk;
   world_chunk *HoverChunk;
 
-  // For the GameGeo
-  camera *Camera;
-  framebuffer GameGeoFBO;
-  shader GameGeoShader;
-  m4 ViewProjection;
-  gpu_mapped_element_buffer GameGeo;
-  shader DebugGameGeoTextureShader;
-
+  render_entity_to_texture_group PickedChunksRenderGroup;
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
   // code that the library relies on.
