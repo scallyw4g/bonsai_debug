@@ -1652,15 +1652,14 @@ link_internal void
 FramebufferTextureLayer(framebuffer *FBO, texture *Tex, debug_texture_array_slice Layer)
 {
   u32 Attachment = FBO->Attachments++;
-  GL.FramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + Attachment,
-                            Tex->ID, 0, Layer);
+  GL.FramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + Attachment, Tex->ID, 0, Layer);
   return;
 }
 
 link_internal void
 InitDebugOverlayFramebuffer(debug_text_render_group *TextGroup, memory_arena *DebugArena, const char *DebugFont)
 {
-  TextGroup->FontTexture = LoadBitmap(DebugFont, DebugArena, DebugTextureArraySlice_Count);
+  TextGroup->DebugTextureArray = LoadBitmap(DebugFont, DebugArena, DebugTextureArraySlice_Count);
 
   GL.GenBuffers(1, &TextGroup->SolidUIVertexBuffer);
   GL.GenBuffers(1, &TextGroup->SolidUIColorBuffer);
@@ -1729,6 +1728,7 @@ InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
   DebugState->UiGroup.CommandBuffer = Allocate(ui_render_command_buffer, ThreadsafeDebugMemoryAllocator(), 1);
 
   InitDebugOverlayFramebuffer(DebugState->UiGroup.TextGroup, ThreadsafeDebugMemoryAllocator(), "texture_atlas_0.bmp");
+
   AllocateAndInitGeoBuffer(&DebugState->UiGroup.TextGroup->Geo, 1024, ThreadsafeDebugMemoryAllocator());
   AllocateAndInitGeoBuffer(&DebugState->UiGroup.Geo, 1024, ThreadsafeDebugMemoryAllocator());
 
@@ -1741,7 +1741,7 @@ InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
   DebugState->GameGeoFBO = GenFramebuffer();
   GL.BindFramebuffer(GL_FRAMEBUFFER, DebugState->GameGeoFBO.ID);
 
-  FramebufferTextureLayer(&DebugState->GameGeoFBO, DebugState->UiGroup.TextGroup->FontTexture, DebugTextureArraySlice_Viewport);
+  FramebufferTextureLayer(&DebugState->GameGeoFBO, DebugState->UiGroup.TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
   SetDrawBuffers(&DebugState->GameGeoFBO);
 
   v2i TextureDim = V2i(DEBUG_TEXTURE_DIM, DEBUG_TEXTURE_DIM);
