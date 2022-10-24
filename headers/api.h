@@ -199,6 +199,8 @@ struct debug_state
 #define REGISTERED_MEMORY_ARENA_COUNT (128)
   registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
 
+#define TRACKED_DRAW_CALLS_MAX (128)
+  debug_draw_call TrackedDrawCalls[TRACKED_DRAW_CALLS_MAX];
 #endif
 };
 

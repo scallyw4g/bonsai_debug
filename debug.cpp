@@ -52,10 +52,10 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
   u32 TotalDrawCalls = 0;
 
   for( u32 DrawCountIndex = 0;
-       DrawCountIndex < Global_DrawCallArrayLength;
+       DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
        ++ DrawCountIndex)
   {
-    debug_draw_call *Call = &Global_DrawCalls[DrawCountIndex];
+    debug_draw_call *Call = &GetDebugState()->TrackedDrawCalls[DrawCountIndex];
     if (Call->Caller)
     {
       TotalDrawCalls += Call->Calls;
@@ -107,45 +107,67 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
 
   if (DebugState->DisplayDebugMenu)
   {
-    v4 Padding = V4(25);
-    ui_style Style =  UiStyleFromLightestColor(V3(1));
 
     PushTableStart(UiGroup);
 
-    if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
+      ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
+      }
     }
 
-    if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
+      ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", Style))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
+      }
     }
 
-    if (Button(UiGroup, CS("Network"), (umm)"Network", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_Network);
+      /* ui_style *Style = &DefaultStyle; */
+      /* if ( DebugState->UIType & DebugUIType_Network)  *1/ */ /* { */ /*   Style = &DefaultSelectedStyle; */ /* } */
+      /* if (Button(UiGroup, CS("Network"), (umm)"Network", Style)) */
+      /* { */
+      /*   ToggleBitfieldValue(DebugState->UIType, DebugUIType_Network); */
+      /* } */
     }
 
-    if (Button(UiGroup, CS("Functions"), (umm)"Functions", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_CollatedFunctionCalls);
+      ui_style *Style = (DebugState->UIType & DebugUIType_CollatedFunctionCalls) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(UiGroup, CS("Functions"), (umm)"Functions", Style))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_CollatedFunctionCalls);
+      }
     }
 
-    if (Button(UiGroup, CS("Callgraph"), (umm)"Callgraph", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_CallGraph);
+      ui_style *Style = (DebugState->UIType & DebugUIType_CallGraph) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(UiGroup, CS("Callgraph"), (umm)"Callgraph", Style))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_CallGraph);
+      }
     }
 
-    if (Button(UiGroup, CS("Memory"), (umm)"Memory", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_Memory);
+      ui_style *Style = &DefaultStyle;
+      if ( DebugState->UIType & DebugUIType_Memory ) { Style = &DefaultSelectedStyle; }
+      if (Button(UiGroup, CS("Memory"), (umm)"Memory", Style))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Memory);
+      }
     }
 
-    if (Button(UiGroup, CS("DrawCalls"), (umm)"DrawCalls", &Style, Padding))
     {
-      ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
+      ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(UiGroup, CS("DrawCalls"), (umm)"DrawCalls", Style))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
+      }
     }
+
     PushTableEnd(UiGroup);
 
 
@@ -196,10 +218,10 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
   DebugState->BytesBufferedToCard = 0;
 
   for( u32 DrawCountIndex = 0;
-       DrawCountIndex < Global_DrawCallArrayLength;
+       DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
        ++ DrawCountIndex)
   {
-     Global_DrawCalls[DrawCountIndex] = NullDrawCall;
+    GetDebugState()->TrackedDrawCalls[DrawCountIndex] = NullDrawCall;
   }
 
   for ( u32 FunctionIndex = 0;

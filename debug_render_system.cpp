@@ -1018,16 +1018,14 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
 
 
 
-debug_global const u32 Global_DrawCallArrayLength = 128;
-debug_global debug_draw_call Global_DrawCalls[Global_DrawCallArrayLength] = {};
 debug_global debug_draw_call NullDrawCall = {};
 
 link_internal void
 TrackDrawCall(const char* Caller, u32 VertexCount)
 {
-  u64 Index = ((u64)Caller) % Global_DrawCallArrayLength;
+  u64 Index = ((u64)Caller) % TRACKED_DRAW_CALLS_MAX;
 
-  debug_draw_call *DrawCall = &Global_DrawCalls[Index];
+  debug_draw_call *DrawCall = GetDebugState()->TrackedDrawCalls + Index;
 
   if (DrawCall->Caller)
   {
@@ -1037,8 +1035,8 @@ TrackDrawCall(const char* Caller, u32 VertexCount)
          )
     {
       ++Index;
-      Index = Index % Global_DrawCallArrayLength;
-      DrawCall = &Global_DrawCalls[Index];
+      Index = Index % TRACKED_DRAW_CALLS_MAX;
+      DrawCall = GetDebugState()->TrackedDrawCalls + Index;
       if (DrawCall == First)
       {
         Error("Draw Call table full!");
@@ -1068,10 +1066,10 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
   PushNewRow(Group);
 
   for( u32 DrawCountIndex = 0;
-       DrawCountIndex < Global_DrawCallArrayLength;
+       DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
        ++ DrawCountIndex)
   {
-     debug_draw_call *DrawCall = &Global_DrawCalls[DrawCountIndex];
+     debug_draw_call *DrawCall = &GetDebugState()->TrackedDrawCalls[DrawCountIndex];
      if (DrawCall->Caller)
      {
        PushColumn(Group, CS(DrawCall->Caller));
@@ -1679,13 +1677,6 @@ AllocateAndInitGeoBuffer(untextured_2d_geometry_buffer *Geo, u32 VertCount, memo
 }
 
 link_internal shader
-MakeSolidUIShader(memory_arena *Memory)
-{
-  shader SimpleTextureShader = LoadShaders( CSz("SimpleColor.vertexshader"), CSz("SimpleColor.fragmentshader") );
-  return SimpleTextureShader;
-}
-
-link_internal shader
 MakeRenderToTextureShader(memory_arena *Memory, m4 *ViewProjection)
 {
   shader Shader = LoadShaders( CSz("RenderToTexture.vertexshader"), CSz("RenderToTexture.fragmentshader") );
@@ -1701,18 +1692,6 @@ MakeRenderToTextureShader(memory_arena *Memory, m4 *ViewProjection)
 void
 InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group *Group)
 {
-  auto TextGroup = DebugState->UiGroup.TextGroup;
-
-  TextGroup->DebugTextureArray = LoadBitmap("texture_atlas_0.bmp", ThreadsafeDebugMemoryAllocator(), DebugTextureArraySlice_Count);
-
-  GL.GenBuffers(1, &TextGroup->SolidUIVertexBuffer);
-  GL.GenBuffers(1, &TextGroup->SolidUIColorBuffer);
-  GL.GenBuffers(1, &TextGroup->SolidUIUVBuffer);
-
-  TextGroup->Text2DShader = LoadShaders( CSz("TextVertexShader.vertexshader"), CSz("TextVertexShader.fragmentshader") );
-
-  TextGroup->TextTextureUniform = GL.GetUniformLocation(TextGroup->Text2DShader.ID, "TextTextureSampler");
-
   AllocateGpuElementBuffer(&Group->GameGeo, (u32)Megabytes(4));
 
   Group->GameGeoFBO = GenFramebuffer();
@@ -1720,8 +1699,7 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
 
   FramebufferTextureLayer(&Group->GameGeoFBO, DebugState->UiGroup.TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
   SetDrawBuffers(&Group->GameGeoFBO);
-  Group->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(),
-                                                        &Group->ViewProjection);
+  Group->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(), &Group->ViewProjection);
   Group->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
   StandardCamera(Group->Camera, 1000.0f, 100.0f, {});
 
@@ -1741,9 +1719,19 @@ InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
   AllocateAndInitGeoBuffer(&DebugState->UiGroup.TextGroup->Geo, 1024, ThreadsafeDebugMemoryAllocator());
   AllocateAndInitGeoBuffer(&DebugState->UiGroup.Geo, 1024, ThreadsafeDebugMemoryAllocator());
 
+
+  auto TextGroup = DebugState->UiGroup.TextGroup;
+  TextGroup->DebugTextureArray = LoadBitmap("texture_atlas_0.bmp", ThreadsafeDebugMemoryAllocator(), DebugTextureArraySlice_Count);
+  GL.GenBuffers(1, &TextGroup->SolidUIVertexBuffer);
+  GL.GenBuffers(1, &TextGroup->SolidUIColorBuffer);
+  GL.GenBuffers(1, &TextGroup->SolidUIUVBuffer);
+  TextGroup->Text2DShader = LoadShaders( CSz("TextVertexShader.vertexshader"), CSz("TextVertexShader.fragmentshader") );
+  TextGroup->TextTextureUniform = GL.GetUniformLocation(TextGroup->Text2DShader.ID, "TextTextureSampler");
+  DebugState->UiGroup.TextGroup->SolidUIShader = LoadShaders( CSz("SimpleColor.vertexshader"), CSz("SimpleColor.fragmentshader") );
+
+
   InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup);
 
-  DebugState->UiGroup.TextGroup->SolidUIShader = MakeSolidUIShader(ThreadsafeDebugMemoryAllocator());
 
   v2i TextureDim = V2i(DEBUG_TEXTURE_DIM, DEBUG_TEXTURE_DIM);
   texture *DepthTexture = MakeDepthTexture( TextureDim, ThreadsafeDebugMemoryAllocator() );

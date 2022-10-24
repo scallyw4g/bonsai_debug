@@ -20,7 +20,7 @@ struct window_layout
   v2 Basis;
   v2 MaxClip;
 
-  u64 InteractionStackIndex = 1;
+  u64 InteractionStackIndex;
 
   r32 zBackground;
   r32 zText;
@@ -105,7 +105,7 @@ MakeFont(v2 Size)
 
 // TODO(Jesse, id: 77, tags: font, cleanup): Axe this!
 debug_global font Global_Font = {
-  .Size = V2(26, 34) * 1.3f,
+  .Size = V2(26, 34) * 1.45f,
 };
 
 struct ui_element_reference
@@ -130,6 +130,7 @@ struct ui_style
 
 link_internal ui_style UiStyleFromLightestColor(v3 Color, font Font = Global_Font);
 debug_global v4 DefaultColumnPadding = V4(0, 0, 30, 12);
+debug_global v4 DefaultButtonPadding = V4(15);
 
 debug_global ui_style DefaultStyle = UiStyleFromLightestColor(V3(1));
 debug_global ui_style DefaultSelectedStyle = UiStyleFromLightestColor(V3(.6f, 1.f, .6f));
@@ -397,11 +398,11 @@ UiStyleFromLightestColor(v3 Color, font Font)
     .HoverColor   = Color*0.85f,
     .PressedColor = Color,
     .ClickedColor = Color,
-    .ActiveColor  = Color,
+    /* .ActiveColor  = V3(.85f, 1.f, .85f), */
 
     .Font         = Font,
 
-    .IsActive     = False,
+    /* .IsActive     = False, */
   };
 
   return Style;
