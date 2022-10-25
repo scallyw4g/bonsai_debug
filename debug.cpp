@@ -213,8 +213,6 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
   UiGroup->HighestWindow = GetHighestWindow(UiGroup, UiGroup->CommandBuffer);
   FlushCommandBuffer(UiGroup, UiGroup->CommandBuffer);
 
-  FlushBuffers(UiGroup, UiGroup->ScreenDim);
-
   DebugState->BytesBufferedToCard = 0;
 
   for( u32 DrawCountIndex = 0;
