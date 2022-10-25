@@ -690,22 +690,38 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
   TIMED_FUNCTION();
 
   PushTableStart(Group);
-    v2 MaxBarDim = V2(15.0f, 80.0f);
+
     v4 Pad = V4(1, 0, 1, 0);
-
+    v2 MaxBarDim = V2(15.0f, 80.0f);
     r32 HorizontalAdvance = (MaxBarDim.x+Pad.Left+Pad.Right);
+    r32 VerticalAdvance = MaxBarDim.y;
 
-    for (u32 FrameIndex = 0;
-        FrameIndex < DEBUG_FRAMES_TRACKED;
-        ++FrameIndex )
+    v2 LineDim = V2( HorizontalAdvance * DEBUG_FRAMES_TRACKED, 2.0f);
+    {
+      ui_style Style = UiStyleFromLightestColor( V3(1.f, 0.75f, 0.f) );
+      r32 MsPerc = (r32)SafeDivide0(33.333, MaxMs);
+      r32 MinPOffset = MaxBarDim.y * MsPerc;
+      v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
+      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
+    }
+
+    {
+      ui_style Style = UiStyleFromLightestColor( V3(0.f, 1.f, 0.f) );
+      r32 MsPerc = (r32)SafeDivide0(16.666, MaxMs);
+      r32 MinPOffset = MaxBarDim.y * MsPerc;
+      v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
+      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
+    }
+
+    for ( u32 FrameIndex = 0;
+              FrameIndex < DEBUG_FRAMES_TRACKED;
+            ++FrameIndex )
     {
       frame_stats *Frame = DebugState->Frames + FrameIndex;
       r32 Perc = (r32)SafeDivide0(Frame->FrameMs, MaxMs);
 
       v2 QuadDim = MaxBarDim * V2(1.0f, Perc);
-      v2 VerticalOffset = V2( 0, MaxBarDim.y-QuadDim.y );
-      v2 HorizontalOffset = V2( HorizontalAdvance*FrameIndex, 0);
-      v2 Offset = VerticalOffset + HorizontalOffset;
+      v2 Offset = V2(0.f, VerticalAdvance-QuadDim.y);
 
       r32 Brightness = 0.40f;
 
@@ -718,27 +734,7 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
         PushUntexturedQuad(Group, Offset, QuadDim, zDepth_Background, &Style, Pad);
       PushButtonEnd(Group);
 
-      if (Clicked(Group, &B))
-      {
-        DebugState->ReadScopeIndex = FrameIndex;
-      }
-    }
-
-    v2 QuadDim = V2( HorizontalAdvance * DEBUG_FRAMES_TRACKED, 2.0f);
-    {
-      ui_style Style = UiStyleFromLightestColor( V3(1.f, 0.75f, 0.f) );
-      r32 MsPerc = (r32)SafeDivide0(33.333, MaxMs);
-      r32 MinPOffset = MaxBarDim.y * MsPerc;
-      v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
-      PushUntexturedQuad(Group, MinP, QuadDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
-    }
-
-    {
-      ui_style Style = UiStyleFromLightestColor( V3(0.f, 1.f, 0.f) );
-      r32 MsPerc = (r32)SafeDivide0(16.666, MaxMs);
-      r32 MinPOffset = MaxBarDim.y * MsPerc;
-      v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
-      PushUntexturedQuad(Group, MinP, QuadDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
+      if (Clicked(Group, &B)) { DebugState->ReadScopeIndex = FrameIndex; }
     }
 
 
@@ -1108,10 +1104,12 @@ PushBargraph(debug_ui_render_group *Group, r32 PercFilled, v3 Color)
   v2 PercBarDim = BackgroundQuad * V2(PercFilled, 1);
 
   ui_style Style = UiStyleFromLightestColor(V3(0.6f));
-  PushUntexturedQuad(Group, V2(0), BackgroundQuad, zDepth_TitleBar, &Style);
+  PushUntexturedQuad(Group, V2(0), BackgroundQuad, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance);
 
   Style = UiStyleFromLightestColor(Color);
   PushUntexturedQuad(Group, V2(0), PercBarDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance);
+
+
 
   return;
 }

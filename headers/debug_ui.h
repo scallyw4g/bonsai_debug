@@ -242,6 +242,11 @@ struct ui_render_command_table_start
   ui_element_reference RelativeTo;
 };
 
+struct ui_render_command_force_advance
+{
+  v2 Offset;
+};
+
 poof(
   d_union ui_render_command
   {
@@ -264,6 +269,8 @@ poof(
     ui_render_command_untextured_quad_at
 
     ui_render_command_border
+
+    ui_render_command_force_advance
 
     ui_render_command_new_row   enum_only
     ui_render_command_table_end enum_only
