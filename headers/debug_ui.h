@@ -80,8 +80,8 @@ enum relative_position
 enum z_depth
 {
   zDepth_Background,
-  zDepth_Text,
   zDepth_TitleBar,
+  zDepth_Text,
   zDepth_Border,
 };
 
