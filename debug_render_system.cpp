@@ -1388,8 +1388,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
 
-  v2 Basis = V2(20, 350);
-  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize + V2(300, 0));
+  v2 Basis = V2(20, 300);
+  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize + V2(500, 150));
   window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
 
 
@@ -1401,10 +1401,10 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
   ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
 
 
+  PushColumn(Group, CSz("Name"),   &TitleStyle);
+  PushColumn(Group, CSz("Size"),   &TitleStyle);
+  PushColumn(Group, CSz("Pushes"), &TitleStyle);
   PushColumn(Group, CSz("Thread"), &TitleStyle);
-  PushColumn(Group, CSz("Total Size"), &TitleStyle);
-  PushColumn(Group, CSz("Pushes"),     &TitleStyle);
-  PushColumn(Group, CSz("Arena Name"), &TitleStyle);
   PushNewRow(Group);
 
   if (FoundUntrackedAllocations)
@@ -1444,10 +1444,10 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
     interactable_handle ExpandInteraction =
     PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
-      PushColumn(Group, CS(Current->ThreadId), &Style);
+      PushColumn(Group, CS(Current->Name),                   &Style);
       PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
-      PushColumn(Group, CS(MemStats.Pushes), &Style);
-      PushColumn(Group, CS(Current->Name), &Style);
+      PushColumn(Group, CS(MemStats.Pushes),                 &Style);
+      PushColumn(Group, CS(Current->ThreadId),               &Style);
       PushNewRow(Group);
     PushButtonEnd(Group);
 
@@ -1496,10 +1496,10 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     {
 
       counted_string TitleStats = FormatCountedString( TranArena,
-                                                       CSz("%s :: Allocs(%S) Pushes(%S) TotalSize(%S) Used(%S) Remaining(%S)"),
+                                                       CSz("%s :: Allocs(%lu) Pushes(%lu) TotalSize(%S) Used(%S) Remaining(%S)"),
                                                        Current->Name,
-                                                       MemorySize(MemStats.Allocations),
-                                                       FormatThousands(MemStats.Pushes),
+                                                       MemStats.Allocations,
+                                                       MemStats.Pushes,
                                                        MemorySize(MemStats.TotalAllocated),
                                                        MemorySize(MemStats.TotalAllocated - MemStats.Remaining),
                                                        MemorySize(MemStats.Remaining)
