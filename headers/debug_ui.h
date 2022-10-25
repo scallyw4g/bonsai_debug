@@ -244,6 +244,7 @@ struct ui_render_command_table_start
 
 struct ui_render_command_force_advance
 {
+  layout Layout;
   v2 Offset;
 };
 

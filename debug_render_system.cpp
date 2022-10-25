@@ -1095,77 +1095,62 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
 
 
 link_internal void
-PushBargraph(debug_ui_render_group *Group, r32 PercFilled, v3 Color)
+PushBargraph(debug_ui_render_group *Group, r32 PercFilled, v3 FColor, v3 BColor, r32 BarWidth, r32 BarHeight = Global_Font.Size.y)
 {
-  r32 BarHeight = Global_Font.Size.y;
-  r32 BarWidth = 200.0f;
+  v2 BackgroundQuadDim = V2(BarWidth, BarHeight);
+  v2 ShadedQuadDim = BackgroundQuadDim * V2(PercFilled, 1);
 
-  v2 BackgroundQuad = V2(BarWidth, BarHeight);
-  v2 PercBarDim = BackgroundQuad * V2(PercFilled, 1);
+  v2 UnshadedQuadDim = V2(BackgroundQuadDim.x - ShadedQuadDim.x, BackgroundQuadDim.y);
 
-  ui_style Style = UiStyleFromLightestColor(V3(0.6f));
-  PushUntexturedQuad(Group, V2(0), BackgroundQuad, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance);
+  ui_style Style = UiStyleFromLightestColor(FColor);
+  /* PushUntexturedQuad(Group, V2(0), ShadedQuadDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance); */
+  PushUntexturedQuad(Group, V2(0), ShadedQuadDim, zDepth_TitleBar, &Style);
 
-  Style = UiStyleFromLightestColor(Color);
-  PushUntexturedQuad(Group, V2(0), PercBarDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance);
+  Style = UiStyleFromLightestColor(BColor);
+  /* PushUntexturedQuad(Group, V2(0), UnshadedQuadDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance); */
+  PushUntexturedQuad(Group, V2(0), UnshadedQuadDim, zDepth_TitleBar, &Style);
 
-
+  /* PushForceAdvance(Group, BackgroundQuadDim); */
+  /* PushForceAdvance(Group, V2(BackgroundQuadDim.x, 0)); */
 
   return;
 }
 
 link_internal interactable_handle
-PushArenaBargraph(debug_ui_render_group *Group, v3 Color, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId)
+PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId, r32 BarHeight)
 {
-  PushColumn(Group, MemorySize(TotalUsed));
+  counted_string StatsString = FormatCountedString(TranArena, CSz("%S / %S (%S)"), MemorySize(TotalUsed), MemorySize(TotalUsed + Remaining), MemorySize(Remaining));
+  PushColumn(Group, StatsString);
+  PushNewRow(Group);
+
+  r32 BargraphWidth = 800.f;
 
   interactable_handle Handle = PushButtonStart(Group, InteractionId);
-    PushBargraph(Group, TotalPerc, Color);
+    PushBargraph(Group, TotalPerc, FColor, BColor, BargraphWidth, BarHeight);
   PushButtonEnd(Group);
 
-  PushColumn(Group, MemorySize(Remaining));
   PushNewRow(Group);
 
   return Handle;
 }
 
 link_internal void
-PushMemoryStatsTable(memory_arena_stats MemStats, debug_ui_render_group *Group)
-{
-  PushColumn(Group, CSz("Allocs"));
-  PushColumn(Group, MemorySize(MemStats.Allocations));
-  PushNewRow(Group);
-
-  PushColumn(Group, CSz("Pushes"));
-  PushColumn(Group, FormatThousands(MemStats.Pushes));
-  PushNewRow(Group);
-
-  PushColumn(Group, CSz("Remaining"));
-  PushColumn(Group, MemorySize(MemStats.Remaining));
-  PushNewRow(Group);
-
-  PushColumn(Group, CSz("Total"));
-  PushColumn(Group, MemorySize(MemStats.TotalAllocated));
-  PushNewRow(Group);
-
-  return;
-}
-
-link_internal void
 PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
 {
   PushNewRow(Group);
-  v3 DefaultColor =  V3(.25f, .1f, .35f);
+  v3 DefaultForegroundColor =  V3(.25f, .1f, .35f);
+  v3 DefaultBackgroundColor =  V3(.5f);
 
   r32 TotalPerc = (r32)SafeDivide0(TotalUsed, MemStats.TotalAllocated);
   // TODO(Jesse, id: 110, tags: ui, semantic): Should we do something special when interacting with this thing instead of Ignored-ing it?
-  PushArenaBargraph(Group, DefaultColor, TotalUsed, TotalPerc, MemStats.Remaining, (umm)"Ignored");
+  PushArenaBargraph(Group, DefaultForegroundColor, DefaultBackgroundColor, TotalUsed, TotalPerc, MemStats.Remaining, (umm)"Ignored", Global_Font.Size.y);
   PushNewRow(Group);
 
   memory_arena *CurrentArena = HeadArena;
   while (CurrentArena && CurrentArena->Start)
   {
-    v3 Color = DefaultColor;
+    v3 FColor = DefaultForegroundColor;
+    v3 BColor = DefaultBackgroundColor;
     for (u32 ArenaIndex = 0;
         ArenaIndex < SelectedArenas->Count;
         ++ArenaIndex)
@@ -1173,14 +1158,15 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedA
       selected_memory_arena *Selected = &SelectedArenas->Arenas[ArenaIndex];
       if (Selected->ArenaAddress == HashArena(CurrentArena))
       {
-        Color = DefaultColor * 1.8f;
+        FColor = DefaultForegroundColor * 1.8f;
+        BColor = DefaultBackgroundColor * 1.8f;
       }
     }
 
     u64 CurrentUsed = TotalSize(CurrentArena) - Remaining(CurrentArena);
     r32 CurrentPerc = (r32)SafeDivide0(CurrentUsed, TotalSize(CurrentArena));
 
-    interactable_handle Handle = PushArenaBargraph(Group, Color, CurrentUsed, CurrentPerc, Remaining(CurrentArena), HashArena(CurrentArena));
+    interactable_handle Handle = PushArenaBargraph(Group, FColor, BColor, CurrentUsed, CurrentPerc, Remaining(CurrentArena), HashArena(CurrentArena), Global_Font.Size.y*.5f);
     if (Clicked(Group, &Handle))
     {
       selected_memory_arena *Found = 0;
@@ -1293,9 +1279,9 @@ DebugMetadataHeading(debug_ui_render_group *Group)
 {
   PushColumn(Group, CSz("Thread"));
   PushColumn(Group, CSz("Arena"));
-  PushColumn(Group, CSz("Total Size"));
-  PushColumn(Group, CSz("Struct Count"));
-  PushColumn(Group, CSz("Push Count"));
+  PushColumn(Group, CSz("Memory"));
+  PushColumn(Group, CSz("Structs"));
+  PushColumn(Group, CSz("Pushes"));
   PushColumn(Group, CSz("Name"));
   PushNewRow(Group);
 
@@ -1508,19 +1494,32 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
     if (Current->Expanded)
     {
+
+      counted_string TitleStats = FormatCountedString( TranArena,
+                                                       CSz("%s :: Allocs(%S) Pushes(%S) TotalSize(%S) Used(%S) Remaining(%S)"),
+                                                       Current->Name,
+                                                       MemorySize(MemStats.Allocations),
+                                                       FormatThousands(MemStats.Pushes),
+                                                       MemorySize(MemStats.TotalAllocated),
+                                                       MemorySize(MemStats.TotalAllocated - MemStats.Remaining),
+                                                       MemorySize(MemStats.Remaining)
+                                                     );
+
+      /* counted_string TitleStats = FormatCountedString( TranArena, */
+      /*                                                  CSz("%s :: Allocs(%lu) Pushes(%lu) TotalSize(%lu) Used(%lu) Remaining(%lu)"), */
+      /*                                                  Current->Name, */
+      /*                                                  MemStats.Allocations, */
+      /*                                                  MemStats.Pushes, */
+      /*                                                  MemStats.TotalAllocated, */
+      /*                                                  MemStats.TotalAllocated - MemStats.Remaining, */
+      /*                                                  MemStats.Remaining */
+      /*                                                ); */
+
       PushNewRow(Group);
-      PushNewRow(Group);
-      PushColumn(Group, CS(Current->Name));
-      /* PushNewRow(Group); */
-      /* PushColumn(Group, CS(Current->Arena->InitializedAt)); */
-      PushNewRow(Group);
+      PushColumn(Group, TitleStats);
       PushNewRow(Group);
 
-      ui_element_reference StatsTable = PushTableStart(Group);
-        PushMemoryStatsTable(MemStats, Group);
-      PushTableEnd(Group);
-
-      ui_element_reference BargraphTable = PushTableStart(Group, Position_RightOf, StatsTable);
+      ui_element_reference BargraphTable = PushTableStart(Group);
         PushMemoryBargraphTable(Group, SelectedArenas, MemStats, TotalUsed, Current->Arena);
       PushTableEnd(Group);
 
