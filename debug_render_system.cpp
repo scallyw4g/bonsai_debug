@@ -1624,7 +1624,7 @@ DebugDrawGraphicsHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
 link_internal void
-DebugValue(r32 Value, const char* Name)
+DebugValue_r32(r32 Value, const char* Name)
 {
   debug_state* DebugState = GetDebugState();
   debug_ui_render_group* Group = &DebugState->UiGroup;
@@ -1637,7 +1637,7 @@ DebugValue(r32 Value, const char* Name)
 }
 
 link_internal void
-DebugValue(u32 Value, const char* Name)
+DebugValue_u32(u32 Value, const char* Name)
 {
   debug_state* DebugState = GetDebugState();
   debug_ui_render_group* Group = &DebugState->UiGroup;
@@ -1658,23 +1658,23 @@ FramebufferTextureLayer(framebuffer *FBO, texture *Tex, debug_texture_array_slic
 }
 
 link_internal void
-AllocateAndInitGeoBuffer(textured_2d_geometry_buffer *Geo, u32 VertCount, memory_arena *DebugArena)
+AllocateAndInitGeoBuffer(textured_2d_geometry_buffer *Geo, u32 ElementCount, memory_arena *DebugArena)
 {
-  Geo->Verts  = Allocate(v3, DebugArena, VertCount);
-  Geo->Colors = Allocate(v3, DebugArena, VertCount);
-  Geo->UVs    = Allocate(v3, DebugArena, VertCount);
+  Geo->Verts  = Allocate(v3, DebugArena, ElementCount);
+  Geo->Colors = Allocate(v3, DebugArena, ElementCount);
+  Geo->UVs    = Allocate(v3, DebugArena, ElementCount);
 
-  Geo->End = VertCount;
+  Geo->End = ElementCount;
   Geo->At = 0;
 }
 
 link_internal void
-AllocateAndInitGeoBuffer(untextured_2d_geometry_buffer *Geo, u32 VertCount, memory_arena *DebugArena)
+AllocateAndInitGeoBuffer(untextured_2d_geometry_buffer *Geo, u32 ElementCount, memory_arena *DebugArena)
 {
-  Geo->Verts = Allocate(v3, DebugArena, VertCount);
-  Geo->Colors = Allocate(v3, DebugArena, VertCount);
+  Geo->Verts = Allocate(v3, DebugArena, ElementCount);
+  Geo->Colors = Allocate(v3, DebugArena, ElementCount);
 
-  Geo->End = VertCount;
+  Geo->End = ElementCount;
   Geo->At = 0;
   return;
 }
@@ -1719,8 +1719,12 @@ InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
   DebugState->UiGroup.CommandBuffer = Allocate(ui_render_command_buffer, ThreadsafeDebugMemoryAllocator(), 1);
   DebugState->SelectedArenas        = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
 
-  AllocateAndInitGeoBuffer(&DebugState->UiGroup.TextGroup->Geo, 1024, ThreadsafeDebugMemoryAllocator());
-  AllocateAndInitGeoBuffer(&DebugState->UiGroup.Geo, 1024, ThreadsafeDebugMemoryAllocator());
+  // TODO(Jesse, memory): Instead of allocate insanely massive buffers (these are ~400x overkill)
+  // we should have a system that streams blocks of memory in as-necessary
+  // @streaming_ui_render_memory
+  u32 ElementCount = (u32)Megabytes(2);
+  AllocateAndInitGeoBuffer(&DebugState->UiGroup.TextGroup->Geo, ElementCount, ThreadsafeDebugMemoryAllocator());
+  AllocateAndInitGeoBuffer(&DebugState->UiGroup.Geo, ElementCount, ThreadsafeDebugMemoryAllocator());
 
 
   auto TextGroup = DebugState->UiGroup.TextGroup;

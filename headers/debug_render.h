@@ -45,6 +45,9 @@ struct debug_ui_render_group
   umm ClickedInteractionId;
   umm PressedInteractionId;
 
+  u32 SolidGeoCountLastFrame;
+  u32 TextGeoCountLastFrame;
+
   untextured_2d_geometry_buffer Geo;
 
   ui_render_command_buffer *CommandBuffer;
