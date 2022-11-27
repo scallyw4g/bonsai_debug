@@ -1,6 +1,8 @@
 
 #if DEBUG_SYSTEM_API
 
+#define DEFAULT_DEBUG_LIB "./bin/lib_debug_system" PLATFORM_RUNTIME_LIB_EXTENSION
+
 inline umm
 HashArenaBlock(memory_arena *Arena)
 {
