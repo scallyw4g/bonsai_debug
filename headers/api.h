@@ -110,18 +110,6 @@ enum debug_ui_type
   DebugUIType_PickedChunks          = (1 << 7),
 };
 
-struct render_entity_to_texture_group
-{
-  // For the GameGeo
-  camera *Camera;
-  framebuffer GameGeoFBO;
-  shader GameGeoShader;
-  m4 ViewProjection;
-  gpu_mapped_element_buffer GameGeo;
-  shader DebugGameGeoTextureShader;
-
-};
-
 struct debug_state
 {
   b32 Initialized;
@@ -208,7 +196,7 @@ struct debug_state
 
 
 #define GetDebugState() Global_DebugStatePointer
-link_external debug_state *Global_DebugStatePointer;
+global_variable debug_state *Global_DebugStatePointer;
 
 
 struct debug_timed_function
@@ -295,12 +283,12 @@ void DebugTimedMutexReleased(mutex *Mut);
 
 #if DEBUG_SYSTEM_LOADER_API
 
-#include <dlfcn.h>
+/* #include <dlfcn.h> */
 #include <stdio.h>
 #include <time.h>
 
 #define BonsaiDebug_DefaultLibPath "lib_bonsai_debug/lib_bonsai_debug.so"
-debug_state *Global_DebugStatePointer;
+/* global_variable debug_state *Global_DebugStatePointer; */
 
 struct bonsai_debug_api
 {
@@ -319,26 +307,26 @@ r64 GetDt()
 }
 
 bool
-InitializeBootstrapDebugApi(void* DebugLib, bonsai_debug_api *Api)
+InitializeBootstrapDebugApi(shared_lib DebugLib, bonsai_debug_api *Api)
 {
   b32 Result = 1;
 
-  Api->QueryMemoryRequirements = (query_memory_requirements_proc)dlsym(DebugLib, "QueryMemoryRequirements");
+  Api->QueryMemoryRequirements = (query_memory_requirements_proc)GetProcFromLib(DebugLib, "QueryMemoryRequirements");
   Result &= (Api->QueryMemoryRequirements != 0);
 
-  Api->InitDebugState = (init_debug_system_proc)dlsym(DebugLib, "InitDebugState");
+  Api->InitDebugState = (init_debug_system_proc)GetProcFromLib(DebugLib, "InitDebugState");
   Result &= (Api->InitDebugState != 0);
 
-  Api->BonsaiDebug_OnLoad = (patch_debug_lib_pointers_proc)dlsym(DebugLib, "BonsaiDebug_OnLoad");
+  Api->BonsaiDebug_OnLoad = (patch_debug_lib_pointers_proc)GetProcFromLib(DebugLib, "BonsaiDebug_OnLoad");
   Result &= (Api->InitDebugState != 0);
 
   return Result;
 }
 
-void*
+shared_lib
 InitializeBonsaiDebug(const char* DebugLibName)
 {
-  void* DebugLib = dlopen(DebugLibName, RTLD_NOW);
+  shared_lib DebugLib = OpenLibrary(DebugLibName); //, RTLD_NOW);
 
   if (DebugLib)
   {
@@ -360,7 +348,7 @@ InitializeBonsaiDebug(const char* DebugLibName)
     }
     else { printf("Error initializing lib_bonsai_debug bootstrap API\n"); DebugLib = 0; }
   }
-  else { printf("OpenLibrary Failed (%s)\n", dlerror()); DebugLib = 0; }
+  else { printf("OpenLibrary Failed (%s)\n", ""); DebugLib = 0; }
 
   return DebugLib;
 }

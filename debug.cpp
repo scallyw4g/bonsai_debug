@@ -14,7 +14,7 @@
 #include <bonsai_debug/debug_data_system.cpp>
 #include <bonsai_debug/debug_render_system.cpp>
 
-debug_state *Global_DebugStatePointer;
+/* debug_state *Global_DebugStatePointer; */
 
 global_variable os Os = {};
 global_variable platform Plat = {};
@@ -102,11 +102,12 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
     PushNewRow(UiGroup);
   PushTableEnd(UiGroup);
 
-  END_BLOCK("Status Bar");
+  END_BLOCK("Draw Status Bar");
 
 
   if (DebugState->DisplayDebugMenu)
   {
+    TIMED_BLOCK("Draw Debug Menu");
 
     PushTableStart(UiGroup);
 
@@ -208,6 +209,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
       DebugDrawDrawCalls(UiGroup);
     }
 
+    END_BLOCK("Draw Debug Menu");
   }
 
   UiGroup->HighestWindow = GetHighestWindow(UiGroup, UiGroup->CommandBuffer);
