@@ -246,9 +246,9 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
   r32 Percentage = 100.0f * (r32)SafeDivide0((r64)TotalCycles, (r64)TotalFrameCycles);
   u64 AvgCycles = (u64)SafeDivide0(TotalCycles, CallCount);
 
-  PushColumn(Group, CS(Percentage), 0, DefaultColumnPadding);
-  PushColumn(Group, CS(AvgCycles), 0, DefaultColumnPadding);
-  PushColumn(Group, CS(CallCount), 0, DefaultColumnPadding);
+  PushColumn(Group, CS(Percentage));
+  PushColumn(Group, CS(AvgCycles));
+  PushColumn(Group, CS(CallCount));
 
   char Prefix = ' ';
   if (Scope->Expanded && Scope->Child)
@@ -262,7 +262,7 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 
   u32 DepthSpaces = (Depth*2)+1;
   counted_string NameString = BuildNameStringFor(Prefix, CS(Scope->Name), DepthSpaces);
-  PushColumn(Group, NameString, 0, DefaultColumnPadding, ColumnRenderParam_LeftAlign);
+  PushColumn(Group, NameString, &DefaultStyle, DefaultColumnPadding, ColumnRenderParam_LeftAlign);
 
   return;
 }
@@ -779,10 +779,10 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
 
     PushTableStart(Group);
 
-    PushColumn(Group, CSz("Frame %"), 0, DefaultColumnPadding);
-    PushColumn(Group, CSz("Cycles"), 0, DefaultColumnPadding);;
-    PushColumn(Group, CSz("Calls"), 0, DefaultColumnPadding);
-    PushColumn(Group, CSz("Name"), 0, DefaultColumnPadding);
+    PushColumn(Group, CSz("Frame %"));
+    PushColumn(Group, CSz("Cycles"));
+    PushColumn(Group, CSz("Calls"));
+    PushColumn(Group, CSz("Name"));
     PushNewRow(Group);
 
     for ( u32 ThreadIndex = 0;

@@ -213,6 +213,12 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
   }
 
   UiGroup->HighestWindow = GetHighestWindow(UiGroup, UiGroup->CommandBuffer);
+
+  if (UiGroup->HighestWindow)
+  {
+    UiGroup->HighestWindow->Scroll.y += Input->MouseWheelDelta * 5;
+  }
+
   FlushCommandBuffer(UiGroup, UiGroup->CommandBuffer);
 
   DebugState->BytesBufferedToCard = 0;
@@ -285,8 +291,7 @@ OpenAndInitializeDebugWindow()
 link_internal b32
 ProcessInputAndRedrawWindow()
 {
-  ClearClickedFlags(&Plat.Input);
-  Clear(&Hotkeys);
+  ResetInputForFrameStart(&Plat.Input, &Hotkeys);
 
   v2 LastMouseP = Plat.MouseP;
   while ( ProcessOsMessages(&Os, &Plat) );

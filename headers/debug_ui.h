@@ -1,6 +1,7 @@
 
 #define DEBUG_MAX_UI_WINDOW_SLICES 1024.0f
-#define DISABLE_CLIPPING V2(f32_MAX)
+#define DISABLE_CLIPPING RectMinMax(V2(f32_MIN), V2(f32_MAX) )
+#define DISABLE_CLIPPING_MAX V2(f32_MAX)
 
 #define DEBUG_UI_OUTLINE_VALUES  0
 #define DEBUG_UI_OUTLINE_BUTTONS 0
@@ -19,6 +20,7 @@ struct window_layout
 
   v2 Basis;
   v2 MaxClip;
+  v2 Scroll;
 
   u64 InteractionStackIndex;
 
@@ -60,6 +62,13 @@ enum quad_render_params
 
   QuadRenderParam_Default = (QuadRenderParam_AdvanceLayout|QuadRenderParam_AdvanceClip),
 };
+
+enum text_render_params
+{
+  TextRenderParam_Default  =  0,
+  TextRenderParam_NoScroll = (1 << 0),
+};
+
 
 enum button_end_params
 {
@@ -189,13 +198,14 @@ struct ui_render_command_text
   layout Layout;
   ui_style Style;
   counted_string String;
+  text_render_params Params;
 };
 
 struct ui_render_command_text_at
 {
   counted_string Text;
   v2 At;
-  v2 MaxClip;
+  rect2 Clip;
 };
 
 struct ui_render_command_untextured_quad
@@ -312,7 +322,7 @@ enum clip_status
 struct clip_result
 {
   clip_status ClipStatus;
-  v2 MaxClip;
+  rect2 Clip;
 
   rect2 PartialClip;
 };
@@ -461,10 +471,17 @@ GetAbsoluteDrawBounds(layout *Layout)
   return Result;
 }
 
-v2
+inline rect2
+GetAbsoluteClip(window_layout *Window)
+{
+  rect2 Result = Window? RectMinMax(Window->Basis, Window->MaxClip+Window->Basis) : DISABLE_CLIPPING;
+  return Result;
+}
+
+inline v2
 GetAbsoluteMaxClip(window_layout *Window)
 {
-  v2 Result = Window? Window->MaxClip + Window->Basis : DISABLE_CLIPPING;
+  v2 Result = Window? Window->MaxClip + Window->Basis : DISABLE_CLIPPING_MAX;
   return Result;
 }
 
