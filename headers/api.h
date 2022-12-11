@@ -186,7 +186,7 @@ struct debug_state
   u32 ReadScopeIndex;
   s32 FreeScopeCount;
 
-#define REGISTERED_MEMORY_ARENA_COUNT (128)
+#define REGISTERED_MEMORY_ARENA_COUNT (256)
   registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
 
 #define TRACKED_DRAW_CALLS_MAX (128)
@@ -256,9 +256,9 @@ struct debug_timed_function
 };
 
 #define TIMED_FUNCTION() debug_timed_function FunctionTimer(__func__)
-#define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockTimer(BlockName)
+#define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockTimer1(BlockName)
 
-#define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer(BlockName)
+#define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer0(BlockName)
 #define END_BLOCK(BlockName) } do {} while (0)
 
 #define DEBUG_VALUE(Pointer) do {GetDebugState()->DebugValue(Pointer, #Pointer);} while (false)

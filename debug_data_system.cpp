@@ -38,6 +38,8 @@ RegisterThread(u32 ThreadIndex)
 inline debug_thread_state*
 GetThreadLocalStateFor(u32 ThreadIndex)
 {
+  /* TIMED_FUNCTION(); */
+
   debug_state *State = GetDebugState();
 
   // NOTE(Jesse): It's possible that during initialization between the time

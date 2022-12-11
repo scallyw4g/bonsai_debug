@@ -5,7 +5,7 @@
 
 #define DEBUG_UI_OUTLINE_VALUES  0
 #define DEBUG_UI_OUTLINE_BUTTONS 0
-#define DEBUG_UI_OUTLINE_TABLES  0
+#define DEBUG_UI_OUTLINE_TABLES  1
 
 /******************************               ********************************/
 /******************************   Rendering   ********************************/
@@ -155,7 +155,7 @@ struct layout
 {
   v2 Basis;
   v2 At;
-  rect2 DrawBounds;
+  rect2 DrawBounds = InvertedInfinityRectangle();
 
   v4 Padding;
 
@@ -436,6 +436,8 @@ DefaultWindowSize = V2(1800, 800);
 link_internal window_layout
 WindowLayout(const char* Title, v2 Basis, v2 MaxClip = DefaultWindowSize)
 {
+  /* TIMED_FUNCTION(); */
+
   local_persist u32 NextWindowStackIndex = 0;
 
   window_layout Window = {};
@@ -472,6 +474,13 @@ rect2
 GetAbsoluteDrawBounds(layout *Layout)
 {
   rect2 Result = RectMinMax( GetAbsoluteDrawBoundsMin(Layout), GetAbsoluteDrawBoundsMax(Layout) );
+  return Result;
+}
+
+inline v2
+GetScroll(window_layout *Window)
+{
+  v2 Result = Window? Window->Scroll : V2(0);
   return Result;
 }
 

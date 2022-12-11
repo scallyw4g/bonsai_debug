@@ -393,6 +393,8 @@ PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope,
 link_internal void
 DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 BasisP)
 {
+  TIMED_FUNCTION();
+
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
   local_persist window_layout CycleGraphWindow = WindowLayout("Call Graph", BasisP);
@@ -411,16 +413,19 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
         ThreadIndex < TotalThreadCount;
         ++ThreadIndex)
   {
-      PushColumn(Group, FormatCountedString(TranArena, CSz("Thread %u"), ThreadIndex));
-      PushNewRow(Group);
+    TIMED_NAMED_BLOCK("Thread Loop");
 
-      debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-      debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
-      if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
-      {
-        PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, &Entropy);
-      }
-      PushNewRow(Group);
+    PushColumn(Group, FormatCountedString(TranArena, CSz("Thread %u"), ThreadIndex));
+    PushNewRow(Group);
+
+    debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+    debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
+    if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
+    {
+      debug_timed_function BlockTimer2("Push Scope Bars");
+      PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, &Entropy);
+    }
+    PushNewRow(Group);
   }
   PushTableEnd(Group);
 
@@ -689,7 +694,9 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 {
   TIMED_FUNCTION();
 
+    PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
   PushTableStart(Group);
+    PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
 
     v4 Pad = V4(1, 0, 1, 0);
     v2 MaxBarDim = V2(15.0f, 80.0f);
@@ -763,6 +770,8 @@ DefaultWindowBasis(v2 ScreenDim)
 link_internal void
 DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs)
 {
+  TIMED_FUNCTION();
+
   DrawFrameTicker(Group, DebugState, Max(33.3, MaxMs));
 
   u32 TotalThreadCount = GetWorkerThreadCount() + 1;
@@ -795,6 +804,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
 
       if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
       {
+        debug_timed_function BlockTimer2("Buffer First Call To Each");
         BufferFirstCallToEach(Group, ReadTree->Root, ReadTree->Root, ThreadsafeDebugMemoryAllocator(), &CallgraphWindow, Frame->TotalCycles, 0);
       }
     }
@@ -902,6 +912,7 @@ DumpCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At, u3
 link_internal void
 DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugState)
 {
+  TIMED_FUNCTION();
 #if 0
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
@@ -1057,6 +1068,8 @@ TrackDrawCall(const char* Caller, u32 VertexCount)
 link_internal void
 DebugDrawDrawCalls(debug_ui_render_group *Group)
 {
+  TIMED_FUNCTION();
+
   local_persist window_layout DrawCallWindow = WindowLayout("Draw Calls", V2(0));
   PushWindowStart(Group, &DrawCallWindow);
 
@@ -1330,6 +1343,8 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
 link_internal void
 DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 {
+  TIMED_FUNCTION();
+
   local_persist b32 UntrackedAllocationsExpanded = {};
   b32 FoundUntrackedAllocations = False;
   memory_record UnknownRecordTable[META_TABLE_SIZE] = {};
@@ -1496,8 +1511,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     {
 
       counted_string TitleStats = FormatCountedString( TranArena,
-                                                       CSz("%s :: Allocs(%lu) Pushes(%lu) TotalSize(%S) Used(%S) Remaining(%S)"),
-                                                       Current->Name,
+                                                       CSz("Allocs(%lu) Pushes(%lu) TotalSize(%S) Used(%S) Remaining(%S)"),
                                                        MemStats.Allocations,
                                                        MemStats.Pushes,
                                                        MemorySize(MemStats.TotalAllocated),
@@ -1515,17 +1529,21 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       /*                                                  MemStats.Remaining */
       /*                                                ); */
 
-      PushNewRow(Group);
-      PushColumn(Group, TitleStats);
-      PushNewRow(Group);
+      PushTableStart(Group);
+        PushNewRow(Group);
+        PushColumn(Group, CS(Current->Name));
+        PushNewRow(Group);
+        PushColumn(Group, TitleStats);
+        PushNewRow(Group);
+      PushTableEnd(Group);
 
       ui_element_reference BargraphTable = PushTableStart(Group);
         PushMemoryBargraphTable(Group, SelectedArenas, MemStats, TotalUsed, Current->Arena);
       PushTableEnd(Group);
 
-      PushTableStart(Group, Position_RightOf, BargraphTable);
-        PushDebugPushMetaData(Group, SelectedArenas, HashArenaBlock(Current->Arena));
-      PushTableEnd(Group);
+/*       PushTableStart(Group, Position_RightOf, BargraphTable); */
+/*         PushDebugPushMetaData(Group, SelectedArenas, HashArenaBlock(Current->Arena)); */
+/*       PushTableEnd(Group); */
     }
 
     continue;
@@ -1609,6 +1627,7 @@ DebugDrawNetworkHud(debug_ui_render_group *Group, network_connection *Network, s
 link_internal void
 DebugDrawGraphicsHud(debug_ui_render_group *Group, debug_state *DebugState)
 {
+  TIMED_FUNCTION();
   PushTableStart(Group);
   PushColumn(Group, CS(DebugState->BytesBufferedToCard));
   PushTableEnd(Group);

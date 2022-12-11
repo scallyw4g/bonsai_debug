@@ -102,8 +102,8 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
     PushNewRow(UiGroup);
   PushTableEnd(UiGroup);
 
+  /* PushNewRow(UiGroup); // TODO(Jesse): This probably shouldn't have to be here. */
   END_BLOCK("Draw Status Bar");
-
 
   if (DebugState->DisplayDebugMenu)
   {
@@ -112,6 +112,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
     PushTableStart(UiGroup);
 
     {
+      TIMED_NAMED_BLOCK("Draw Toggle Buttons");
       ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle;
       if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style))
       {
