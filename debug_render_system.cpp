@@ -1541,9 +1541,9 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
         PushMemoryBargraphTable(Group, SelectedArenas, MemStats, TotalUsed, Current->Arena);
       PushTableEnd(Group);
 
-/*       PushTableStart(Group, Position_RightOf, BargraphTable); */
-/*         PushDebugPushMetaData(Group, SelectedArenas, HashArenaBlock(Current->Arena)); */
-/*       PushTableEnd(Group); */
+      PushTableStart(Group);
+        PushDebugPushMetaData(Group, SelectedArenas, HashArenaBlock(Current->Arena));
+      PushTableEnd(Group);
     }
 
     continue;

@@ -287,8 +287,9 @@ poof(
 
     ui_render_command_force_advance
 
-    ui_render_command_new_row   enum_only
-    ui_render_command_table_end enum_only
+    ui_render_command_new_row           enum_only
+    ui_render_command_table_end         enum_only
+    ui_render_command_reset_draw_bounds enum_only
   }
 )
 #include <generated/d_union_ui_render_command.h>
