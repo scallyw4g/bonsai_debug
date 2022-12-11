@@ -64,7 +64,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
 
   Dt = ComputeMinMaxAvgDt();
 
-  v4 Padding = V4(0,0,50,0);
+  v4 Padding = V4(25,0,25,0);
   ui_style Style = UiStyleFromLightestColor(V3(1));
 
   ui_element_reference DtTable = PushTableStart(UiGroup);
@@ -76,7 +76,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
     PushNewRow(UiGroup);
 
     PushColumn(UiGroup, CS(Dt.Avg), &Style, Padding);
-    PushColumn(UiGroup, CS(dt*1000.0f));
+    PushColumn(UiGroup, CS(dt*1000.0f), &Style, Padding);
 
     PushNewRow(UiGroup);
 
