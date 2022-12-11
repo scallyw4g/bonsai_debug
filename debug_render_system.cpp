@@ -1529,13 +1529,13 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       /*                                                  MemStats.Remaining */
       /*                                                ); */
 
-      PushTableStart(Group);
-        PushNewRow(Group);
+      /* PushTableStart(Group); */
+        /* PushNewRow(Group); */
         PushColumn(Group, CS(Current->Name));
         PushNewRow(Group);
         PushColumn(Group, TitleStats);
         PushNewRow(Group);
-      PushTableEnd(Group);
+      /* PushTableEnd(Group); */
 
       ui_element_reference BargraphTable = PushTableStart(Group);
         PushMemoryBargraphTable(Group, SelectedArenas, MemStats, TotalUsed, Current->Arena);
@@ -1544,6 +1544,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       PushTableStart(Group);
         PushDebugPushMetaData(Group, SelectedArenas, HashArenaBlock(Current->Arena));
       PushTableEnd(Group);
+
+      /* PushNewRow(Group); */
     }
 
     continue;

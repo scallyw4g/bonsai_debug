@@ -5,7 +5,7 @@
 
 #define DEBUG_UI_OUTLINE_VALUES  0
 #define DEBUG_UI_OUTLINE_BUTTONS 0
-#define DEBUG_UI_OUTLINE_TABLES  1
+#define DEBUG_UI_OUTLINE_TABLES  0
 
 /******************************               ********************************/
 /******************************   Rendering   ********************************/
