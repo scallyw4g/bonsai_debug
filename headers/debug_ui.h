@@ -67,6 +67,7 @@ enum text_render_params
 {
   TextRenderParam_Default  =  0,
   TextRenderParam_NoScroll = (1 << 0),
+  TextRenderParam_NoClip   = (1 << 1),
 };
 
 
@@ -116,6 +117,9 @@ MakeFont(v2 Size)
 debug_global font Global_Font = {
   .Size = V2(26, 34) * 0.8f,
 };
+
+global_variable r32 Global_TitleBarPadding = Global_Font.Size.y*0.2f;
+global_variable r32 Global_TitleBarHeight = Global_Font.Size.y + (Global_TitleBarPadding*2.f);
 
 struct ui_element_reference
 {
@@ -474,7 +478,7 @@ GetAbsoluteDrawBounds(layout *Layout)
 inline rect2
 GetAbsoluteClip(window_layout *Window)
 {
-  rect2 Result = Window? RectMinMax(Window->Basis, Window->MaxClip+Window->Basis) : DISABLE_CLIPPING;
+  rect2 Result = Window? RectMinMax(Window->Basis + V2(0, Global_TitleBarHeight), Window->MaxClip+Window->Basis) : DISABLE_CLIPPING;
   return Result;
 }
 
