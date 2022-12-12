@@ -312,13 +312,12 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 /* #endif */
 
 link_internal void
-PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Frame, r32 TotalGraphWidth, u32 Depth, ui_style *Style)
+PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Frame, r32 TotalGraphWidth, r32 BarHeight, r32 yOffset, ui_style *Style)
 {
   Assert(Frame->StartCycle < Range->StartCycle);
 
   r32 FramePerc = (r32)Range->TotalCycles / (r32)Frame->TotalCycles;
 
-  r32 BarHeight = Global_Font.Size.y;
   r32 BarWidth = FramePerc*TotalGraphWidth;
 
   if (BarWidth > 0.15f)
@@ -327,7 +326,6 @@ PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Fram
 
     u64 StartCycleOffset = Range->StartCycle - Frame->StartCycle;
     r32 xOffset = GetXOffsetForHorizontalBar(StartCycleOffset, Frame->TotalCycles, TotalGraphWidth);
-    r32 yOffset = Depth*Global_Font.Size.y;
 
     v2 Offset = V2(xOffset, yOffset);
 
@@ -359,6 +357,8 @@ ColorFromHash(u64 HashValue)
   return Color;
 }
 
+global_variable r32 Global_CoreBarHeight = 3.f;
+
 link_internal void
 PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope, cycle_range *Frame, r32 TotalGraphWidth, random_series *Entropy, u32 Depth = 0)
 {
@@ -372,16 +372,33 @@ PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope,
     random_series ScopeSeries = {.Seed = (u64)Scope};
     r32 Tint = RandomBetween(0.5f, &ScopeSeries, 1.0f);
 
-    v3 Color = ColorFromHash(NameHash) * Tint;
+    r32 CoreBarOffset = Global_CoreBarHeight*3.f;
 
-    ui_style Style = UiStyleFromLightestColor(Color);
+    v3 FunctionColor = ColorFromHash(NameHash) * Tint;
+    ui_style FunctionStyle = UiStyleFromLightestColor(FunctionColor);
+    r32 yOffsetFunction = Depth * (Global_Font.Size.y+CoreBarOffset);
 
-    interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope, &Style);
-      PushCycleBar(Group, &Range, Frame, TotalGraphWidth, Depth, &Style);
-    PushButtonEnd(Group);
+    v3 CoreColor = Group->DebugColors[Scope->CoreIndex];
+    ui_style CoreStyle = UiStyleFromLightestColor(CoreColor);
+    r32 yOffsetCore = Depth*(Global_Font.Size.y+CoreBarOffset) + Global_CoreBarHeight + Global_Font.Size.y;
 
-    if (Hover(Group, &Bar)) { PushTooltip(Group, CS(Scope->Name)); }
-    if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
+
+    {
+      interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope);
+        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, (r32)Global_Font.Size.y, yOffsetFunction, &FunctionStyle);
+      PushButtonEnd(Group);
+      if (Hover(Group, &Bar)) { PushTooltip(Group, CS(Scope->Name)); }
+      if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
+    }
+
+    {
+      interactable_handle Bar = PushButtonStart(Group, (umm)"CoreHoverInteraction"^(umm)Scope);
+        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, Global_CoreBarHeight, yOffsetCore, &CoreStyle);
+      PushButtonEnd(Group);
+      if (Hover(Group, &Bar)) { PushTooltip(Group, CS(Scope->CoreIndex)); }
+      /* if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; } */
+    }
+
 
     if (Scope->Expanded) { PushScopeBarsRecursive(Group, Scope->Child, Frame, TotalGraphWidth, Entropy, Depth+1); }
     Scope = Scope->Sibling;
@@ -1771,6 +1788,12 @@ InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   AssertNoGlErrors;
+
+  random_series Entropy = {54623153};
+  for (u32 ColorIndex = 0; ColorIndex < RANDOM_COLOR_COUNT; ++ColorIndex)
+  {
+    DebugState->UiGroup.DebugColors[ColorIndex] = RandomV3(&Entropy);
+  }
 
   return Result;
 }

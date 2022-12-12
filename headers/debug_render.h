@@ -53,5 +53,8 @@ struct debug_ui_render_group
   ui_render_command_buffer *CommandBuffer;
 
   memory_arena RenderCommandArena;
+
+#define RANDOM_COLOR_COUNT 128
+  v3 DebugColors[RANDOM_COLOR_COUNT];
 };
 

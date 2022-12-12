@@ -72,6 +72,7 @@ struct debug_profile_scope
   const char* Name;
 
   b32 Expanded;
+  u32 CoreIndex;
 
   debug_profile_scope* Sibling;
   debug_profile_scope* Child;
@@ -228,6 +229,7 @@ struct debug_timed_function
         this->Tree->ParentOfNextScope = this->Scope;
 
         this->Scope->Name = Name;
+        this->Scope->CoreIndex = GetCurrentProcessorNumber();
         this->Scope->StartingCycle = __rdtsc(); // Intentionally last
       }
     }
