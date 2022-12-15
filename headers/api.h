@@ -45,7 +45,7 @@ typedef void                 (*debug_mutex_released_proc)              (mutex*);
 
 typedef debug_profile_scope* (*debug_get_profile_scope_proc)           ();
 typedef void*                (*debug_allocate_proc)                    (memory_arena*, umm, umm, const char*, s32 , const char*, umm, b32);
-typedef void                 (*debug_register_thread_proc)             (u32);
+typedef void                 (*debug_register_thread_proc)             (thread_startup_params*);
 typedef void                 (*debug_track_draw_call_proc)             (const char*, u32);
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_value_r32_proc)                   (r32, const char*);
@@ -94,7 +94,6 @@ struct debug_scope_tree
 
   debug_profile_scope **WriteScope;
   debug_profile_scope *ParentOfNextScope;
-
   u64 FrameRecorded;
 };
 
@@ -159,6 +158,8 @@ struct debug_state
   world_chunk *PickedChunk;
   world_chunk *HoverChunk;
 
+  debug_thread_state *ThreadStates;
+
   render_entity_to_texture_group PickedChunksRenderGroup;
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
@@ -166,6 +167,7 @@ struct debug_state
   //
   // NOTE(Jesse): This stuff has to be "hidden" at the end of the struct so the
   // external ABI is the same as the internal ABI until this point
+
 #if DEBUG_SYSTEM_INTERNAL_BUILD
   debug_ui_render_group UiGroup;
 
@@ -179,7 +181,6 @@ struct debug_state
   debug_profile_scope* HotFunction;
 
   debug_profile_scope FreeScopeSentinel;
-  debug_thread_state *ThreadStates;
 
 #define DEBUG_FRAMES_TRACKED (128)
   frame_stats Frames[DEBUG_FRAMES_TRACKED];

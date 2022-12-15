@@ -86,6 +86,34 @@ poof(are_equal(memory_arena_stats))
 struct debug_profile_scope;
 struct debug_scope_tree;
 
+enum debug_context_switch_type
+{
+  ContextSwitch_Undefined,
+
+  ContextSwitch_On,
+  ContextSwitch_Off
+};
+
+struct debug_context_switch_event
+{
+  debug_context_switch_type Type;
+};
+
+#define MAX_CONTEXT_SWITCH_EVENTS 1024
+struct debug_context_switch_event_buffer
+{
+  u32 At;
+  u32 Count; // one-past-last
+  debug_context_switch_event *Events;
+};
+
+link_internal void
+PushContextSwitch(debug_context_switch_event_buffer *Buf, debug_context_switch_event *Evt)
+{
+  if (Buf->At == Buf->Count) { Buf->At = 0; }
+  Buf->Events[Buf->At++] = *Evt;
+}
+
 
 struct debug_thread_state
 {
@@ -98,13 +126,22 @@ struct debug_thread_state
 
   mutex_op_array *MutexOps;
 
-  volatile u32 WriteIndex; // Note(Jesse): This must not straddle a cache line on x86 because multiple threads read from the main threads copy of this
+  // Note(Jesse): This must not straddle a cache line;
+  // on x86, reads are defined to be atomic of they do not straddle a cache line
+  // multiple threads read from the main threads copy of this
+  //
+  // TODO(Jesse): What about other chips? Should we just use atomic read instructions?
+  volatile u32 WriteIndex;
+  u32 ThreadId;
+
+  debug_context_switch_event_buffer *ContextSwitches;
+
 
   // TODO(Jesse): Make a 32-bit define instead
 #if EMCC
   u8 Pad[36];
 #else
-  u8 Pad[12];
+  /* u8 Pad[12]; */
 #endif
 };
 CAssert(sizeof(debug_thread_state) == CACHE_LINE_SIZE);

@@ -28,13 +28,6 @@ debug_scope_tree* GetWriteScopeTree()
 
 
 
-void
-RegisterThread(u32 ThreadIndex)
-{
-  ThreadLocal_ThreadIndex = ThreadIndex;
-  return;
-}
-
 inline debug_thread_state*
 GetThreadLocalStateFor(u32 ThreadIndex)
 {
@@ -50,9 +43,20 @@ GetThreadLocalStateFor(u32 ThreadIndex)
   // TODO(Jesse): Audit codebase to make sure callers of this function actually
   // check that it returns a valid pointer.
   debug_thread_state *Result = State->ThreadStates ?
-                                 State->ThreadStates + ThreadIndex : 0;
+                               State->ThreadStates + ThreadIndex : 0;
 
   return Result;
+}
+
+void
+RegisterThread(thread_startup_params *Params)
+{
+  ThreadLocal_ThreadIndex = Params->ThreadIndex;
+
+  debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
+  ThreadState->ThreadId = Params->ThreadId;
+  Assert(ThreadState->ThreadId);
+  return;
 }
 
 inline debug_thread_state*
@@ -641,29 +645,6 @@ GetProfileScope()
   return Result;
 }
 
-void
-InitScopeTrees(u32 TotalThreadCount)
-{
-  Assert(ThreadLocal_ThreadIndex == 0);
-  for (u32 ThreadIndex = 0;
-      ThreadIndex < TotalThreadCount;
-      ++ThreadIndex)
-  {
-    for (u32 TreeIndex = 0;
-        TreeIndex < DEBUG_FRAMES_TRACKED;
-        ++TreeIndex)
-    {
-      debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-      InitScopeTree(ThreadState->ScopeTrees + TreeIndex);
-      ThreadState->WriteIndex = GetDebugState()->ReadScopeIndex + 1;
-    }
-  }
-
-  return;
-}
-
-
-
 inline mutex_op_record *
 ReserveMutexOpRecord(mutex *Mutex, mutex_op Op, debug_state *State)
 {
@@ -836,13 +817,45 @@ InitDebugMemoryAllocationSystem(debug_state *State)
 }
 
 
+link_internal debug_context_switch_event_buffer *
+AllocateContextSwitchBuffer(memory_arena *Arena, u32 EventCount)
+{
+  debug_context_switch_event_buffer *Result = Allocate(debug_context_switch_event_buffer, Arena, 1);
+  Result->Count = EventCount;
+  Result->Events = Allocate(debug_context_switch_event, Arena, EventCount);
+
+  return Result;
+}
+
 void
 InitDebugDataSystem(debug_state *DebugState)
 {
+  Assert(ThreadLocal_ThreadIndex == 0);
+
   InitDebugMemoryAllocationSystem(DebugState);
 
+  debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
+  MainThreadState->ThreadId = GetCurrentThreadId();
+
   u32 TotalThreadCount = GetTotalThreadCount();
-  InitScopeTrees(TotalThreadCount);
+  for (u32 ThreadIndex = 0;
+      ThreadIndex < TotalThreadCount;
+      ++ThreadIndex)
+  {
+    debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+    ThreadState->ContextSwitches = AllocateContextSwitchBuffer(ThreadsafeDebugMemoryAllocator(), MAX_CONTEXT_SWITCH_EVENTS );
+
+    for (u32 TreeIndex = 0;
+        TreeIndex < DEBUG_FRAMES_TRACKED;
+        ++TreeIndex)
+    {
+      InitScopeTree(ThreadState->ScopeTrees + TreeIndex);
+      ThreadState->WriteIndex = GetDebugState()->ReadScopeIndex + 1;
+    }
+  }
+
+
+
 
   return;
 }
