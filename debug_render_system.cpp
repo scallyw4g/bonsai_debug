@@ -312,9 +312,9 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 /* #endif */
 
 link_internal void
-PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Frame, r32 TotalGraphWidth, r32 BarHeight, r32 yOffset, ui_style *Style)
+PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Frame, r32 TotalGraphWidth, r32 BarHeight, r32 yOffset, ui_style *Style, v4 Padding = V4(0))
 {
-  Assert(Frame->StartCycle < Range->StartCycle);
+  Assert(Frame->StartCycle <= Range->StartCycle);
 
   r32 FramePerc = (r32)Range->TotalCycles / (r32)Frame->TotalCycles;
 
@@ -329,7 +329,7 @@ PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Fram
 
     v2 Offset = V2(xOffset, yOffset);
 
-    PushUntexturedQuad(Group, Offset, BarDim, zDepth_Text, Style, V4(0), QuadRenderParam_AdvanceClip);
+    PushUntexturedQuad(Group, Offset, BarDim, zDepth_Text, Style, Padding, QuadRenderParam_AdvanceClip);
   }
 
   return;
@@ -360,7 +360,12 @@ ColorFromHash(u64 HashValue)
 global_variable r32 Global_CoreBarHeight = 3.f;
 
 link_internal void
-PushScopeBarsRecursive(debug_ui_render_group *Group, debug_profile_scope *Scope, cycle_range *Frame, r32 TotalGraphWidth, random_series *Entropy, u32 Depth = 0)
+PushScopeBarsRecursive( debug_ui_render_group *Group,
+                        debug_profile_scope *Scope,
+                        cycle_range *Frame,
+                        r32 TotalGraphWidth,
+                        random_series *Entropy,
+                        u32 Depth = 0)
 {
   while (Scope)
   {
@@ -436,6 +441,38 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
     PushNewRow(Group);
 
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+
+    debug_context_switch_event_buffer *ContextSwitches = ThreadState->ContextSwitches;
+    debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
+
+    for (u32 ContextSwitchEventIndex = 1;
+        ContextSwitchEventIndex < ContextSwitches->Count;
+        ++ContextSwitchEventIndex)
+    {
+      debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
+      if ( CSwitch->CycleCount > FrameStats->StartingCycle &&
+           CSwitch->CycleCount <= FrameStats->StartingCycle+FrameStats->TotalCycles)
+      {
+        Assert(LastCSwitchEvt->CycleCount <= CSwitch->CycleCount);
+
+        // TODO(Jesse): This fails.. maybe the events don't come in ordered?
+        /* Assert(LastCSwitchEvt->Type != CSwitch->Type); */
+        cycle_range Range = {
+          .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
+          .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
+        };
+        if (LastCSwitchEvt->Type == ContextSwitch_On)
+        {
+          ui_style Style = UiStyleFromLightestColor(V3(0,1,0));
+          PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+        }
+      }
+
+      LastCSwitchEvt = CSwitch;
+    }
+
+    PushNewRow(Group);
+
     debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
     if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
     {

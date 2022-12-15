@@ -97,9 +97,12 @@ enum debug_context_switch_type
 struct debug_context_switch_event
 {
   debug_context_switch_type Type;
+  u64 CycleCount;
 };
 
-#define MAX_CONTEXT_SWITCH_EVENTS 1024
+// 136 context switches per frame, per thread, at 120 frames tracked.  Should be way more than enough
+#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(16))
+
 struct debug_context_switch_event_buffer
 {
   u32 At;
@@ -110,8 +113,10 @@ struct debug_context_switch_event_buffer
 link_internal void
 PushContextSwitch(debug_context_switch_event_buffer *Buf, debug_context_switch_event *Evt)
 {
-  if (Buf->At == Buf->Count) { Buf->At = 0; }
-  Buf->Events[Buf->At++] = *Evt;
+  if (Buf->At < Buf->Count)
+  {
+    Buf->Events[Buf->At++] = *Evt;
+  }
 }
 
 
