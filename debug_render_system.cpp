@@ -441,19 +441,33 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
     PushNewRow(Group);
 
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+    Assert(ThreadState->ThreadId);
 
     debug_context_switch_event_buffer *ContextSwitches = ThreadState->ContextSwitches;
     debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
 
+    b32 FoundOutOfOrderEvent = False;
     for (u32 ContextSwitchEventIndex = 1;
-        ContextSwitchEventIndex < ContextSwitches->Count;
+        ContextSwitchEventIndex < ContextSwitches->At;
         ++ContextSwitchEventIndex)
     {
       debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
+      /* if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount) */
+      /* { */
+      /*   FoundOutOfOrderEvent = True; */
+      /*   debug_context_switch_event Tmp = *CSwitch; */
+      /*   *CSwitch = *LastCSwitchEvt; */
+      /*   *LastCSwitchEvt = Tmp; */
+      /* } */
+
       if ( CSwitch->CycleCount > FrameStats->StartingCycle &&
            CSwitch->CycleCount <= FrameStats->StartingCycle+FrameStats->TotalCycles)
       {
-        Assert(LastCSwitchEvt->CycleCount <= CSwitch->CycleCount);
+        /* if ( FoundOutOfOrderEvent == False ) */
+        {
+          Assert(LastCSwitchEvt->Type != CSwitch->Type);
+        }
+
 
         // TODO(Jesse): This fails.. maybe the events don't come in ordered?
         /* Assert(LastCSwitchEvt->Type != CSwitch->Type); */
@@ -463,7 +477,8 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
         };
         if (LastCSwitchEvt->Type == ContextSwitch_On)
         {
-          ui_style Style = UiStyleFromLightestColor(V3(0,1,0));
+          v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
+          ui_style Style = UiStyleFromLightestColor(CoreColor);
           PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
         }
       }
