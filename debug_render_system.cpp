@@ -377,16 +377,9 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
     random_series ScopeSeries = {.Seed = (u64)Scope};
     r32 Tint = RandomBetween(0.5f, &ScopeSeries, 1.0f);
 
-    r32 CoreBarOffset = Global_CoreBarHeight*3.f;
-
     v3 FunctionColor = ColorFromHash(NameHash) * Tint;
     ui_style FunctionStyle = UiStyleFromLightestColor(FunctionColor);
-    r32 yOffsetFunction = Depth * (Global_Font.Size.y+CoreBarOffset);
-
-    v3 CoreColor = Group->DebugColors[Scope->CoreIndex];
-    ui_style CoreStyle = UiStyleFromLightestColor(CoreColor);
-    r32 yOffsetCore = Depth*(Global_Font.Size.y+CoreBarOffset) + Global_CoreBarHeight + Global_Font.Size.y;
-
+    r32 yOffsetFunction = Depth * (Global_Font.Size.y);
 
     {
       interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope);
@@ -395,15 +388,6 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
       if (Hover(Group, &Bar)) { PushTooltip(Group, CS(Scope->Name)); }
       if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
     }
-
-    {
-      interactable_handle Bar = PushButtonStart(Group, (umm)"CoreHoverInteraction"^(umm)Scope);
-        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, Global_CoreBarHeight, yOffsetCore, &CoreStyle);
-      PushButtonEnd(Group);
-      if (Hover(Group, &Bar)) { PushTooltip(Group, CS(Scope->CoreIndex)); }
-      /* if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; } */
-    }
-
 
     if (Scope->Expanded) { PushScopeBarsRecursive(Group, Scope->Child, Frame, TotalGraphWidth, Entropy, Depth+1); }
     Scope = Scope->Sibling;

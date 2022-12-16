@@ -24,16 +24,26 @@ struct context_switch_event
 
 global_variable memory_arena *ETWArena = AllocateArena();
 
-global_variable u32 CSwitchEventsPerFrame = 0;
-void Bonsai_ETWEventCallback(EVENT_RECORD *Event)
+link_internal ULONG
+ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
 {
-  /* EVENT_HEADER Header = Event->EventHeader; */
+  Assert(Logfile->EventsLost == 0);
 
-  /* b32 UseMofPointer = Event->EventHeader.Flags & WNODE_FLAG_USE_MOF_PTR; */
+  return True; // Continue processing buffers
+}
 
+global_variable u32 CSwitchEventsPerFrame = 0;
+
+link_internal void
+ETWEventCallback(EVENT_RECORD *Event)
+{
   u32 ProcessorNumber = Event->BufferContext.ProcessorNumber;
   switch(Event->EventHeader.EventDescriptor.Opcode)
   {
+/*   u8 ProcessorNumber = Event->BufferContext.ProcessorNumber; */
+/*   u32 ThreadID = Header.ThreadId; */
+/*   s64 CycleTime = Header.TimeStamp.QuadPart; */
+
     // CSwitch event
     // https://learn.microsoft.com/en-us/windows/win32/etw/cswitch
     case 36:
@@ -43,19 +53,19 @@ void Bonsai_ETWEventCallback(EVENT_RECORD *Event)
 
       ++CSwitchEventsPerFrame;
 
-      // The events aren't packed with any particular alignment, so we have to
-      // memcpy into a struct on the stack in case they're packed at a weird offset
-      //
-      // NOTE(Jesse): I didn't actually run into a problem here, and I think on
-      // x86 it'd be fine if we just cast to a struct pointer, but I'd rather
-      // just be slow and safe instead of run into a weird bug on another arch.
 #if 0
+      // According to the docs, the events aren't packed at any particular
+      // alignment, so we have to memcpy into an aligned struct in case they're
+      // at a weird offset
+      //
+      // NOTE(Jesse): I didn't actually run into a problem by just casting, so
+      // I'm going to do that.
+      //
       context_switch_event *SystemEvent = Allocate(context_switch_event, ETWArena, 1);
       MemCopy((u8*)Event->UserData, (u8*)SystemEvent, sizeof(context_switch_event));
 #else
       context_switch_event *SystemEvent = (context_switch_event*)Event->UserData;
 #endif
-
 
       debug_state *DebugState = GetDebugState();
 
@@ -101,8 +111,8 @@ void Bonsai_ETWEventCallback(EVENT_RECORD *Event)
           {
             /* DebugLine("Pushing CSwitch from thread (%u)", GetCurrentThreadId()); */
             /* if (LastCSwitchEvt) { Assert(LastCSwitchEvt->ProcessorNumber == CSwitch.ProcessorNumber); } */
-            if (LastCSwitchEvt) { Assert(LastCSwitchEvt->CycleCount < CSwitch.CycleCount); }
-            if (LastCSwitchEvt) { Assert(LastCSwitchEvt->Type != CSwitch.Type); }
+            /* if (LastCSwitchEvt) { Assert(LastCSwitchEvt->CycleCount < CSwitch.CycleCount); } */
+            /* if (LastCSwitchEvt) { Assert(LastCSwitchEvt->Type != CSwitch.Type); } */
             PushContextSwitch(TS->ContextSwitches, &CSwitch);
           }
         }
@@ -113,123 +123,7 @@ void Bonsai_ETWEventCallback(EVENT_RECORD *Event)
 
     default: {} break;
   }
-
-/*   u8 ProcessorNumber = Event->BufferContext.ProcessorNumber; */
-/*   u32 ThreadID = Header.ThreadId; */
-/*   s64 CycleTime = Header.TimeStamp.QuadPart; */
-
-/*   b32 StringData = False; */
-/*   if (Header.Flags & EVENT_HEADER_FLAG_STRING_ONLY) */
-/*   { */
-/*     StringData = True; */
-/*   } */
-
-  /* CSwitch *EventData = Event->UserData */
-
-  /* s32 ProviderIsSystem = IsEqualGUID(Header.ProviderId, SystemTraceControlGuid); */
-
-  /* DebugLine("Event { (%d) (%u)(%u)(%lu) }", ProviderIsSystem, (u32)ProcessorNumber, ThreadID, CycleTime); */
 }
-
-static TRACEHANDLE OpenTraceHandle;
-
-
-#if 0
-// Need to add -lole32 -ltdh to linker flags to get this to compile.  It's pretty useless though..
-void
-DoRandomAssLoggingIFoundOnStackOverflow()
-{
-#define MAX_GUID_SIZE 39
-
-  DWORD status = ERROR_SUCCESS;
-  PROVIDER_ENUMERATION_INFO* penum = NULL;    // Buffer that contains provider information
-  PROVIDER_ENUMERATION_INFO* ptemp = NULL;
-  DWORD bufSize = 0;                       // Size of the penum buffer
-  HRESULT hr = S_OK;                          // Return value for StringFromGUID2
-  WCHAR StringGuid[MAX_GUID_SIZE];
-  DWORD RegisteredMOFCount = 0;
-  DWORD RegisteredManifestCount = 0;
-
-  // Retrieve the required buffer size.
-
-  status = TdhEnumerateProviders(penum, &bufSize);
-
-  // Allocate the required buffer and call TdhEnumerateProviders. The list of 
-  // providers can change between the time you retrieved the required buffer 
-  // size and the time you enumerated the providers, so call TdhEnumerateProviders
-  // in a loop until the function does not return ERROR_INSUFFICIENT_BUFFER.
-
-  while (ERROR_INSUFFICIENT_BUFFER == status)
-  {
-      ptemp = (PROVIDER_ENUMERATION_INFO*)realloc(penum, bufSize);
-      if (NULL == ptemp)
-      {
-          wprintf(L"Allocation failed (size=%lu).\n", bufSize);
-          goto cleanup;
-      }
-
-      penum = ptemp;
-      ptemp = NULL;
-
-      status = TdhEnumerateProviders(penum, &bufSize);
-  }
-
-  if (ERROR_SUCCESS != status)
-  {
-      wprintf(L"TdhEnumerateProviders failed with %lu.\n", status);
-  }
-  else
-  {
-      // Loop through the list of providers and print the provider's name, GUID, 
-      // and the source of the information (MOF class or instrumentation manifest).
-
-      b32 FoundKernelLogger = False;
-      for (DWORD i = 0; i < penum->NumberOfProviders; i++)
-      {
-          hr = StringFromGUID2(penum->TraceProviderInfoArray[i].ProviderGuid, StringGuid, ARRAYSIZE(StringGuid));
-
-          if (FAILED(hr))
-          {
-              wprintf(L"StringFromGUID2 failed with 0x%x\n", hr);
-              goto cleanup;
-          }
-
-          const size_t cSize = sizeof(KERNEL_LOGGER_NAME);
-          wchar_t wc[cSize];
-          mbstowcs (wc, KERNEL_LOGGER_NAME, cSize);
-
-          if ( wcscmp( (LPWSTR)((PBYTE)(penum)+penum->TraceProviderInfoArray[i].ProviderNameOffset), wc) == 0 )
-          {
-            FoundKernelLogger = True;
-          }
-
-          /* wprintf(L"Provider name: %s\nProvider GUID: %s\nSource: %s\n\n", */
-          /*     (LPWSTR)((PBYTE)(penum)+penum->TraceProviderInfoArray[i].ProviderNameOffset), */
-          /*     StringGuid, */
-          /*     (penum->TraceProviderInfoArray[i].SchemaSource) ? L"WMI MOF class" : L"XML manifest"); */
-
-          (penum->TraceProviderInfoArray[i].SchemaSource) ? RegisteredMOFCount++ : RegisteredManifestCount++;
-      }
-
-      if (FoundKernelLogger)
-      {
-        Info("Found kernel logger!");
-      }
-      DebugLine(CSz("\nThere are %d registered providers; %lu are registered via MOF class and\n%lu are registered via a manifest.\n"),
-          penum->NumberOfProviders,
-          RegisteredMOFCount,
-          RegisteredManifestCount);
-  }
-
-cleanup:
-
-  if (penum)
-  {
-      free(penum);
-      penum = NULL;
-  }
-}
-#endif
 
 link_internal b32
 CloseAnyExistingTrace(EVENT_TRACE_PROPERTIES *EventTracingProps)
@@ -250,38 +144,28 @@ SetupPropsForContextSwitchEventTracing(EVENT_TRACE_PROPERTIES *EventTracingProps
   ZeroMemory(EventTracingProps, BufferSize);
 
   EventTracingProps->Wnode.BufferSize = BufferSize;
-  EventTracingProps->Wnode.Guid = SystemTraceControlGuid;          // Tell it to profile kernel events
-  EventTracingProps->Wnode.ClientContext = 3;
-  EventTracingProps->Wnode.Flags = WNODE_FLAG_TRACED_GUID;         // NOTE(Jesse): Apparently this has to appear here, but I have no idea what it does
+  EventTracingProps->Wnode.Guid = SystemTraceControlGuid;  // Magic value
+  EventTracingProps->Wnode.Flags = WNODE_FLAG_TRACED_GUID; // Magic value
+  EventTracingProps->Wnode.ClientContext = 3;              // 3 == send us timestamps with __rdtsc; 1 == QueryPerformanceCounter(); 2 == System Time.
 
-  EventTracingProps->BufferSize = 16384; // Size (in KB) of the buffer ETW allocates for events.  4 (4kb) is minimum, 16384 (16mb) is maximum
+  EventTracingProps->BufferSize = 64; // Size (in KB) of the buffer ETW allocates for events.  4 (4kb) is minimum, 16384 (16mb) is maximum
+
+  // I observed these getting set to 64 after calling StartTrace
   EventTracingProps->MinimumBuffers = 1;
   EventTracingProps->MaximumBuffers = 1;
 
-  // Seems to me like we should use this, but Casey says use real_time_mode.. so
-  // that's what we're going to do, for now.
-  /* EventTracingProps.LogFileMode = EVENT_TRACE_BUFFERING_MODE; */
-  // EventTracingProps.FlushTimer = 1; // Not used for circular in-memory sessions
-
-  // Use default if it's not set
+  // ETW usees a default of 1 second if we don't tell it what timing to use
   /* EventTracingProps->FlushTimer = 1; */
 
-  // Seems like we might need these flags too?
-  /* EventTracingProps->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE; */
-  /* EventTracingProps->EnableFlags = EVENT_TRACE_FLAG_THREAD | EVENT_TRACE_FLAG_CSWITCH; */
+  EventTracingProps->LogFileMode = EVENT_TRACE_REAL_TIME_MODE; // Provide events in "real time" .. aka. every timeout, which defalts to 1s
+  EventTracingProps->EnableFlags = EVENT_TRACE_FLAG_CSWITCH;   // Subscribe to context switch events
 
-  EventTracingProps->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-  EventTracingProps->EnableFlags = EVENT_TRACE_FLAG_CSWITCH;
-
+  // We have to copy the kernel logger name string into a buffer we allocated after the struct.  lolwut
   EventTracingProps->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
   StringCbCopy(((char*)EventTracingProps + EventTracingProps->LoggerNameOffset), sizeof(KERNEL_LOGGER_NAME), KERNEL_LOGGER_NAME);
-  //
-  // Supposedly unused if we specify EVENT_TRACE_REAL_TIME_MODE
-  /* EventTracingProps->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME); */
-  /* StringCbCopy(((char*)EventTracingProps + EventTracingProps->LogFileNameOffset), sizeof(LOG_FILE_NAME), LOG_FILE_NAME); */
 }
 
-static DWORD WINAPI
+link_internal DWORD WINAPI
 Win32TracingThread(LPVOID Parameter)
 {
   u32 BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
@@ -296,7 +180,7 @@ Win32TracingThread(LPVOID Parameter)
   if (CloseAnyExistingTrace(EventTracingProps))
   {
     // NOTE(Jesse): ControlTrace() modifies the EVENT_TRACE_PROPERTIES struct,
-    // so we have to zero it and fill it out again.
+    // so we have to zero it and fill it out again when calling StartTrace
     SetupPropsForContextSwitchEventTracing(EventTracingProps, BufferSize);
 
     Info("Starting Trace");
@@ -309,10 +193,11 @@ Win32TracingThread(LPVOID Parameter)
 
       Logfile.LoggerName = (char*)KERNEL_LOGGER_NAME;
       Logfile.ProcessTraceMode = (PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP);
-      Logfile.EventRecordCallback = Bonsai_ETWEventCallback;
+      Logfile.EventRecordCallback = ETWEventCallback;
+      Logfile.BufferCallback = ETWBufferCallback;
 
       Info("OpenTrace");
-      OpenTraceHandle = OpenTrace(&Logfile);
+      TRACEHANDLE OpenTraceHandle = OpenTrace(&Logfile);
       if (OpenTraceHandle != INVALID_PROCESSTRACE_HANDLE)
       {
         Info("Started Context Switch tracing");
@@ -345,17 +230,14 @@ Win32TracingThread(LPVOID Parameter)
     SoftError("Closing Existing tracing sessions failed.");
   }
 
-  DebugLine("Exiting ProcessTrace thread");
-  return(0);
+  Info("Exiting ProcessTrace thread");
+  return 0;
 }
 
 void
 Platform_EnableContextSwitchTracing()
 {
-  /* Assert(Logfile.IsKernelTrace == TRUE); */
-
-  DWORD ThreadID;
   Info("Creating tracing thread");
-  HANDLE ThreadHandle = CreateThread(0, 0, Win32TracingThread, 0, 0, &ThreadID);
+  HANDLE ThreadHandle = CreateThread(0, 0, Win32TracingThread, 0, 0, 0);
 }
 
