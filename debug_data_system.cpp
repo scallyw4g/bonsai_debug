@@ -821,7 +821,7 @@ link_internal debug_context_switch_event_buffer *
 AllocateContextSwitchBuffer(memory_arena *Arena, u32 EventCount)
 {
   debug_context_switch_event_buffer *Result = Allocate(debug_context_switch_event_buffer, Arena, 1);
-  Result->Count = EventCount;
+  Result->End = EventCount;
   Result->Events = Allocate(debug_context_switch_event, Arena, EventCount);
 
   return Result;

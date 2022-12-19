@@ -312,7 +312,7 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 /* #endif */
 
 link_internal void
-PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Frame, r32 TotalGraphWidth, r32 BarHeight, r32 yOffset, ui_style *Style, v4 Padding = V4(0))
+PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Frame, r32 TotalGraphWidth, r32 BarHeight, r32 yOffset, ui_style *Style, v4 Padding = V4(0), cs Name = CSz(""))
 {
   Assert(Frame->StartCycle <= Range->StartCycle);
 
@@ -330,6 +330,9 @@ PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Fram
     v2 Offset = V2(xOffset, yOffset);
 
     PushUntexturedQuad(Group, Offset, BarDim, zDepth_Text, Style, Padding, QuadRenderParam_AdvanceClip);
+    ui_style NameStyle = DefaultStyle;
+    NameStyle.Font = Global_SmallFont;
+    if (Name.Count) { Text(Group, Name, &NameStyle, TextRenderParam_NoAdvanceLayout, Offset, RectMinDim(Offset, BarDim)); }
   }
 
   return;
@@ -382,10 +385,11 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
     r32 yOffsetFunction = Depth * (Global_Font.Size.y);
 
     {
+      cs ScopeName = CS(Scope->Name);
       interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope);
-        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, (r32)Global_Font.Size.y, yOffsetFunction, &FunctionStyle);
+        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, (r32)Global_Font.Size.y, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
       PushButtonEnd(Group);
-      if (Hover(Group, &Bar)) { PushTooltip(Group, CS(Scope->Name)); }
+      if (Hover(Group, &Bar)) { PushTooltip(Group, ScopeName); }
       if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
     }
 
@@ -397,15 +401,39 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
 }
 
 link_internal void
-DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 BasisP)
+DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 BasisP)
 {
   TIMED_FUNCTION();
 
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
-  local_persist window_layout CycleGraphWindow = WindowLayout("Call Graph", BasisP);
+  local_persist window_layout CycleGraphWindow = WindowLayout("Threads", BasisP);
 
   PushWindowStart(Group, &CycleGraphWindow);
+
+  cs ETStatusString = CSz("");
+  switch (Global_EventTracingStatus)
+  {
+    case EventTracingStatus_Unstarted:
+    {
+      ETStatusString = CSz("EventTracingStatus_Unstarted");
+    } break;
+    case EventTracingStatus_Starting:
+    {
+      ETStatusString = CSz("EventTracingStatus_Starting");
+    } break;
+    case EventTracingStatus_Running:
+    {
+      ETStatusString = CSz("EventTracingStatus_Running");
+    } break;
+    case EventTracingStatus_Error:
+    {
+      ETStatusString = CSz("EventTracingStatus_Error");
+    } break;
+  }
+
+  Text(Group, ETStatusString);
+  PushNewRow(Group);
 
   u32 TotalThreadCount                 = GetTotalThreadCount();
   frame_stats *FrameStats              = SharedState->Frames + SharedState->ReadScopeIndex;
@@ -414,7 +442,7 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + SharedState->ReadScopeIndex;
 
-  PushTableStart(Group);
+  /* PushTableStart(Group); */
   for ( u32 ThreadIndex = 0;
         ThreadIndex < TotalThreadCount;
         ++ThreadIndex)
@@ -430,35 +458,38 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
     debug_context_switch_event_buffer *ContextSwitches = ThreadState->ContextSwitches;
     debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
 
+    if (ThreadIndex == TotalThreadCount-1)
+    {
+      DebugLine("%u", ContextSwitches->At);
+    }
+
     b32 FoundOutOfOrderEvent = False;
     for (u32 ContextSwitchEventIndex = 1;
         ContextSwitchEventIndex < ContextSwitches->At;
         ++ContextSwitchEventIndex)
     {
       debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
-      /* if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount) */
-      /* { */
-      /*   FoundOutOfOrderEvent = True; */
-      /*   debug_context_switch_event Tmp = *CSwitch; */
-      /*   *CSwitch = *LastCSwitchEvt; */
-      /*   *LastCSwitchEvt = Tmp; */
-      /* } */
-
-      if ( CSwitch->CycleCount > FrameStats->StartingCycle &&
-           CSwitch->CycleCount <= FrameStats->StartingCycle+FrameStats->TotalCycles)
+      if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount)
       {
-        /* if ( FoundOutOfOrderEvent == False ) */
+        FoundOutOfOrderEvent = True;
+        debug_context_switch_event Tmp = *CSwitch;
+        *CSwitch = *LastCSwitchEvt;
+        *LastCSwitchEvt = Tmp;
+      }
+
+      if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
+           RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
+      {
+        if ( FoundOutOfOrderEvent == False )
         {
           Assert(LastCSwitchEvt->Type != CSwitch->Type);
         }
 
-
-        // TODO(Jesse): This fails.. maybe the events don't come in ordered?
-        /* Assert(LastCSwitchEvt->Type != CSwitch->Type); */
         cycle_range Range = {
           .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
           .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
         };
+
         if (LastCSwitchEvt->Type == ContextSwitch_On)
         {
           v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
@@ -480,7 +511,7 @@ DrawCallgraphWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 B
     }
     PushNewRow(Group);
   }
-  PushTableEnd(Group);
+  /* PushTableEnd(Group); */
 
 #if 0
   r32 TotalMs = (r32)FrameStats->FrameMs;
@@ -747,9 +778,9 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 {
   TIMED_FUNCTION();
 
-    PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
+  PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
   PushTableStart(Group);
-    PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
+  PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
 
     v4 Pad = V4(1, 0, 1, 0);
     v2 MaxBarDim = V2(15.0f, 80.0f);
@@ -783,14 +814,19 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
       v2 QuadDim = MaxBarDim * V2(1.0f, Perc);
       v2 Offset = V2(0.f, VerticalAdvance-QuadDim.y);
 
-      r32 Brightness = 0.40f;
+      r32 Brightness = 0.35f;
 
       ui_style Style =
         FrameIndex == DebugState->ReadScopeIndex ?
         UiStyleFromLightestColor(V3(Brightness,       0.0f, Brightness)) :
         UiStyleFromLightestColor(V3(Brightness, Brightness,       0.0f));
 
+      ui_style BackgroundStyle = FrameIndex == DebugState->ReadScopeIndex ?
+         UiStyleFromLightestColor(V3(Brightness, Brightness, Brightness)) :
+         DefaultBlurredStyle;
+
       interactable_handle B = PushButtonStart(Group, (umm)"FrameTickerHoverInteraction"+(umm)FrameIndex);
+        PushUntexturedQuad(Group, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, QuadRenderParam_NoAdvance);
         PushUntexturedQuad(Group, Offset, QuadDim, zDepth_Background, &Style, Pad);
       PushButtonEnd(Group);
 
@@ -866,7 +902,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
 
   END_BLOCK("Call Graph");
 
-  DrawCallgraphWindow(Group, DebugState, BasisRightOf(&CallgraphWindow));
+  DrawThreadsWindow(Group, DebugState, BasisRightOf(&CallgraphWindow));
 
   return;
 }

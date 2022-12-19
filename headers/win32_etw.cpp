@@ -28,7 +28,6 @@ link_internal ULONG
 ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
 {
   Assert(Logfile->EventsLost == 0);
-
   return True; // Continue processing buffers
 }
 
@@ -66,10 +65,12 @@ ETWEventCallback(EVENT_RECORD *Event)
 #else
       context_switch_event *SystemEvent = (context_switch_event*)Event->UserData;
 #endif
+      // Skip events that are just state changes
+      if (SystemEvent->NewThreadId == SystemEvent->OldThreadId) { return; }
 
       debug_state *DebugState = GetDebugState();
 
-      u32 TotalThreads = GetWorkerThreadCount();
+      u32 TotalThreads = GetTotalThreadCount();
       for (u32 ThreadIndex = 0; ThreadIndex < TotalThreads; ++ThreadIndex)
       {
         debug_thread_state *TS = DebugState->ThreadStates + ThreadIndex;
@@ -82,12 +83,6 @@ ETWEventCallback(EVENT_RECORD *Event)
           .CycleCount = CycleCount,
           .SystemEvent = SystemEvent,
         };
-
-        // Skip events that are just state changes
-        if (SystemEvent->NewThreadId == SystemEvent->OldThreadId)
-        {
-          return;
-        }
 
         if (TS->ThreadId == SystemEvent->NewThreadId)
         {
@@ -102,7 +97,15 @@ ETWEventCallback(EVENT_RECORD *Event)
         if (CSwitch.Type)
         {
           debug_context_switch_event *LastCSwitchEvt = GetLatest(TS->ContextSwitches);
-          /* if (LastCSwitchEvt && LastCSwitchEvt->CycleCount == CycleCount) */
+          /* if (LastCSwitchEvt && BufferHasRoomFor(TS->ContextSwitches, 1)) */
+          /* { */
+          /*   /1* Assert(LastCSwitchEvt->Type != CSwitch.Type); *1/ */
+          /*   /1* if (LastCSwitchEvt->Type == CSwitch.Type) *1/ */
+          /*   /1* { *1/ */
+          /*   /1*   Assert(LastCSwitchEvt->CycleCount > CSwitch.CycleCount); *1/ */
+          /*   /1* } *1/ */
+          /* } */
+
           {
             /* Assert(LastCSwitchEvt->Type != CSwitch.Type); */
             /* SaturatingSub(TS->ContextSwitches->At); */
@@ -168,6 +171,8 @@ SetupPropsForContextSwitchEventTracing(EVENT_TRACE_PROPERTIES *EventTracingProps
 link_internal DWORD WINAPI
 Win32TracingThread(LPVOID Parameter)
 {
+  Global_EventTracingStatus = EventTracingStatus_Starting;
+
   u32 BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
   EVENT_TRACE_PROPERTIES *EventTracingProps = (EVENT_TRACE_PROPERTIES*)malloc(BufferSize);
 
@@ -200,6 +205,7 @@ Win32TracingThread(LPVOID Parameter)
       TRACEHANDLE OpenTraceHandle = OpenTrace(&Logfile);
       if (OpenTraceHandle != INVALID_PROCESSTRACE_HANDLE)
       {
+        Global_EventTracingStatus = EventTracingStatus_Running;
         Info("Started Context Switch tracing");
         Ensure( ProcessTrace(&OpenTraceHandle, 1, 0, 0) == ERROR_SUCCESS );
       }
@@ -229,6 +235,8 @@ Win32TracingThread(LPVOID Parameter)
   {
     SoftError("Closing Existing tracing sessions failed.");
   }
+
+  Global_EventTracingStatus = EventTracingStatus_Error;
 
   Info("Exiting ProcessTrace thread");
   return 0;

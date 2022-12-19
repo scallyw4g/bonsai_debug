@@ -65,9 +65,9 @@ enum quad_render_params
 
 enum text_render_params
 {
-  TextRenderParam_Default  =  0,
-  TextRenderParam_NoScroll = (1 << 0),
-  TextRenderParam_NoClip   = (1 << 1),
+  TextRenderParam_Default         = 0,
+  TextRenderParam_NoAdvanceLayout = (1 << 0),
+  TextRenderParam_NoClip          = (1 << 1),
 };
 
 
@@ -118,6 +118,12 @@ debug_global font Global_Font = {
   .Size = V2(26, 34) * 0.8f,
 };
 
+// TODO(Jesse, tags: font, cleanup): Axe this!
+debug_global font Global_SmallFont =  {
+  .Size = V2(26, 34) * 0.5f,
+};
+
+
 global_variable r32 Global_TitleBarPadding = Global_Font.Size.y*0.2f;
 global_variable r32 Global_TitleBarHeight = Global_Font.Size.y + (Global_TitleBarPadding*2.f);
 
@@ -133,11 +139,11 @@ struct ui_style
   v3 HoverColor;
   v3 PressedColor;
   v3 ClickedColor;
-  v3 ActiveColor;
+  /* v3 ActiveColor; */
 
   font Font;
 
-  b32 IsActive;
+  /* b32 IsActive; */
 };
 
 
@@ -147,6 +153,7 @@ debug_global v4 DefaultButtonPadding = V4(15);
 
 debug_global ui_style DefaultStyle = UiStyleFromLightestColor(V3(1));
 debug_global ui_style DefaultSelectedStyle = UiStyleFromLightestColor(V3(.6f, 1.f, .6f));
+debug_global ui_style DefaultBlurredStyle = UiStyleFromLightestColor(V3(.25f, .25f, .25f));
 
 
 
@@ -202,6 +209,8 @@ struct ui_render_command_text
   layout Layout;
   ui_style Style;
   counted_string String;
+  v2 Offset;
+  rect2 Clip;
   text_render_params Params;
 };
 
@@ -210,6 +219,7 @@ struct ui_render_command_text_at
   counted_string Text;
   v2 At;
   rect2 Clip;
+  /* font Font; */
 };
 
 struct ui_render_command_untextured_quad

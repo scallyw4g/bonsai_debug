@@ -105,12 +105,12 @@ struct debug_context_switch_event
 };
 
 // 136 context switches per frame, per thread, at 120 frames tracked.  Should be way more than enough
-#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(16))
+#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(256))
 
 struct debug_context_switch_event_buffer
 {
   u32 At;
-  u32 Count; // one-past-last
+  u32 End; // one-past-last
   debug_context_switch_event *Events;
 };
 
@@ -118,7 +118,7 @@ link_internal void
 PushContextSwitch(debug_context_switch_event_buffer *Buf, debug_context_switch_event *Evt)
 {
   Assert(Evt->Type);
-  if (Buf->At < Buf->Count)
+  if (Buf->At < Buf->End)
   {
     Buf->Events[Buf->At++] = *Evt;
   }
@@ -202,6 +202,18 @@ struct registered_memory_arena
   u32 ThreadId;
   b32 Expanded;
 };
+
+enum event_tracing_status
+{
+  EventTracingStatus_Unstarted,
+
+  EventTracingStatus_Starting,
+  EventTracingStatus_Running,
+  EventTracingStatus_Error,
+};
+
+global_variable volatile event_tracing_status Global_EventTracingStatus = {};
+
 
 
 /* #include <bonsai_debug/headers/api.h> */
