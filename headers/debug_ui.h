@@ -337,7 +337,9 @@ enum clip_status
 struct clip_result
 {
   clip_status ClipStatus;
-  rect2 Clip;
+
+  v2 ClippedMin;
+  v2 ClippedMax;
 
   rect2 PartialClip;
 };
