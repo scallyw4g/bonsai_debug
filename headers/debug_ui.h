@@ -341,7 +341,7 @@ struct clip_result
   v2 ClippedMin;
   v2 ClippedMax;
 
-  rect2 PartialClip;
+  rect2 ClipRatio;
 };
 
 struct sort_key
