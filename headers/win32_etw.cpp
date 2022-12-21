@@ -127,8 +127,8 @@ ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
     debug_state *DebugState = GetDebugState();
     while (CurrentBlock && CurrentBlock != ContextSwitchStream->CurrentBlock)
     {
-      if ( RangeContains(DebugState->MinCycles, CurrentBlock->MinCycles, DebugState->MaxCycles) ||
-           RangeContains(DebugState->MinCycles, CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
+      if ( RangeContainsInclusive(DebugState->MinCycles, CurrentBlock->MinCycles, DebugState->MaxCycles) ||
+           RangeContainsInclusive(DebugState->MinCycles, CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
       {
         break;
       }
@@ -154,8 +154,8 @@ ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
     }
 
 
-    if ( RangeContains(DebugState->MinCycles, ContextSwitchStream->CurrentBlock->MinCycles, DebugState->MaxCycles) ||
-         RangeContains(DebugState->MinCycles, ContextSwitchStream->CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
+    if ( RangeContainsInclusive(DebugState->MinCycles, ContextSwitchStream->CurrentBlock->MinCycles, DebugState->MaxCycles) ||
+         RangeContainsInclusive(DebugState->MinCycles, ContextSwitchStream->CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
     {
     }
     else
