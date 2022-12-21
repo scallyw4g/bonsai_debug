@@ -50,6 +50,7 @@ typedef void                 (*debug_track_draw_call_proc)             (const ch
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_value_r32_proc)                   (r32, const char*);
 typedef void                 (*debug_value_u32_proc)                   (u32, const char*);
+typedef void                 (*debug_value_u64_proc)                   (u64, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
 
 typedef void                 (*debug_clear_memory_records_proc)          (memory_arena*);
@@ -142,6 +143,7 @@ struct debug_state
   debug_get_thread_local_state              GetThreadLocalState;
   debug_value_r32_proc                      DebugValue_r32;
   debug_value_u32_proc                      DebugValue_u32;
+  debug_value_u64_proc                      DebugValue_u64;
   debug_dump_scope_tree_data_to_console     DumpScopeTreeDataToConsole;
 
   debug_open_window_proc                    OpenAndInitializeDebugWindow;
@@ -181,6 +183,8 @@ struct debug_state
 
   debug_profile_scope FreeScopeSentinel;
 
+  umm MinCycles; // span of start/end frame cycles
+  umm MaxCycles;
 #define DEBUG_FRAMES_TRACKED (128)
   frame_stats Frames[DEBUG_FRAMES_TRACKED];
 

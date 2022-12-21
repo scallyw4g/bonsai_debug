@@ -28,8 +28,6 @@ struct debug_text_render_group
 struct input;
 struct debug_ui_render_group
 {
-  /* gpu_mapped_element_buffer*  GameGeo; */
-  /* shader*                     GameGeoShader; */
   debug_text_render_group*    TextGroup;
 
   u64 InteractionStackTop;

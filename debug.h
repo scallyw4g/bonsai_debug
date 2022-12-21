@@ -104,8 +104,7 @@ struct debug_context_switch_event
   context_switch_event *SystemEvent;
 };
 
-// 136 context switches per frame, per thread, at 120 frames tracked.  Should be way more than enough
-#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(256))
+#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(4))
 
 struct debug_context_switch_event_buffer
 {
@@ -114,15 +113,22 @@ struct debug_context_switch_event_buffer
   debug_context_switch_event *Events;
 };
 
-link_internal void
-PushContextSwitch(debug_context_switch_event_buffer *Buf, debug_context_switch_event *Evt)
+struct debug_context_switch_event_buffer_stream_block
 {
-  Assert(Evt->Type);
-  if (Buf->At < Buf->End)
-  {
-    Buf->Events[Buf->At++] = *Evt;
-  }
-}
+  umm MinCycles;
+  umm MaxCycles;
+  debug_context_switch_event_buffer Buffer;
+  debug_context_switch_event_buffer_stream_block *Next;
+};
+
+struct debug_context_switch_event_buffer_stream
+{
+  debug_context_switch_event_buffer_stream_block *FirstBlock;
+  debug_context_switch_event_buffer_stream_block *CurrentBlock;
+};
+
+
+template <typename T> b32 BufferHasRoomFor(T *Buffer, u32 VertsToPush);
 
 link_internal debug_context_switch_event*
 GetLatest(debug_context_switch_event_buffer *Buf)
@@ -131,6 +137,22 @@ GetLatest(debug_context_switch_event_buffer *Buf)
   if (Buf->At) { Result = Buf->Events + (Buf->At-1); }
   return Result;
 }
+
+link_internal debug_context_switch_event*
+GetLatest(debug_context_switch_event_buffer_stream_block *Block)
+{
+  debug_context_switch_event *Result = GetLatest(&Block->Buffer);
+  return Result;
+}
+
+
+link_internal debug_context_switch_event*
+GetLatest(debug_context_switch_event_buffer_stream *Stream)
+{
+  debug_context_switch_event *Result = GetLatest(Stream->CurrentBlock);
+  return Result;
+}
+
 
 struct debug_thread_state
 {
@@ -151,7 +173,7 @@ struct debug_thread_state
   volatile u32 WriteIndex;
   u32 ThreadId;
 
-  debug_context_switch_event_buffer *ContextSwitches;
+  debug_context_switch_event_buffer_stream *ContextSwitches;
 
 
   // TODO(Jesse): Make a 32-bit define instead

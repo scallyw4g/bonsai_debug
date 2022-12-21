@@ -817,13 +817,35 @@ InitDebugMemoryAllocationSystem(debug_state *State)
 }
 
 
+link_internal void
+AllocateContextSwitchBuffer(debug_context_switch_event_buffer *Result, memory_arena *Arena, u32 EventCount)
+{
+  Result->End = EventCount;
+  Result->Events = Allocate(debug_context_switch_event, Arena, EventCount);
+}
+
 link_internal debug_context_switch_event_buffer *
 AllocateContextSwitchBuffer(memory_arena *Arena, u32 EventCount)
 {
   debug_context_switch_event_buffer *Result = Allocate(debug_context_switch_event_buffer, Arena, 1);
-  Result->End = EventCount;
-  Result->Events = Allocate(debug_context_switch_event, Arena, EventCount);
+  AllocateContextSwitchBuffer(Result, Arena, EventCount);
+  return Result;
+}
 
+link_internal debug_context_switch_event_buffer_stream_block *
+AllocateContextSwitchBufferStreamBlock(memory_arena *Arena, u32 EventCount)
+{
+  debug_context_switch_event_buffer_stream_block *Result = Allocate(debug_context_switch_event_buffer_stream_block, Arena, 1);
+  AllocateContextSwitchBuffer(&Result->Buffer, Arena, EventCount );
+  return Result;
+}
+
+link_internal debug_context_switch_event_buffer_stream *
+AllocateContextSwitchBufferStream(memory_arena *Arena, u32 EventCount)
+{
+  debug_context_switch_event_buffer_stream *Result = Allocate(debug_context_switch_event_buffer_stream, Arena, 1);
+  Result->FirstBlock   = AllocateContextSwitchBufferStreamBlock(Arena, EventCount);
+  Result->CurrentBlock = Result->FirstBlock;
   return Result;
 }
 
@@ -843,7 +865,7 @@ InitDebugDataSystem(debug_state *DebugState)
       ++ThreadIndex)
   {
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-    ThreadState->ContextSwitches = AllocateContextSwitchBuffer(ThreadsafeDebugMemoryAllocator(), MAX_CONTEXT_SWITCH_EVENTS );
+    ThreadState->ContextSwitches = AllocateContextSwitchBufferStream(ThreadsafeDebugMemoryAllocator(), MAX_CONTEXT_SWITCH_EVENTS );
 
     for (u32 TreeIndex = 0;
         TreeIndex < DEBUG_FRAMES_TRACKED;

@@ -455,53 +455,111 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
     Assert(ThreadState->ThreadId);
 
-    debug_context_switch_event_buffer *ContextSwitches = ThreadState->ContextSwitches;
-    debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
-
-    if (ThreadIndex == TotalThreadCount-1)
+    debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
+    debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
+    debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
+    while (CurrentBlock)
     {
-      DebugLine("%u", ContextSwitches->At);
-    }
+      debug_context_switch_event_buffer *ContextSwitches = &CurrentBlock->Buffer;
+      debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
 
-    b32 FoundOutOfOrderEvent = False;
-    for (u32 ContextSwitchEventIndex = 1;
-        ContextSwitchEventIndex < ContextSwitches->At;
-        ++ContextSwitchEventIndex)
-    {
-      debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
-      if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount)
-      {
-        FoundOutOfOrderEvent = True;
-        debug_context_switch_event Tmp = *CSwitch;
-        *CSwitch = *LastCSwitchEvt;
-        *LastCSwitchEvt = Tmp;
-      }
+      /* if (ThreadIndex == 0) */
+      /* { */
+      /*   DebugLine("%u", ContextSwitches->At); */
+      /* } */
 
-      if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
-           RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
+      CurrentBlock->MinCycles = LastCSwitchEvt->CycleCount;
+      CurrentBlock->MaxCycles = LastCSwitchEvt->CycleCount;
+
+      b32 FoundOutOfOrderEvent = False;
+      for ( u32 ContextSwitchEventIndex = 1;
+                ContextSwitchEventIndex < ContextSwitches->At;
+              ++ContextSwitchEventIndex )
       {
-        if ( FoundOutOfOrderEvent == False )
+        debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
+        if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount)
         {
-          Assert(LastCSwitchEvt->Type != CSwitch->Type);
+          FoundOutOfOrderEvent = True;
+          debug_context_switch_event Tmp = *CSwitch;
+          *CSwitch = *LastCSwitchEvt;
+          *LastCSwitchEvt = Tmp;
         }
 
-        cycle_range Range = {
-          .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
-          .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
-        };
+        CurrentBlock->MinCycles = Min(CurrentBlock->MinCycles, CSwitch->CycleCount);
+        CurrentBlock->MaxCycles = Max(CurrentBlock->MaxCycles, CSwitch->CycleCount);
 
-        if (LastCSwitchEvt->Type == ContextSwitch_On)
+        if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
+             RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
         {
-          v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
-          ui_style Style = UiStyleFromLightestColor(CoreColor);
-          PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+          if ( FoundOutOfOrderEvent == False )
+          {
+            Assert(LastCSwitchEvt->Type != CSwitch->Type);
+          }
+
+          cycle_range Range = {
+            .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
+            .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
+          };
+
+          if (LastCSwitchEvt->Type == ContextSwitch_On)
+          {
+            v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
+            ui_style Style = UiStyleFromLightestColor(CoreColor);
+            PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+          }
         }
+
+        LastCSwitchEvt = CSwitch;
       }
 
-      LastCSwitchEvt = CSwitch;
+      debug_state *DebugState = GetDebugState();
+
+      Assert(DebugState->MinCycles != umm_MAX);
+      Assert(DebugState->MinCycles);
+      Assert(DebugState->MaxCycles);
+
+      Assert(CurrentBlock->MaxCycles);
+      Assert(CurrentBlock->MinCycles);
+
+      if ( RangeContains(DebugState->MinCycles, CurrentBlock->MinCycles, DebugState->MaxCycles) ||
+           RangeContains(DebugState->MinCycles, CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
+      {
+        /* DebugLine("Good  block (%p) for thread (%u)", CurrentBlock, ThreadIndex); */
+        PrevBlock = CurrentBlock;
+        CurrentBlock = CurrentBlock->Next;
+      }
+      // Only free buffers that are full
+      else if (BufferHasRoomFor(&CurrentBlock->Buffer, 1) == False)
+      {
+        DebugLine("Evict block (%p) for thread (%u)", CurrentBlock, ThreadIndex);
+        if (CurrentBlock == ContextSwitchStream->FirstBlock)
+        {
+          Assert(PrevBlock == 0);
+          ContextSwitchStream->FirstBlock = CurrentBlock->Next;
+        }
+        else
+        {
+          /* Assert(PrevBlock == CurrentBlock); */
+          Assert(CurrentBlock != ContextSwitchStream->FirstBlock);
+          PrevBlock->Next = CurrentBlock->Next;
+        }
+
+        CurrentBlock = CurrentBlock->Next;
+      }
+      else
+      {
+        PrevBlock = CurrentBlock;
+        CurrentBlock = CurrentBlock->Next;
+      }
+
     }
 
     PushNewRow(Group);
+
+    /* if (ThreadIndex == 0) */
+    /* { */
+    /*   DebugLine("----"); */
+    /* } */
 
     debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
     if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
@@ -778,9 +836,7 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 {
   TIMED_FUNCTION();
 
-  PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
   PushTableStart(Group);
-  PushNewRow(Group); // TODO(Jesse): This probably shouldn't have to be here.
 
     v4 Pad = V4(1, 0, 1, 0);
     v2 MaxBarDim = V2(15.0f, 80.0f);
@@ -804,12 +860,25 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
     }
 
+    DebugState->MinCycles = u64_MAX;
+    DebugState->MaxCycles = 0;
+
     for ( u32 FrameIndex = 0;
               FrameIndex < DEBUG_FRAMES_TRACKED;
             ++FrameIndex )
     {
       frame_stats *Frame = DebugState->Frames + FrameIndex;
       r32 Perc = (r32)SafeDivide0(Frame->FrameMs, MaxMs);
+
+      if (Frame->StartingCycle)
+      {
+        DebugState->MinCycles = Min(DebugState->MinCycles, Frame->StartingCycle);
+      }
+
+      if (Frame->StartingCycle && Frame->TotalCycles)
+      {
+        DebugState->MaxCycles = Max(DebugState->MaxCycles, Frame->StartingCycle + Frame->TotalCycles);
+      }
 
       v2 QuadDim = MaxBarDim * V2(1.0f, Perc);
       v2 Offset = V2(0.f, VerticalAdvance-QuadDim.y);
@@ -834,6 +903,7 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
     }
 
 
+
   PushTableEnd(Group);
 
   frame_stats *Frame = DebugState->Frames + DebugState->ReadScopeIndex;
@@ -845,6 +915,9 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
     PushColumn(Group, CS(TotalMutexOps));
     PushNewRow(Group);
   PushTableEnd(Group);
+
+  /* DebugState->DebugValue_u64(DebugState->MinCycles, "MinCycles"); */
+  /* DebugState->DebugValue_u64(DebugState->MaxCycles, "MaxCycles"); */
 
   return;
 }
@@ -1758,6 +1831,20 @@ DebugValue_u32(u32 Value, const char* Name)
     PushNewRow(Group);
   PushTableEnd(Group);
 }
+
+link_internal void
+DebugValue_u64(u64 Value, const char* Name)
+{
+  debug_state* DebugState = GetDebugState();
+  debug_ui_render_group* Group = &DebugState->UiGroup;
+
+  PushTableStart(Group);
+    PushColumn(Group, CS(Name));
+    PushColumn(Group, CS(Value));
+    PushNewRow(Group);
+  PushTableEnd(Group);
+}
+
 
 link_internal void
 FramebufferTextureLayer(framebuffer *FBO, texture *Tex, debug_texture_array_slice Layer)

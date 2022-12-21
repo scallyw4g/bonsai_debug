@@ -33,6 +33,27 @@ ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
 
 global_variable u32 CSwitchEventsPerFrame = 0;
 
+
+link_internal void
+PushContextSwitch(debug_context_switch_event_buffer_stream *Stream, debug_context_switch_event *Evt)
+{
+  Assert(Evt->Type);
+
+  debug_context_switch_event_buffer_stream_block *CurrentBlock = Stream->CurrentBlock;
+  if (BufferHasRoomFor(&CurrentBlock->Buffer, 1))
+  {
+    CurrentBlock->Buffer.Events[CurrentBlock->Buffer.At++] = *Evt;
+  }
+  else
+  {
+    debug_context_switch_event_buffer_stream_block *Next = AllocateContextSwitchBufferStreamBlock(ETWArena, MAX_CONTEXT_SWITCH_EVENTS);
+    Stream->CurrentBlock->Next = Next;
+    Stream->CurrentBlock = Next;
+    PushContextSwitch(Stream, Evt);
+  }
+}
+
+
 link_internal void
 ETWEventCallback(EVENT_RECORD *Event)
 {
@@ -50,8 +71,6 @@ ETWEventCallback(EVENT_RECORD *Event)
 #if 1
       Assert(Event->UserDataLength == sizeof(context_switch_event));
 
-      ++CSwitchEventsPerFrame;
-
 #if 0
       // According to the docs, the events aren't packed at any particular
       // alignment, so we have to memcpy into an aligned struct in case they're
@@ -65,8 +84,11 @@ ETWEventCallback(EVENT_RECORD *Event)
 #else
       context_switch_event *SystemEvent = (context_switch_event*)Event->UserData;
 #endif
+
       // Skip events that are just state changes
       if (SystemEvent->NewThreadId == SystemEvent->OldThreadId) { return; }
+
+      ++CSwitchEventsPerFrame;
 
       debug_state *DebugState = GetDebugState();
 
@@ -169,7 +191,7 @@ SetupPropsForContextSwitchEventTracing(EVENT_TRACE_PROPERTIES *EventTracingProps
 }
 
 link_internal DWORD WINAPI
-Win32TracingThread(LPVOID Parameter)
+Win32TracingThread(void *ignored)
 {
   Global_EventTracingStatus = EventTracingStatus_Starting;
 

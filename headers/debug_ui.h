@@ -206,7 +206,7 @@ struct ui_render_command_column_start
 
 struct ui_render_command_text
 {
-  layout Layout;
+  /* layout Layout; */
   ui_style Style;
   counted_string String;
   v2 Offset;
