@@ -183,8 +183,8 @@ struct debug_state
 
   debug_profile_scope FreeScopeSentinel;
 
-  umm MinCycles; // span of start/end frame cycles
-  umm MaxCycles;
+  volatile umm MinCycles; // span of start/end frame cycles
+  volatile umm MaxCycles;
 #define DEBUG_FRAMES_TRACKED (128)
   frame_stats Frames[DEBUG_FRAMES_TRACKED];
 

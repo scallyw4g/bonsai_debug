@@ -101,10 +101,10 @@ struct debug_context_switch_event
   u32 ProcessorNumber;
   u64 CycleCount;
 
-  context_switch_event *SystemEvent;
+  /* context_switch_event *SystemEvent; */
 };
 
-#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(4))
+#define MAX_CONTEXT_SWITCH_EVENTS ((u32)Kilobytes(1))
 
 struct debug_context_switch_event_buffer
 {
@@ -125,6 +125,8 @@ struct debug_context_switch_event_buffer_stream
 {
   debug_context_switch_event_buffer_stream_block *FirstBlock;
   debug_context_switch_event_buffer_stream_block *CurrentBlock;
+
+  debug_context_switch_event_buffer_stream_block *FirstFreeBlock;
 };
 
 

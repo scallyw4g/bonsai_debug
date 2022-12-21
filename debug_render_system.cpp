@@ -416,23 +416,24 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   {
     case EventTracingStatus_Unstarted:
     {
-      ETStatusString = CSz("EventTracingStatus_Unstarted");
+      ETStatusString = CSz("Tracing: Unstarted");
     } break;
     case EventTracingStatus_Starting:
     {
-      ETStatusString = CSz("EventTracingStatus_Starting");
+      ETStatusString = CSz("Tracing: Starting");
     } break;
     case EventTracingStatus_Running:
     {
-      ETStatusString = CSz("EventTracingStatus_Running");
+      ETStatusString = CSz("Tracing: Running");
     } break;
     case EventTracingStatus_Error:
     {
-      ETStatusString = CSz("EventTracingStatus_Error");
+      ETStatusString = CSz("Tracing: Error");
     } break;
   }
 
   Text(Group, ETStatusString);
+  PushNewRow(Group);
   PushNewRow(Group);
 
   u32 TotalThreadCount                 = GetTotalThreadCount();
@@ -468,34 +469,16 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
       /*   DebugLine("%u", ContextSwitches->At); */
       /* } */
 
-      CurrentBlock->MinCycles = LastCSwitchEvt->CycleCount;
-      CurrentBlock->MaxCycles = LastCSwitchEvt->CycleCount;
-
       b32 FoundOutOfOrderEvent = False;
       for ( u32 ContextSwitchEventIndex = 1;
                 ContextSwitchEventIndex < ContextSwitches->At;
               ++ContextSwitchEventIndex )
       {
         debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
-        if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount)
-        {
-          FoundOutOfOrderEvent = True;
-          debug_context_switch_event Tmp = *CSwitch;
-          *CSwitch = *LastCSwitchEvt;
-          *LastCSwitchEvt = Tmp;
-        }
-
-        CurrentBlock->MinCycles = Min(CurrentBlock->MinCycles, CSwitch->CycleCount);
-        CurrentBlock->MaxCycles = Max(CurrentBlock->MaxCycles, CSwitch->CycleCount);
 
         if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
              RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
         {
-          if ( FoundOutOfOrderEvent == False )
-          {
-            Assert(LastCSwitchEvt->Type != CSwitch->Type);
-          }
-
           cycle_range Range = {
             .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
             .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
@@ -512,46 +495,8 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
         LastCSwitchEvt = CSwitch;
       }
 
-      debug_state *DebugState = GetDebugState();
-
-      Assert(DebugState->MinCycles != umm_MAX);
-      Assert(DebugState->MinCycles);
-      Assert(DebugState->MaxCycles);
-
-      Assert(CurrentBlock->MaxCycles);
-      Assert(CurrentBlock->MinCycles);
-
-      if ( RangeContains(DebugState->MinCycles, CurrentBlock->MinCycles, DebugState->MaxCycles) ||
-           RangeContains(DebugState->MinCycles, CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
-      {
-        /* DebugLine("Good  block (%p) for thread (%u)", CurrentBlock, ThreadIndex); */
-        PrevBlock = CurrentBlock;
-        CurrentBlock = CurrentBlock->Next;
-      }
-      // Only free buffers that are full
-      else if (BufferHasRoomFor(&CurrentBlock->Buffer, 1) == False)
-      {
-        DebugLine("Evict block (%p) for thread (%u)", CurrentBlock, ThreadIndex);
-        if (CurrentBlock == ContextSwitchStream->FirstBlock)
-        {
-          Assert(PrevBlock == 0);
-          ContextSwitchStream->FirstBlock = CurrentBlock->Next;
-        }
-        else
-        {
-          /* Assert(PrevBlock == CurrentBlock); */
-          Assert(CurrentBlock != ContextSwitchStream->FirstBlock);
-          PrevBlock->Next = CurrentBlock->Next;
-        }
-
-        CurrentBlock = CurrentBlock->Next;
-      }
-      else
-      {
-        PrevBlock = CurrentBlock;
-        CurrentBlock = CurrentBlock->Next;
-      }
-
+      PrevBlock = CurrentBlock;
+      CurrentBlock = CurrentBlock->Next;
     }
 
     PushNewRow(Group);
@@ -860,8 +805,8 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
     }
 
-    DebugState->MinCycles = u64_MAX;
-    DebugState->MaxCycles = 0;
+    volatile umm MinCycles = u64_MAX;
+    volatile umm MaxCycles = 0;
 
     for ( u32 FrameIndex = 0;
               FrameIndex < DEBUG_FRAMES_TRACKED;
@@ -872,12 +817,12 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 
       if (Frame->StartingCycle)
       {
-        DebugState->MinCycles = Min(DebugState->MinCycles, Frame->StartingCycle);
+        MinCycles = Min(MinCycles, Frame->StartingCycle);
       }
 
       if (Frame->StartingCycle && Frame->TotalCycles)
       {
-        DebugState->MaxCycles = Max(DebugState->MaxCycles, Frame->StartingCycle + Frame->TotalCycles);
+        MaxCycles = Max(MaxCycles, Frame->StartingCycle + Frame->TotalCycles);
       }
 
       v2 QuadDim = MaxBarDim * V2(1.0f, Perc);
@@ -901,6 +846,9 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 
       if (Clicked(Group, &B)) { DebugState->ReadScopeIndex = FrameIndex; }
     }
+
+    DebugState->MaxCycles = MaxCycles;
+    DebugState->MinCycles = MinCycles;
 
 
 
@@ -964,7 +912,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
       debug_scope_tree *ReadTree = ThreadState->ScopeTrees + DebugState->ReadScopeIndex;
       frame_stats *Frame = DebugState->Frames + DebugState->ReadScopeIndex;
 
-      if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
+      if (Frame->TotalCycles && MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
       {
         debug_timed_function BlockTimer2("Buffer First Call To Each");
         BufferFirstCallToEach(Group, ReadTree->Root, ReadTree->Root, ThreadsafeDebugMemoryAllocator(), &CallgraphWindow, Frame->TotalCycles, 0);

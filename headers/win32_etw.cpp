@@ -24,15 +24,177 @@ struct context_switch_event
 
 global_variable memory_arena *ETWArena = AllocateArena();
 
+link_internal debug_context_switch_event_buffer_stream_block*
+MaybeFreeBlock(debug_context_switch_event_buffer_stream *Stream, debug_context_switch_event_buffer_stream_block *CurrentBlock)
+{
+  debug_context_switch_event_buffer_stream_block *Result = 0;
+
+  {
+    //  Block is head, has next
+    if (CurrentBlock == Stream->FirstBlock &&
+        CurrentBlock->Next)
+    {
+      InvalidCodePath();
+      Assert(BufferHasRoomFor(&CurrentBlock->Buffer, 1) == False);
+      Assert(CurrentBlock != Stream->CurrentBlock);
+      auto BlockToFree = CurrentBlock;
+      Stream->FirstBlock = CurrentBlock->Next;
+
+      BlockToFree->Next = Stream->FirstFreeBlock;
+      Stream->FirstFreeBlock = BlockToFree;
+
+      Result = Stream->FirstBlock;
+    }
+
+    /* Block is head, no next // Block is tail, no prev */
+    else if (CurrentBlock == Stream->FirstBlock &&
+             CurrentBlock == Stream->CurrentBlock)
+    {
+      CurrentBlock->Buffer.At = 0;
+    }
+    /* Block is tail, has prev*/
+    else if ( CurrentBlock != Stream->FirstBlock &&
+              CurrentBlock == Stream->CurrentBlock )
+    {
+      CurrentBlock->Buffer.At = 0;
+    }
+    else
+    {
+      Assert(false);
+    }
+
+  }
+
+  return Result;
+}
+
 link_internal ULONG
 ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
 {
   Assert(Logfile->EventsLost == 0);
+
+  u32 TotalThreadCount = GetTotalThreadCount();
+  for ( u32 ThreadIndex = 0;
+        ThreadIndex < TotalThreadCount;
+        ++ThreadIndex)
+  {
+    /* TIMED_NAMED_BLOCK("Thread Loop"); */
+
+    debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+    Assert(ThreadState->ThreadId);
+
+    b32 FoundOutOfOrderEvent = True;
+    while (FoundOutOfOrderEvent)
+    {
+      FoundOutOfOrderEvent = False;
+      debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
+      debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
+      debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
+      while (CurrentBlock)
+      {
+        debug_context_switch_event_buffer *ContextSwitches = &CurrentBlock->Buffer;
+        debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
+
+        CurrentBlock->MinCycles = LastCSwitchEvt->CycleCount;
+        CurrentBlock->MaxCycles = LastCSwitchEvt->CycleCount;
+
+        for ( u32 ContextSwitchEventIndex = 1;
+                  ContextSwitchEventIndex < ContextSwitches->At;
+                ++ContextSwitchEventIndex )
+        {
+          debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
+          if (LastCSwitchEvt->CycleCount > CSwitch->CycleCount)
+          {
+            FoundOutOfOrderEvent = True;
+            debug_context_switch_event Tmp = *CSwitch;
+            *CSwitch = *LastCSwitchEvt;
+            *LastCSwitchEvt = Tmp;
+          }
+
+          CurrentBlock->MinCycles = Min(CurrentBlock->MinCycles, CSwitch->CycleCount);
+          CurrentBlock->MaxCycles = Max(CurrentBlock->MaxCycles, CSwitch->CycleCount);
+
+          LastCSwitchEvt = CSwitch;
+        }
+
+        CurrentBlock = CurrentBlock->Next;
+      }
+    }
+
+    debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
+    /* debug_context_switch_event_buffer_stream_block *PrevBlock = 0; */
+    debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
+    debug_state *DebugState = GetDebugState();
+    while (CurrentBlock && CurrentBlock != ContextSwitchStream->CurrentBlock)
+    {
+      if ( RangeContains(DebugState->MinCycles, CurrentBlock->MinCycles, DebugState->MaxCycles) ||
+           RangeContains(DebugState->MinCycles, CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
+      {
+        break;
+      }
+      else
+      {
+        /* CurrentBlock = MaybeFreeBlock(ContextSwitchStream, CurrentBlock); */
+        Assert(CurrentBlock == ContextSwitchStream->FirstBlock && CurrentBlock->Next);
+        Assert(BufferHasRoomFor(&CurrentBlock->Buffer, 1) == False);
+        Assert(CurrentBlock != ContextSwitchStream->CurrentBlock);
+
+        {
+          auto BlockToFree = CurrentBlock;
+          ContextSwitchStream->FirstBlock = CurrentBlock->Next;
+
+          BlockToFree->Next = ContextSwitchStream->FirstFreeBlock;
+          ContextSwitchStream->FirstFreeBlock = BlockToFree;
+
+          CurrentBlock = ContextSwitchStream->FirstBlock;
+        }
+
+      }
+
+    }
+
+
+    if ( RangeContains(DebugState->MinCycles, ContextSwitchStream->CurrentBlock->MinCycles, DebugState->MaxCycles) ||
+         RangeContains(DebugState->MinCycles, ContextSwitchStream->CurrentBlock->MaxCycles, DebugState->MaxCycles)  )
+    {
+    }
+    else
+    {
+      MaybeFreeBlock(ContextSwitchStream, ContextSwitchStream->CurrentBlock);
+    }
+
+
+#if 0
+    PushNewRow(Group);
+
+    /* if (ThreadIndex == 0) */
+    /* { */
+    /*   DebugLine("----"); */
+    /* } */
+
+    debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
+    if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
+    {
+      debug_timed_function BlockTimer2("Push Scope Bars");
+      PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, &Entropy);
+    }
+    PushNewRow(Group);
+#endif
+  }
+
+
   return True; // Continue processing buffers
 }
 
 global_variable u32 CSwitchEventsPerFrame = 0;
 
+
+void
+ClearBlock(debug_context_switch_event_buffer_stream_block *Block)
+{
+  Block->Buffer.At = 0;
+  Block->Next = 0;
+}
 
 link_internal void
 PushContextSwitch(debug_context_switch_event_buffer_stream *Stream, debug_context_switch_event *Evt)
@@ -46,9 +208,20 @@ PushContextSwitch(debug_context_switch_event_buffer_stream *Stream, debug_contex
   }
   else
   {
-    debug_context_switch_event_buffer_stream_block *Next = AllocateContextSwitchBufferStreamBlock(ETWArena, MAX_CONTEXT_SWITCH_EVENTS);
-    Stream->CurrentBlock->Next = Next;
-    Stream->CurrentBlock = Next;
+    debug_context_switch_event_buffer_stream_block *NextBlock = Stream->FirstFreeBlock;
+    if (NextBlock)
+    {
+      Stream->FirstFreeBlock = NextBlock->Next;
+      ClearBlock(NextBlock);
+    }
+    else
+    {
+      NextBlock = AllocateContextSwitchBufferStreamBlock(ETWArena, MAX_CONTEXT_SWITCH_EVENTS);
+    }
+
+    Stream->CurrentBlock->Next = NextBlock;
+    Stream->CurrentBlock = NextBlock;
+
     PushContextSwitch(Stream, Evt);
   }
 }
@@ -103,7 +276,7 @@ ETWEventCallback(EVENT_RECORD *Event)
         debug_context_switch_event CSwitch = {
           .ProcessorNumber = ProcessorNumber,
           .CycleCount = CycleCount,
-          .SystemEvent = SystemEvent,
+          /* .SystemEvent = SystemEvent, */
         };
 
         if (TS->ThreadId == SystemEvent->NewThreadId)
@@ -118,6 +291,8 @@ ETWEventCallback(EVENT_RECORD *Event)
 
         if (CSwitch.Type)
         {
+          Assert(CSwitch.CycleCount);
+
           debug_context_switch_event *LastCSwitchEvt = GetLatest(TS->ContextSwitches);
           /* if (LastCSwitchEvt && BufferHasRoomFor(TS->ContextSwitches, 1)) */
           /* { */

@@ -479,7 +479,6 @@ MainThreadAdvanceDebugSystem(r64 Dt)
     frame_stats *NextFrame = SharedState->Frames + NextFrameWriteIndex;
     Clear(NextFrame);
     NextFrame->StartingCycle = CurrentCycles;
-
   }
 }
 
