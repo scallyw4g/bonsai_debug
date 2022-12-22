@@ -12,15 +12,20 @@
 /******************************               ********************************/
 
 
-
-
 struct window_layout
 {
   counted_string Title;
 
+  b32 Minimized;
+  u32 MinimizeIndex;
+
   v2 Basis;
   v2 MaxClip;
   v2 Scroll;
+
+  v2 CachedBasis;
+  v2 CachedMaxClip;
+  v2 CachedScroll;
 
   u64 InteractionStackIndex;
 
@@ -31,6 +36,10 @@ struct window_layout
 
   window_layout* NextHotWindow;
 };
+
+/* poof(buffer(window_layout)) */
+/* #include <generated/buffer_window_layout.h> */
+
 
 
 
@@ -67,7 +76,7 @@ enum text_render_params
 {
   TextRenderParam_Default         = 0,
   TextRenderParam_NoAdvanceLayout = (1 << 0),
-  TextRenderParam_NoClip          = (1 << 1),
+  TextRenderParam_DisableClipping = (1 << 1),
 };
 
 
@@ -187,6 +196,7 @@ struct ui_render_command_border
 struct ui_render_command_window_start
 {
   layout Layout;
+  rect2 ClipRect;
   window_layout* Window;
 };
 
@@ -206,7 +216,7 @@ struct ui_render_command_column_start
 
 struct ui_render_command_text
 {
-  /* layout Layout; */
+  layout Layout;
   ui_style Style;
   counted_string String;
   v2 Offset;
@@ -242,6 +252,7 @@ struct ui_render_command_untextured_quad_at
 struct ui_render_command_textured_quad
 {
   layout Layout;
+  v2 Dim;
   debug_texture_array_slice TextureSlice;
   z_depth zDepth;
 };

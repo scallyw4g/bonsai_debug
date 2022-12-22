@@ -332,7 +332,7 @@ PushCycleBar(debug_ui_render_group* Group, cycle_range* Range, cycle_range* Fram
     PushUntexturedQuad(Group, Offset, BarDim, zDepth_Text, Style, Padding, QuadRenderParam_AdvanceClip);
     ui_style NameStyle = DefaultStyle;
     NameStyle.Font = Global_SmallFont;
-    if (Name.Count) { Text(Group, Name, &NameStyle, TextRenderParam_NoAdvanceLayout, Offset, RectMinDim(Offset, BarDim)); }
+    if (Name.Count) { Text(Group, Name, &NameStyle, TextRenderParam_NoAdvanceLayout, Offset, RectMinDim({}, BarDim)); }
   }
 
   return;

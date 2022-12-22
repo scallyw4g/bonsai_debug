@@ -4,6 +4,8 @@ struct render_state
   window_layout*  Window;
   u32 WindowStartCommandIndex;
 
+  rect2 ClipRect;
+
   layout* Layout;
 
   b32 Hover;
@@ -38,6 +40,9 @@ struct debug_ui_render_group
   input *Input;
 
   window_layout *HighestWindow; // NOTE(Jesse): Highest in terms of InteractionStackIndex
+
+#define MAX_MINIMIZED_WINDOWS 64
+  window_layout *MinimizedWindowBuffer[MAX_MINIMIZED_WINDOWS];
 
   umm HoverInteractionId;
   umm ClickedInteractionId;

@@ -275,6 +275,9 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
   {
     State->DebugDoScopeProfiling = !State->DebugDoScopeProfiling;
   }
+
+  /* DebugLine("State->UiGroup.NumMinimizedWindowsDrawn (%u)", State->UiGroup.NumMinimizedWindowsDrawn ); */
+  /* State->UiGroup.NumMinimizedWindowsDrawn = 0; */
 }
 
 link_internal b32

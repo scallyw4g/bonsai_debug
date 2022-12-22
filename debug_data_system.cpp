@@ -54,8 +54,8 @@ RegisterThread(thread_startup_params *Params)
   ThreadLocal_ThreadIndex = Params->ThreadIndex;
 
   debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
-  ThreadState->ThreadId = Params->ThreadId;
-  Assert(ThreadState->ThreadId);
+  ThreadState->ThreadId = GetCurrentThreadId(); // Params->ThreadId;
+  /* Assert(ThreadState->ThreadId); */
   return;
 }
 
