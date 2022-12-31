@@ -361,14 +361,16 @@ ColorFromHash(u64 HashValue)
 }
 
 global_variable r32 Global_CoreBarHeight = 3.f;
+global_variable r32 Global_CoreBarPadding = 3.f;
 
 link_internal void
 PushScopeBarsRecursive( debug_ui_render_group *Group,
                         debug_profile_scope *Scope,
                         cycle_range *Frame,
                         r32 TotalGraphWidth,
+                        r32 BarHeight,
                         random_series *Entropy,
-                        u32 Depth = 0)
+                        u32 Depth = 0 )
 {
   while (Scope)
   {
@@ -382,18 +384,18 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
 
     v3 FunctionColor = ColorFromHash(NameHash) * Tint;
     ui_style FunctionStyle = UiStyleFromLightestColor(FunctionColor);
-    r32 yOffsetFunction = Depth * (Global_Font.Size.y);
+    r32 yOffsetFunction = Depth * BarHeight;
 
     {
       cs ScopeName = CS(Scope->Name);
       interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope);
-        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, (r32)Global_Font.Size.y, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
+        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, BarHeight, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
       PushButtonEnd(Group);
       if (Hover(Group, &Bar)) { PushTooltip(Group, ScopeName); }
       if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
     }
 
-    if (Scope->Expanded) { PushScopeBarsRecursive(Group, Scope->Child, Frame, TotalGraphWidth, Entropy, Depth+1); }
+    if (Scope->Expanded) { PushScopeBarsRecursive(Group, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
     Scope = Scope->Sibling;
   }
 
@@ -416,19 +418,19 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   {
     case EventTracingStatus_Unstarted:
     {
-      ETStatusString = CSz("Tracing: Unstarted");
+      ETStatusString = CSz("CSwitch Tracing: Unstarted");
     } break;
     case EventTracingStatus_Starting:
     {
-      ETStatusString = CSz("Tracing: Starting");
+      ETStatusString = CSz("CSwitch Tracing: Starting");
     } break;
     case EventTracingStatus_Running:
     {
-      ETStatusString = CSz("Tracing: Running");
+      ETStatusString = CSz("CSwitch Tracing: Running");
     } break;
     case EventTracingStatus_Error:
     {
-      ETStatusString = CSz("Tracing: Error");
+      ETStatusString = CSz("CSwitch Tracing: Error");
     } break;
   }
 
@@ -436,9 +438,38 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   PushNewRow(Group);
   PushNewRow(Group);
 
+
+  /* PushTableStart(Group); */
+
   u32 TotalThreadCount                 = GetTotalThreadCount();
   frame_stats *FrameStats              = SharedState->Frames + SharedState->ReadScopeIndex;
   cycle_range FrameCycles              = {FrameStats->StartingCycle, FrameStats->TotalCycles};
+
+  r32 BarHeight = (r32)Global_Font.Size.y;
+
+#if 1
+  /* r32 TotalMs = Max(33.333333f, (r32)FrameStats->FrameMs); */
+  r32 TotalMs = (r32)FrameStats->FrameMs;
+
+  if (TotalMs > 0.0f)
+  {
+    r32 MarkerWidth = 1.f;
+    r32 MinY = 0.f;
+    r32 TotalGraphHeight = TotalThreadCount * (Global_CoreBarHeight + (Global_CoreBarPadding*2.f) + BarHeight);
+
+    {
+      r32 FramePerc = 16.666666f/TotalMs;
+      r32 xOffset = FramePerc*TotalGraphWidth;
+      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), QuadRenderParam_NoAdvance);
+    }
+    {
+      r32 FramePerc = 33.333333f/TotalMs;
+      r32 xOffset = FramePerc*TotalGraphWidth;
+      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), QuadRenderParam_NoAdvance);
+    }
+  }
+#endif
+
 
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + SharedState->ReadScopeIndex;
@@ -450,12 +481,17 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   {
     TIMED_NAMED_BLOCK("Thread Loop");
 
-    PushColumn(Group, FormatCountedString(TranArena, CSz("Thread %u"), ThreadIndex));
-    PushNewRow(Group);
+    PushColumn(Group, FormatCountedString(TranArena, CSz("T %u "), ThreadIndex));
+    /* PushNewRow(Group); */
+
+    StartColumn(Group);
+
+    /* PushColumn(Group, CSz("Foo")); */
 
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
     Assert(ThreadState->ThreadId);
 
+#if 1
     debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
     debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
     debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
@@ -499,48 +535,23 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
       CurrentBlock = CurrentBlock->Next;
     }
 
-    PushNewRow(Group);
+    PushForceAdvance(Group, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
+#endif
 
-    /* if (ThreadIndex == 0) */
-    /* { */
-    /*   DebugLine("----"); */
-    /* } */
 
     debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
     if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
     {
       debug_timed_function BlockTimer2("Push Scope Bars");
-      PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, &Entropy);
+      PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
     }
+
+    EndColumn(Group);
+
     PushNewRow(Group);
   }
+
   /* PushTableEnd(Group); */
-
-#if 0
-  r32 TotalMs = (r32)FrameStats->FrameMs;
-
-  if (TotalMs > 0.0f)
-  {
-    r32 MarkerWidth = 3.0f;
-
-    {
-      r32 FramePerc = 16.66666f/TotalMs;
-      r32 xOffset = FramePerc*TotalGraphWidth;
-      v2 MinP16ms = Layout->Basis + V2( xOffset, MinY );
-      v2 MaxP16ms = Layout->Basis + V2( xOffset+MarkerWidth, Layout->At.y );
-      v2 Dim = MaxP16ms - MinP16ms;
-      PushUntexturedQuad(Group, MinP16ms, Dim, V3(0,1,0));
-    }
-    {
-      r32 FramePerc = 33.333333f/TotalMs;
-      r32 xOffset = FramePerc*TotalGraphWidth;
-      v2 MinP16ms = Layout->Basis + V2( xOffset, MinY );
-      v2 MaxP16ms = Layout->Basis + V2( xOffset+MarkerWidth, Layout->At.y );
-      v2 Dim = MaxP16ms - MinP16ms;
-      PushUntexturedQuad(Group, MinP16ms, Dim, V3(0,1,1));
-    }
-  }
-#endif
 
 #if 0
   u32 UnclosedMutexRecords = 0;
@@ -579,7 +590,6 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   }
   END_BLOCK("Mutex Record Collation");
 #endif
-
   PushWindowEnd(Group, &CycleGraphWindow);
 
   return;
@@ -790,19 +800,17 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 
     v2 LineDim = V2( HorizontalAdvance * DEBUG_FRAMES_TRACKED, 2.0f);
     {
-      ui_style Style = UiStyleFromLightestColor( V3(1.f, 0.75f, 0.f) );
       r32 MsPerc = (r32)SafeDivide0(33.333, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
-      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
+      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), QuadRenderParam_NoAdvance);
     }
 
     {
-      ui_style Style = UiStyleFromLightestColor( V3(0.f, 1.f, 0.f) );
       r32 MsPerc = (r32)SafeDivide0(16.666, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
-      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Style, V4(0), QuadRenderParam_NoAdvance);
+      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), QuadRenderParam_NoAdvance);
     }
 
     volatile umm MinCycles = u64_MAX;

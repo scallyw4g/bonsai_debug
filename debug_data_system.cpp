@@ -141,9 +141,9 @@ PushesMatchExactly(memory_record *First, memory_record *Second)
   return Result;
 }
 
-#define META_TABLE_SIZE (1024*4)
+#define META_TABLE_SIZE (1024)
 inline void
-ClearMetaRecordsFor(memory_arena *Arena)
+ClearMemoryRecordsFor(memory_arena *Arena)
 {
   TIMED_FUNCTION();
 

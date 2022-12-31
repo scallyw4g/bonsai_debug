@@ -160,9 +160,13 @@ link_internal ui_style UiStyleFromLightestColor(v3 Color, font Font = Global_Fon
 debug_global v4 DefaultColumnPadding = V4(0, 0, 30, 12);
 debug_global v4 DefaultButtonPadding = V4(15);
 
-debug_global ui_style DefaultStyle = UiStyleFromLightestColor(V3(1));
+debug_global ui_style DefaultStyle         = UiStyleFromLightestColor(V3(1));
 debug_global ui_style DefaultSelectedStyle = UiStyleFromLightestColor(V3(.6f, 1.f, .6f));
-debug_global ui_style DefaultBlurredStyle = UiStyleFromLightestColor(V3(.25f, .25f, .25f));
+debug_global ui_style DefaultBlurredStyle  = UiStyleFromLightestColor(V3(.25f, .25f, .25f));
+
+debug_global ui_style Global_DefaultSuccessStyle = UiStyleFromLightestColor(V3(0.f, 1.f, 0.f));;
+debug_global ui_style Global_DefaultWarnStyle    = UiStyleFromLightestColor(V3(1.f, .5f, .2f));
+debug_global ui_style Global_DefaultErrorStyle   = UiStyleFromLightestColor(V3(1.f, 0.25f, 0.f));
 
 
 

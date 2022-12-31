@@ -251,6 +251,9 @@ struct debug_timed_function
       this->Scope->EndingCycle = __rdtsc(); // Intentionally first;
 
       Assert(this->Scope->EndingCycle > this->Scope->StartingCycle);
+      Assert(this->Scope->Parent != this->Scope);
+      Assert(this->Scope->Sibling != this->Scope);
+      Assert(this->Scope->Child != this->Scope);
 
       // 'Pop' the scope stack
       this->Tree->WriteScope = &this->Scope->Sibling;
