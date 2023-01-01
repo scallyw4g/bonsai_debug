@@ -51,7 +51,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
 
   TIMED_BLOCK("Draw Status Bar");
 
-  /* memory_arena_stats TotalStats = GetTotalMemoryArenaStats(); */
+  memory_arena_stats TotalStats = GetTotalMemoryArenaStats();
 
   u32 TotalDrawCalls = 0;
 
@@ -100,7 +100,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world
     PushColumn(UiGroup, CS("Draw Calls"));
     PushNewRow(UiGroup);
 
-#if 0
+#if 1
     PushColumn(UiGroup, CS(TotalStats.Allocations), &Style, Padding);
     PushColumn(UiGroup, CS(TotalStats.Pushes));
     PushColumn(UiGroup, CS(TotalDrawCalls));

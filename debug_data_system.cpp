@@ -285,23 +285,61 @@ GetMemoryArenaStats(memory_arena *ArenaIn)
 {
   memory_arena_stats Result = {};
 
+  AcquireFutex(&ArenaIn->DebugFutex);
+
   memory_arena *Arena = ArenaIn;
   while (Arena)
   {
-    Result.Allocations++;
-    Result.TotalAllocated += TotalSize(Arena);
-    Result.Remaining += Remaining(Arena);
+    if (Arena->Start)
+    {
+      Result.Allocations++;
+      Result.TotalAllocated += TotalSize(Arena);
+      Result.Remaining += Remaining(Arena);
 
-// TODO(Jesse): Shouldn't this whole thing be internal?
 #if BONSAI_INTERNAL
-    Result.Pushes += Arena->Pushes;
+      Result.Pushes += Arena->Pushes;
 #endif
 
+    }
     Arena = Arena->Prev;
+  }
+
+  ReleaseFutex(&ArenaIn->DebugFutex);
+
+  return Result;
+}
+
+#if 0
+link_internal memory_arena_stats
+GetTotalMemoryArenaStats()
+{
+  TIMED_FUNCTION();
+  memory_arena_stats Result = {};
+
+  u32 TotalThreadCount = GetTotalThreadCount();
+
+  for ( u32 ThreadIndex = 0;
+      ThreadIndex < TotalThreadCount;
+      ++ThreadIndex)
+  {
+    auto TLS = GetThreadLocalStateFor(ThreadIndex);
+    for ( u32 MetaIndex = 0;
+        MetaIndex < META_TABLE_SIZE;
+        ++MetaIndex)
+    {
+      memory_record *Record = TLS->MetaTable + MetaIndex;
+      /* memory_arena_stats CurrentStats = GetMemoryArenaStats(Current->Arena); */
+      /* Result.Allocations          += CurrentStats.Allocations; */
+      Result.Pushes               += Record->PushCount;
+      Result.TotalAllocated       += Record->StructSize*Record->StructCount;
+      /* Result.Remaining            += CurrentStats.Remaining; */
+    }
   }
 
   return Result;
 }
+
+#else
 
 memory_arena_stats
 GetTotalMemoryArenaStats()
@@ -327,6 +365,7 @@ GetTotalMemoryArenaStats()
 
   return TotalStats;
 }
+#endif
 
 
 
@@ -499,20 +538,13 @@ ComputeMinMaxAvgDt()
   {
     frame_stats *Frame = SharedState->Frames + FrameIndex;
 
-    Dt.Min = Min(Dt.Min, Frame->FrameMs);
+    if (Frame->FrameMs > 0.1f) { ++FrameCount; }
+    if (Frame->FrameMs > 0.1f) { Dt.Min = Min(Dt.Min, Frame->FrameMs); }
     Dt.Max = Max(Dt.Max, Frame->FrameMs);
     Dt.Avg += Frame->FrameMs;
-
-    if (Frame->FrameMs > 0.0f)
-    {
-      ++FrameCount;
-    }
   }
 
-  if (FrameCount > 0)
-  {
-    Dt.Avg /= (r32)FrameCount;
-  }
+  Dt.Avg = SafeDivide0(Dt.Avg, (r64)FrameCount);
 
   return Dt;
 }

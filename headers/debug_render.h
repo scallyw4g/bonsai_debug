@@ -30,7 +30,7 @@ struct debug_text_render_group
 struct input;
 struct debug_ui_render_group
 {
-  debug_text_render_group*    TextGroup;
+  debug_text_render_group *TextGroup;
 
   u64 InteractionStackTop;
 
