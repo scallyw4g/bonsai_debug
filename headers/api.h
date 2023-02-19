@@ -11,8 +11,8 @@ struct mutex;
 struct heap_allocator;
 
 struct render_entity_to_texture_group;
-struct world_chunk_static_buffer;
-struct world_chunk;
+struct picked_world_chunk_static_buffer;
+struct picked_world_chunk;
 
 
 
@@ -33,7 +33,7 @@ struct memory_record
 typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
 typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 typedef void                 (*debug_clear_framebuffers_proc)          (render_entity_to_texture_group*);
-typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world_chunk_static_buffer*);
+typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer*);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, u32);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
@@ -156,8 +156,8 @@ struct debug_state
 
   // TODO(Jesse): Remove these.  Need to expose the UI drawing code to the user
   // of the library.
-  world_chunk *PickedChunk;
-  world_chunk *HoverChunk;
+  picked_world_chunk *PickedChunk;
+  picked_world_chunk *HoverChunk;
 
   debug_thread_state *ThreadStates;
 
@@ -269,7 +269,8 @@ struct debug_timed_function
 #define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer0(BlockName)
 #define END_BLOCK(BlockName) } do {} while (0)
 
-#define DEBUG_VALUE(Pointer) do {GetDebugState()->DebugValue(Pointer, #Pointer);} while (false)
+#define DEBUG_VALUE_r32(Pointer) do {GetDebugState()->DebugValue_r32(Pointer, #Pointer);} while (false)
+#define DEBUG_VALUE_u32(Pointer) do {GetDebugState()->DebugValue_u32(Pointer, #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
 #define DEBUG_FRAME_END(a, b, c, d, e, f) do {GetDebugState()->FrameEnd(a, b, c, d, e, f);} while (false)

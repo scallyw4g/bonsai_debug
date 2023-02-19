@@ -16,6 +16,7 @@
 
 #if BONSAI_WIN32
 #include <bonsai_debug/headers/win32_etw.cpp>
+/* #include <bonsai_debug/headers/win32_pmc.cpp> */
 #endif
 
 /* debug_state *Global_DebugStatePointer; */
@@ -25,7 +26,7 @@ global_variable platform Plat = {};
 global_variable hotkeys Hotkeys = {};
 
 link_internal void
-DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, world_chunk_static_buffer *PickedChunks)
+DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer *PickedChunks)
 {
   TIMED_FUNCTION();
 
@@ -389,7 +390,7 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
 
   DEBUG_REGISTER_NAMED_ARENA(TranArena, 0, "debug_lib TranArena");
 
-  Platform_EnableContextSwitchTracing();
+  /* Platform_EnableContextSwitchTracing(); */
 
   DebugState->DebugDoScopeProfiling = True;
 

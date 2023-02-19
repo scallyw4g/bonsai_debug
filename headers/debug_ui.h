@@ -359,6 +359,12 @@ struct clip_result
   rect2 ClipRatio;
 };
 
+struct sort_key_f
+{
+  u64 Index;
+  r64 Value;
+};
+
 struct sort_key
 {
   u64 Index;
