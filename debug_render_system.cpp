@@ -1859,8 +1859,8 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
   Group->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
   StandardCamera(Group->Camera, 1000.0f, 100.0f, {});
 
-  GL.ClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-  GL.ClearDepth(1.0f);
+  GL.ClearColor(f32_MAX, f32_MAX, f32_MAX, f32_MAX);
+  GL.ClearDepth(f32_MAX);
 }
 
 link_internal b32
