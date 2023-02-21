@@ -30,7 +30,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 {
   TIMED_FUNCTION();
 
-  /* GL.Disable(GL_CULL_FACE); */
+  GL.Disable(GL_CULL_FACE);
 
   debug_state *DebugState = GetDebugState();
 
