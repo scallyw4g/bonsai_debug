@@ -441,7 +441,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
 
   /* PushTableStart(Group); */
 
-  u32 TotalThreadCount                 = GetTotalThreadCount();
+  s32 TotalThreadCount                 = (s32)GetTotalThreadCount();
   frame_stats *FrameStats              = SharedState->Frames + SharedState->ReadScopeIndex;
   cycle_range FrameCycles              = {FrameStats->StartingCycle, FrameStats->TotalCycles};
 
@@ -475,9 +475,9 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + SharedState->ReadScopeIndex;
 
   /* PushTableStart(Group); */
-  for ( u32 ThreadIndex = 0;
-        ThreadIndex < TotalThreadCount;
-        ++ThreadIndex)
+  for ( s32 ThreadIndex = 0;
+            ThreadIndex < TotalThreadCount;
+          ++ThreadIndex)
   {
     TIMED_NAMED_BLOCK("Thread Loop");
 
@@ -892,7 +892,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
 
   DrawFrameTicker(Group, DebugState, Max(33.3, MaxMs));
 
-  u32 TotalThreadCount = GetWorkerThreadCount() + 1;
+  s32 TotalThreadCount = (s32)GetTotalThreadCount();
 
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
@@ -912,9 +912,9 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 Ma
     PushColumn(Group, CSz("Name"));
     PushNewRow(Group);
 
-    for ( u32 ThreadIndex = 0;
-        ThreadIndex < TotalThreadCount;
-        ++ThreadIndex)
+    for ( s32 ThreadIndex = 0;
+          ThreadIndex < TotalThreadCount;
+        ++ThreadIndex )
     {
       debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
       debug_scope_tree *ReadTree = ThreadState->ScopeTrees + DebugState->ReadScopeIndex;
@@ -1467,10 +1467,10 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
   b32 FoundUntrackedAllocations = False;
   memory_record UnknownRecordTable[META_TABLE_SIZE] = {};
   {
-    u32 TotalThreadCount = GetWorkerThreadCount() + 1;
-    for ( u32 ThreadIndex = 0;
-        ThreadIndex < TotalThreadCount;
-        ++ThreadIndex)
+    s32 TotalThreadCount = (s32)GetTotalThreadCount();
+    for ( s32 ThreadIndex = 0;
+              ThreadIndex < TotalThreadCount;
+            ++ThreadIndex)
     {
       for ( u32 MetaIndex = 0;
           MetaIndex < META_TABLE_SIZE;

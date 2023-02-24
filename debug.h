@@ -223,7 +223,7 @@ struct registered_memory_arena
 {
   memory_arena *Arena;
   const char* Name;
-  u32 ThreadId;
+  s32 ThreadId;
   b32 Expanded;
 };
 

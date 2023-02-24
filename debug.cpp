@@ -337,11 +337,14 @@ QueryMemoryRequirements()
 }
 
 link_export void
-BonsaiDebug_OnLoad(debug_state *DebugState)
+BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
 {
   InitializeOpenglFunctions();
 
   Global_DebugStatePointer = DebugState;
+  Global_ThreadStates = ThreadStates;
+
+  SetThreadLocal_ThreadIndex(0);
 
   DebugState->ClearFramebuffers               = ClearFramebuffers;
   DebugState->FrameEnd                        = DebugFrameEnd;
@@ -378,6 +381,8 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
   Assert(AllocationSize >= QueryMemoryRequirements());
   Assert(DebugState->Initialized == False);
 
+  Assert(ThreadLocal_ThreadIndex == 0);
+
   LastMs = GetHighPrecisionClock();
 
   DebugState->Frames[1].StartingCycle = GetCycleCount();
@@ -390,7 +395,7 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
 
   DEBUG_REGISTER_NAMED_ARENA(TranArena, 0, "debug_lib TranArena");
 
-  /* Platform_EnableContextSwitchTracing(); */
+  Platform_EnableContextSwitchTracing();
 
   DebugState->DebugDoScopeProfiling = True;
 

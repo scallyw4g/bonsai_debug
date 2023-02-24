@@ -13,6 +13,7 @@ struct heap_allocator;
 struct render_entity_to_texture_group;
 struct picked_world_chunk_static_buffer;
 struct picked_world_chunk;
+struct thread_local_state;
 
 
 
@@ -24,7 +25,7 @@ struct memory_record
   umm ArenaMemoryBlock; // @ArenaMemoryBlock-as-char-pointer
   umm StructSize;
   umm StructCount;
-  u32 ThreadId;
+  s32 ThreadId;
 
   u32 PushCount;
 };
@@ -35,7 +36,7 @@ typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 typedef void                 (*debug_clear_framebuffers_proc)          (render_entity_to_texture_group*);
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer*);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
-typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, u32);
+typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
 typedef void                 (*debug_main_thread_advance_data_system)  (r64);
 
@@ -63,7 +64,7 @@ typedef b32                  (*debug_redraw_window_proc)               ();
 typedef debug_state*         (*get_debug_state_proc)  ();
 typedef u64                  (*query_memory_requirements_proc)();
 typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *, u64 DebugStateSize);
-typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *);
+typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *, thread_local_state *);
 
 
 struct debug_profile_scope
@@ -333,7 +334,7 @@ InitializeBootstrapDebugApi(shared_lib DebugLib, bonsai_debug_api *Api)
 }
 
 shared_lib
-InitializeBonsaiDebug(const char* DebugLibName)
+InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates)
 {
   shared_lib DebugLib = OpenLibrary(DebugLibName); //, RTLD_NOW);
 
@@ -347,7 +348,7 @@ InitializeBonsaiDebug(const char* DebugLibName)
       u64 BytesRequested = DebugApi.QueryMemoryRequirements();
       Global_DebugStatePointer = (debug_state*)calloc(BytesRequested, 1);
 
-      DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer);
+      DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer, ThreadStates);
 
       if (DebugApi.InitDebugState(Global_DebugStatePointer, BytesRequested))
       {
@@ -370,6 +371,8 @@ InitializeBonsaiDebug(const char* DebugLibName)
 
 
 #define TIMED_FUNCTION(...)
+#define TIMED_NAMED_BLOCK(...)
+
 #define TIMED_BLOCK(...)
 #define END_BLOCK(...)
 

@@ -1,4 +1,4 @@
-debug_global thread_local u32 ThreadLocal_ThreadIndex = 0;
+/* debug_global thread_local u32 ThreadLocal_ThreadIndex = 0; */
 debug_global b32 DebugGlobal_RedrawEveryPush = 0;
 
 debug_scope_tree* GetReadScopeTree(u32 ThreadIndex)
@@ -29,21 +29,25 @@ debug_scope_tree* GetWriteScopeTree()
 
 
 inline debug_thread_state*
-GetThreadLocalStateFor(u32 ThreadIndex)
+GetThreadLocalStateFor(s32 ThreadIndex)
 {
-  /* TIMED_FUNCTION(); */
+  debug_thread_state *Result = 0;
 
-  debug_state *State = GetDebugState();
+  if (ThreadIndex >= 0)
+  {
+    Assert(ThreadIndex < (s32)GetTotalThreadCount());
 
-  // NOTE(Jesse): It's possible that during initialization between the time
-  // that "DebugState->Initialized" is set to true and the time the
-  // debug_thread_state structs are allocated that we'll call this function,
-  // which is why we have to check that ThreadStates is valid.
-  //
-  // TODO(Jesse): Audit codebase to make sure callers of this function actually
-  // check that it returns a valid pointer.
-  debug_thread_state *Result = State->ThreadStates ?
-                               State->ThreadStates + ThreadIndex : 0;
+    debug_state *State = GetDebugState();
+
+    // NOTE(Jesse): It's possible that during initialization between the time
+    // that "DebugState->Initialized" is set to true and the time the
+    // debug_thread_state structs are allocated that we'll call this function,
+    // which is why we have to check that ThreadStates is valid.
+    //
+    // TODO(Jesse): Audit codebase to make sure callers of this function actually
+    // check that it returns a valid pointer.
+    Result = State->ThreadStates ?  State->ThreadStates + ThreadIndex : 0;
+  }
 
   return Result;
 }
@@ -74,7 +78,7 @@ GetThreadLocalState()
 
 
 void
-RegisterArena(const char *Name, memory_arena *Arena, u32 ThreadId)
+RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
 {
   debug_state* DebugState = GetDebugState();
   b32 Registered = False;
@@ -149,11 +153,11 @@ ClearMemoryRecordsFor(memory_arena *Arena)
 
   umm ArenaBlockHash = HashArenaBlock(Arena);
   umm ArenaHash = HashArena(Arena);
-  u32 TotalThreadCount = GetWorkerThreadCount() + 1;
+  s32 TotalThreadCount = (s32)GetTotalThreadCount();
 
-  for ( u32 ThreadIndex = 0;
-      ThreadIndex < TotalThreadCount;
-      ++ThreadIndex)
+  for ( s32 ThreadIndex = 0;
+            ThreadIndex < TotalThreadCount;
+          ++ThreadIndex)
   {
     for ( u32 MetaIndex = 0;
         MetaIndex < META_TABLE_SIZE;
@@ -243,8 +247,12 @@ CollateMetadata(memory_record *InputMeta, memory_record *MetaTable)
 void
 WriteMemoryRecord(memory_record *InputMeta)
 {
-  memory_record *MetaTable = GetThreadLocalStateFor(ThreadLocal_ThreadIndex)->MetaTable;
-  WriteToMetaTable(InputMeta, MetaTable, PushesMatchExactly);
+  debug_thread_state *Thread = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
+  if (Thread)
+  {
+    memory_record *MetaTable = Thread->MetaTable;
+    WriteToMetaTable(InputMeta, MetaTable, PushesMatchExactly);
+  }
   return;
 }
 
@@ -758,9 +766,9 @@ GetTotalMutexOpsForReadFrame()
   u32 ReadIndex = GetDebugState()->ReadScopeIndex;
 
   u32 OpCount = 0;
-  for (u32 ThreadIndex = 0;
-      ThreadIndex < GetTotalThreadCount();
-      ++ThreadIndex)
+  for (s32 ThreadIndex = 0;
+           ThreadIndex < (s32)GetTotalThreadCount();
+         ++ThreadIndex)
   {
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
     OpCount += ThreadState->MutexOps[ReadIndex].NextRecord;
@@ -806,9 +814,9 @@ InitDebugMemoryAllocationSystem(debug_state *State)
    * hit that case.
    */
   CAssert(sizeof(debug_thread_state) == CACHE_LINE_SIZE);
-  for (u32 ThreadIndex = 0;
-      ThreadIndex < TotalThreadCount;
-      ++ThreadIndex)
+  for (s32 ThreadIndex = 0;
+           ThreadIndex < (s32)TotalThreadCount;
+         ++ThreadIndex)
   {
     debug_thread_state* ThreadState = GetThreadLocalStateFor(ThreadIndex);
     Assert( (umm)(&ThreadState->WriteIndex) % CACHE_LINE_SIZE < (CACHE_LINE_SIZE)-sizeof(ThreadState->WriteIndex) );
@@ -816,9 +824,9 @@ InitDebugMemoryAllocationSystem(debug_state *State)
 #endif
 
   umm MetaTableSize = META_TABLE_SIZE * sizeof(memory_record);
-  for (u32 ThreadIndex = 0;
-      ThreadIndex < TotalThreadCount;
-      ++ThreadIndex)
+  for (s32 ThreadIndex = 0;
+           ThreadIndex < (s32)TotalThreadCount;
+         ++ThreadIndex)
   {
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
     Assert((umm)ThreadState % CACHE_LINE_SIZE == 0);
@@ -890,10 +898,10 @@ InitDebugDataSystem(debug_state *DebugState)
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
   MainThreadState->ThreadId = GetCurrentThreadId();
 
-  u32 TotalThreadCount = GetTotalThreadCount();
-  for (u32 ThreadIndex = 0;
-      ThreadIndex < TotalThreadCount;
-      ++ThreadIndex)
+  s32 TotalThreadCount = (s32)GetTotalThreadCount();
+  for (s32 ThreadIndex = 0;
+           ThreadIndex < TotalThreadCount;
+         ++ThreadIndex)
   {
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
     ThreadState->ContextSwitches = AllocateContextSwitchBufferStream(ThreadsafeDebugMemoryAllocator(), MAX_CONTEXT_SWITCH_EVENTS );

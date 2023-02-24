@@ -73,10 +73,10 @@ ETWBufferCallback( EVENT_TRACE_LOGFILEA *Logfile )
 {
   Assert(Logfile->EventsLost == 0);
 
-  u32 TotalThreadCount = GetTotalThreadCount();
-  for ( u32 ThreadIndex = 0;
-        ThreadIndex < TotalThreadCount;
-        ++ThreadIndex)
+  s32 TotalThreadCount = (s32)GetTotalThreadCount();
+  for ( s32 ThreadIndex = 0;
+            ThreadIndex < TotalThreadCount;
+          ++ThreadIndex)
   {
     /* TIMED_NAMED_BLOCK("Thread Loop"); */
 
