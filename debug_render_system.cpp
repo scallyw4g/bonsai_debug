@@ -1857,7 +1857,7 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
   SetDrawBuffers(&Group->GameGeoFBO);
   Group->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(), &Group->ViewProjection);
   Group->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
-  StandardCamera(Group->Camera, 1000.0f, 100.0f, {});
+  StandardCamera(Group->Camera, 10000.0f, 100.0f, {});
 
   GL.ClearColor(f32_MAX, f32_MAX, f32_MAX, f32_MAX);
   GL.ClearDepth(f32_MAX);
