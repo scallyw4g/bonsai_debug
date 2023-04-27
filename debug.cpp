@@ -7,7 +7,6 @@
 #include <bonsai_stdlib/bonsai_stdlib.h>
 #include <bonsai_stdlib/bonsai_stdlib.cpp>
 
-
 #include <engine/engine.h>
 #include <engine/engine.cpp>
 
@@ -295,7 +294,7 @@ OpenAndInitializeDebugWindow()
   Assert(Os.Window);
 
   heap_allocator Heap = InitHeap(Megabytes(128));
-  b32 Result = InitDebugRenderSystem(GetDebugState(), &Heap);
+  b32 Result = InitDebugRenderSystem(&Heap);
 
   return Result;
 }
@@ -395,7 +394,9 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
 
   DEBUG_REGISTER_NAMED_ARENA(TranArena, 0, "debug_lib TranArena");
 
+#if BONSAI_WIN32
   Platform_EnableContextSwitchTracing();
+#endif
 
   DebugState->DebugDoScopeProfiling = True;
 

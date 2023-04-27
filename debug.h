@@ -113,6 +113,7 @@ struct debug_context_switch_event_buffer
   debug_context_switch_event *Events;
 };
 
+// TODO(Jesse): Metaprogram this now that we have more flexible parameters
 struct debug_context_switch_event_buffer_stream_block
 {
   umm MinCycles;

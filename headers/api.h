@@ -150,7 +150,7 @@ struct debug_state
   debug_open_window_proc                    OpenAndInitializeDebugWindow;
   debug_redraw_window_proc                  ProcessInputAndRedrawWindow;
 
-  b32 (*InitializeRenderSystem)(debug_state*, heap_allocator*);
+  b32 (*InitializeRenderSystem)(heap_allocator*);
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
@@ -171,7 +171,7 @@ struct debug_state
   // external ABI is the same as the internal ABI until this point
 
 #if DEBUG_SYSTEM_INTERNAL_BUILD
-  debug_ui_render_group UiGroup;
+  renderer_2d UiGroup;
 
   untextured_3d_geometry_buffer LineMesh;
 

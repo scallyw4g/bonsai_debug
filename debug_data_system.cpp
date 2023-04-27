@@ -52,6 +52,7 @@ GetThreadLocalStateFor(s32 ThreadIndex)
   return Result;
 }
 
+#if 1
 void
 RegisterThread(thread_startup_params *Params)
 {
@@ -62,6 +63,7 @@ RegisterThread(thread_startup_params *Params)
   /* Assert(ThreadState->ThreadId); */
   return;
 }
+#endif
 
 inline debug_thread_state*
 GetThreadLocalState()

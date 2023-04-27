@@ -802,14 +802,14 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
     {
       r32 MsPerc = (r32)SafeDivide0(33.333, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
-      v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
+      v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), QuadRenderParam_NoAdvance);
     }
 
     {
       r32 MsPerc = (r32)SafeDivide0(16.666, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
-      v2 MinP = { 0.0f, MaxBarDim.y - MinPOffset };
+      v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), QuadRenderParam_NoAdvance);
     }
 
@@ -1802,49 +1802,6 @@ DebugValue_u64(u64 Value, const char* Name)
 }
 
 
-link_internal void
-FramebufferTextureLayer(framebuffer *FBO, texture *Tex, debug_texture_array_slice Layer)
-{
-  u32 Attachment = FBO->Attachments++;
-  GL.FramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + Attachment, Tex->ID, 0, Layer);
-  return;
-}
-
-link_internal void
-AllocateAndInitGeoBuffer(textured_2d_geometry_buffer *Geo, u32 ElementCount, memory_arena *DebugArena)
-{
-  Geo->Verts  = Allocate(v3, DebugArena, ElementCount);
-  Geo->Colors = Allocate(v3, DebugArena, ElementCount);
-  Geo->UVs    = Allocate(v3, DebugArena, ElementCount);
-
-  Geo->End = ElementCount;
-  Geo->At = 0;
-}
-
-link_internal void
-AllocateAndInitGeoBuffer(untextured_2d_geometry_buffer *Geo, u32 ElementCount, memory_arena *DebugArena)
-{
-  Geo->Verts = Allocate(v3, DebugArena, ElementCount);
-  Geo->Colors = Allocate(v3, DebugArena, ElementCount);
-
-  Geo->End = ElementCount;
-  Geo->At = 0;
-  return;
-}
-
-link_internal shader
-MakeRenderToTextureShader(memory_arena *Memory, m4 *ViewProjection)
-{
-  shader Shader = LoadShaders( CSz("RenderToTexture.vertexshader"), CSz("RenderToTexture.fragmentshader") );
-
-  shader_uniform **Current = &Shader.FirstUniform;
-
-  *Current = GetUniform(Memory, &Shader, ViewProjection, "ViewProjection");
-  Current = &(*Current)->Next;
-
-  return Shader;
-}
-
 void
 InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group *Group)
 {
@@ -1864,8 +1821,10 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
 }
 
 link_internal b32
-InitDebugRenderSystem(debug_state *DebugState, heap_allocator *Heap)
+InitDebugRenderSystem(heap_allocator *Heap)
 {
+  debug_state *DebugState = GetDebugState();
+
   AllocateMesh(&DebugState->LineMesh, 1024, Heap);
 
   DebugState->UiGroup.TextGroup     = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
