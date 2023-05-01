@@ -725,7 +725,7 @@ DumpScopeTreeDataToConsole_Internal(debug_profile_scope *Scope_in, debug_profile
     DebugLine("Total: %lu\n", UniqueScopes->TotalCycles);
     DebugLine("Min: %lu\n", UniqueScopes->MinCycles);
     DebugLine("Max: %lu\n", UniqueScopes->MaxCycles);
-    DebugLine("Avg: %f\n", (r32)UniqueScopes->TotalCycles / (r32)UniqueScopes->CallCount);
+    DebugLine("Avg: %f\n", r64(UniqueScopes->TotalCycles / UniqueScopes->CallCount));
 
     DumpScopeTreeDataToConsole_Internal(UniqueScopes->Scope->Child, TreeRoot, Memory);
     UniqueScopes = UniqueScopes->NextUnique;
@@ -787,7 +787,7 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
 }
 
 link_internal void
-DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs)
+DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
@@ -800,14 +800,14 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
 
     v2 LineDim = V2( HorizontalAdvance * DEBUG_FRAMES_TRACKED, 2.0f);
     {
-      r32 MsPerc = (r32)SafeDivide0(33.333, MaxMs);
+      r32 MsPerc = SafeDivide0(33.333f, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), QuadRenderParam_NoAdvance);
     }
 
     {
-      r32 MsPerc = (r32)SafeDivide0(16.666, MaxMs);
+      r32 MsPerc = (r32)SafeDivide0(16.666f, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), QuadRenderParam_NoAdvance);
@@ -821,7 +821,7 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs
             ++FrameIndex )
     {
       frame_stats *Frame = DebugState->Frames + FrameIndex;
-      r32 Perc = (r32)SafeDivide0(Frame->FrameMs, MaxMs);
+      r32 Perc = SafeDivide0(Frame->FrameMs, MaxMs);
 
       if (Frame->StartingCycle)
       {
@@ -886,11 +886,11 @@ DefaultWindowBasis(v2 ScreenDim)
 }
 
 link_internal void
-DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r64 MaxMs)
+DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
-  DrawFrameTicker(Group, DebugState, Max(33.3, MaxMs));
+  DrawFrameTicker(Group, DebugState, Max(33.3f, MaxMs));
 
   s32 TotalThreadCount = (s32)GetTotalThreadCount();
 
@@ -1817,7 +1817,7 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
   StandardCamera(Group->Camera, 10000.0f, 100.0f, {});
 
   GL.ClearColor(f32_MAX, f32_MAX, f32_MAX, f32_MAX);
-  GL.ClearDepth(f32_MAX);
+  GL.ClearDepth(f64_MAX);
 }
 
 link_internal b32

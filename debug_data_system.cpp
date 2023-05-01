@@ -495,7 +495,7 @@ WorkerThreadAdvanceDebugSystem()
 global_variable r64 LastMs;
 
 void
-MainThreadAdvanceDebugSystem(r64 Dt)
+MainThreadAdvanceDebugSystem(r32 Dt)
 {
   TIMED_FUNCTION();
   Assert(ThreadLocal_ThreadIndex == 0);
@@ -520,7 +520,7 @@ MainThreadAdvanceDebugSystem(r64 Dt)
     /* Record frame cycle counts */
 
     frame_stats *ThisFrame = SharedState->Frames + ThisFrameWriteIndex;
-    ThisFrame->FrameMs = Dt * 1000.0;
+    ThisFrame->FrameMs = Dt * 1000.0f;
     ThisFrame->TotalCycles = CurrentCycles - ThisFrame->StartingCycle;
 
 
@@ -554,7 +554,7 @@ ComputeMinMaxAvgDt()
     Dt.Avg += Frame->FrameMs;
   }
 
-  Dt.Avg = SafeDivide0(Dt.Avg, (r64)FrameCount);
+  Dt.Avg = SafeDivide0(Dt.Avg, r32(FrameCount));
 
   return Dt;
 }

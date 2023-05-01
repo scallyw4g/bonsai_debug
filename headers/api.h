@@ -38,7 +38,7 @@ typedef void                 (*debug_frame_end_proc)                   (v2 *Mous
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
-typedef void                 (*debug_main_thread_advance_data_system)  (r64);
+typedef void                 (*debug_main_thread_advance_data_system)  (f32);
 
 typedef void                 (*debug_mutex_waiting_proc)               (mutex*);
 typedef void                 (*debug_mutex_aquired_proc)               (mutex*);

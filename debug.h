@@ -61,9 +61,9 @@ struct debug_draw_call
 
 struct min_max_avg_dt
 {
-  r64 Min;
-  r64 Max;
-  r64 Avg;
+  r32 Min;
+  r32 Max;
+  r32 Avg;
 };
 
 struct cycle_range
@@ -217,7 +217,7 @@ struct frame_stats
 {
   u64 TotalCycles;
   u64 StartingCycle;
-  r64 FrameMs;
+  r32 FrameMs;
 };
 
 struct registered_memory_arena
