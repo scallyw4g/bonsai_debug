@@ -402,7 +402,7 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
   return;
 }
 
-link_internal void
+link_internal window_layout *
 DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 BasisP)
 {
   TIMED_FUNCTION();
@@ -592,7 +592,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
 #endif
   PushWindowEnd(Group, &CycleGraphWindow);
 
-  return;
+  return &CycleGraphWindow;
 }
 
 
@@ -898,6 +898,9 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
 
   v2 Basis = DefaultWindowBasis(Group->ScreenDim);
+  window_layout *ThreadWindow = DrawThreadsWindow(Group, DebugState, Basis);
+
+  Basis = BasisRightOf(ThreadWindow);
   local_persist window_layout CallgraphWindow = WindowLayout("Callgraph", Basis);
 
   TIMED_BLOCK("Call Graph");
@@ -931,7 +934,6 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
 
   END_BLOCK("Call Graph");
 
-  DrawThreadsWindow(Group, DebugState, BasisRightOf(&CallgraphWindow));
 
   return;
 }
