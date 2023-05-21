@@ -126,7 +126,7 @@ UnregisterArena(memory_arena *Arena)
         ++Index )
   {
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
-    if (Current->Arena == Arena) { Found = True; *Current = {}; }
+    if (Current->Arena == Arena) { Found = True; Current->Tombstone = True; }
   }
 
   if (!Found)
@@ -206,7 +206,7 @@ ClearMemoryRecordsFor(memory_arena *Arena)
 
 
 registered_memory_arena *
-GetRegisteredMemoryArena( memory_arena *Arena)
+GetRegisteredMemoryArena(memory_arena *Arena)
 {
   registered_memory_arena *Result = 0;
 
@@ -217,6 +217,7 @@ GetRegisteredMemoryArena( memory_arena *Arena)
     registered_memory_arena *Current = &GetDebugState()->RegisteredMemoryArenas[Index];
     if (Current->Arena == Arena)
     {
+      Assert(Current->Tombstone == False);
       Result = Current;
       break;
     }
@@ -387,11 +388,14 @@ GetTotalMemoryArenaStats()
     registered_memory_arena *Current = DebugState->RegisteredMemoryArenas + Index;
     if (!Current->Arena) continue;
 
-    memory_arena_stats CurrentStats = GetMemoryArenaStats(Current->Arena);
-    TotalStats.Allocations          += CurrentStats.Allocations;
-    TotalStats.Pushes               += CurrentStats.Pushes;
-    TotalStats.TotalAllocated       += CurrentStats.TotalAllocated;
-    TotalStats.Remaining            += CurrentStats.Remaining;
+    if (Current->Tombstone == False)
+    {
+      memory_arena_stats CurrentStats = GetMemoryArenaStats(Current->Arena);
+      TotalStats.Allocations          += CurrentStats.Allocations;
+      TotalStats.Pushes               += CurrentStats.Pushes;
+      TotalStats.TotalAllocated       += CurrentStats.TotalAllocated;
+      TotalStats.Remaining            += CurrentStats.Remaining;
+    }
   }
 
   return TotalStats;

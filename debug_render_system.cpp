@@ -1524,7 +1524,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
   v2 Basis = V2(20, 300);
-  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize + V2(500, 150));
+  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize);
   window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
 
 
@@ -1572,19 +1572,35 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
     if (!Current->Arena) continue;
 
-    memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
-    u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
-
     ui_style Style = Current->Expanded? DefaultSelectedStyle : DefaultStyle;
+    interactable_handle ExpandInteraction;
 
-    interactable_handle ExpandInteraction =
-    PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
-      PushColumn(Group, CS(Current->Name),                   &Style);
-      PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
-      PushColumn(Group, CS(MemStats.Pushes),                 &Style);
-      PushColumn(Group, CS(Current->ThreadId),               &Style);
-      PushNewRow(Group);
-    PushButtonEnd(Group);
+    // TODO(Jesse): Improve this behavior?
+    if (Current->Tombstone)
+    {
+      ExpandInteraction =
+      PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+        PushColumn(Group, CS(Current->Name),                   &Style);
+        PushColumn(Group, CSz("Tombstoned"),                   &Style);
+        PushColumn(Group, CS(0),                               &Style);
+        PushColumn(Group, CS(Current->ThreadId),               &Style);
+        PushNewRow(Group);
+      PushButtonEnd(Group);
+    }
+    else
+    {
+      memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
+      u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
+
+      ExpandInteraction =
+      PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+        PushColumn(Group, CS(Current->Name),                   &Style);
+        PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
+        PushColumn(Group, CS(MemStats.Pushes),                 &Style);
+        PushColumn(Group, CS(Current->ThreadId),               &Style);
+        PushNewRow(Group);
+      PushButtonEnd(Group);
+    }
 
     if (Clicked(Group, &ExpandInteraction))
     {

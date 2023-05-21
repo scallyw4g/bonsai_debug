@@ -226,6 +226,7 @@ struct registered_memory_arena
   const char* Name;
   s32 ThreadId;
   b32 Expanded;
+  b32 Tombstone;
 };
 
 enum event_tracing_status
