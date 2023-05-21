@@ -116,6 +116,27 @@ RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
   return;
 }
 
+void
+UnregisterArena(memory_arena *Arena)
+{
+  debug_state* DebugState = GetDebugState();
+  b32 Found = False;
+  for ( u32 Index = 0;
+        Index < REGISTERED_MEMORY_ARENA_COUNT;
+        ++Index )
+  {
+    registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+    if (Current->Arena == Arena) { Found = True; *Current = {}; }
+  }
+
+  if (!Found)
+  {
+    Error("Unregistering Arena : 0x%x", Arena);
+  }
+
+  return;
+}
+
 b32
 PushesShareName(memory_record *First, memory_record *Second)
 {

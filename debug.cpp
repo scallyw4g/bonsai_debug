@@ -349,6 +349,7 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;
   DebugState->RegisterArena                   = RegisterArena;
+  DebugState->UnregisterArena                 = UnregisterArena;
   DebugState->WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
   DebugState->MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;
   DebugState->MutexWait                       = MutexWait;

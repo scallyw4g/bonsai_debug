@@ -37,6 +37,7 @@ typedef void                 (*debug_clear_framebuffers_proc)          (render_e
 typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer*);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
+typedef void                 (*debug_unregister_arena_proc)            (memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
 typedef void                 (*debug_main_thread_advance_data_system)  (f32);
 
@@ -125,6 +126,7 @@ struct debug_state
   debug_frame_end_proc                      FrameEnd;
   debug_frame_begin_proc                    FrameBegin;
   debug_register_arena_proc                 RegisterArena;
+  debug_unregister_arena_proc               UnregisterArena;
   debug_worker_thread_advance_data_system   WorkerThreadAdvanceDebugSystem;
   debug_main_thread_advance_data_system     MainThreadAdvanceDebugSystem;
 
