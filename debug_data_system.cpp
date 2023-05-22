@@ -109,8 +109,7 @@ RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
 
   if (!Registered)
   {
-    Error("Too many arenas registered");
-    Error("Registering Arena : %s", Name);
+    Error("Registering Arena (%s); too many arenas registered!", Name);
   }
 
   return;
@@ -128,13 +127,6 @@ UnregisterArena(memory_arena *Arena)
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
     if (Current->Arena == Arena) { Found = True; Current->Tombstone = True; }
   }
-
-  if (!Found)
-  {
-    Error("Unregistering Arena : 0x%x", Arena);
-  }
-
-  return;
 }
 
 b32

@@ -1638,7 +1638,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
         ++Index )
   {
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
-    if (!Current->Arena) continue;
+    if (!Current->Arena || Current->Tombstone) continue;
 
     memory_arena_stats MemStats = GetMemoryArenaStats(Current->Arena);
     u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
