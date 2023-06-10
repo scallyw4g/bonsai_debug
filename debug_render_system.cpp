@@ -878,13 +878,6 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs
   return;
 }
 
-link_internal v2
-DefaultWindowBasis(v2 ScreenDim)
-{
-  v2 Basis = V2(20, ScreenDim.y - DefaultWindowSize.y - 20);
-  return Basis;
-}
-
 link_internal void
 DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
 {
@@ -1524,7 +1517,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
   v2 Basis = V2(20, 300);
-  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis, DefaultWindowSize);
+  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis);
   window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
 
 
@@ -1839,15 +1832,21 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
 }
 
 link_internal b32
-InitDebugRenderSystem(heap_allocator *Heap)
+InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
 {
   debug_state *DebugState = GetDebugState();
 
-  AllocateMesh(&DebugState->LineMesh, 1024, Heap);
+  DebugState->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
 
+  AllocateMesh(&DebugState->LineMesh, 1024, Heap);
+  b32 Result = InitRenderer2D(&DebugState->UiGroup, Heap, Memory);
+
+  // TODO(Jesse): Put this in the engine
+  InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup);
+
+#if 0
   DebugState->UiGroup.TextGroup     = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
   DebugState->UiGroup.CommandBuffer = Allocate(ui_render_command_buffer, ThreadsafeDebugMemoryAllocator(), 1);
-  DebugState->SelectedArenas        = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
 
   // TODO(Jesse, memory): Instead of allocate insanely massive buffers (these are ~400x overkill)
   // we should have a system that streams blocks of memory in as-necessary
@@ -1867,8 +1866,6 @@ InitDebugRenderSystem(heap_allocator *Heap)
   DebugState->UiGroup.TextGroup->SolidUIShader = LoadShaders( CSz("SimpleColor.vertexshader"), CSz("SimpleColor.fragmentshader") );
 
 
-  InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup);
-
 
   v2i TextureDim = V2i(DEBUG_TEXTURE_DIM, DEBUG_TEXTURE_DIM);
   texture *DepthTexture = MakeDepthTexture( TextureDim, ThreadsafeDebugMemoryAllocator() );
@@ -1886,6 +1883,7 @@ InitDebugRenderSystem(heap_allocator *Heap)
   {
     DebugState->UiGroup.DebugColors[ColorIndex] = RandomV3(&Entropy);
   }
+#endif
 
   return Result;
 }

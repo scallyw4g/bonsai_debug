@@ -152,7 +152,7 @@ struct debug_state
   debug_open_window_proc                    OpenAndInitializeDebugWindow;
   debug_redraw_window_proc                  ProcessInputAndRedrawWindow;
 
-  b32 (*InitializeRenderSystem)(heap_allocator*);
+  b32 (*InitializeRenderSystem)(heap_allocator*, memory_arena*);
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;

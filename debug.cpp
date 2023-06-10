@@ -37,6 +37,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
   debug_ui_render_group *UiGroup = &DebugState->UiGroup;
 
+  /* BindUserInputFor(UiGroup, Input, ScreenDim, MouseP, MouseDP); */
   /* UiGroup->GameGeo               = &DebugState->GameGeo; */
   /* UiGroup->GameGeoShader         = &DebugState->GameGeoShader; */
   UiGroup->Input                 = Input;
@@ -294,7 +295,8 @@ OpenAndInitializeDebugWindow()
   Assert(Os.Window);
 
   heap_allocator Heap = InitHeap(Megabytes(128));
-  b32 Result = InitDebugRenderSystem(&Heap);
+  memory_arena *GraphicsMemory2D = AllocateArena();
+  b32 Result = InitDebugRenderSystem(&Heap, GraphicsMemory2D);
 
   return Result;
 }
