@@ -1838,7 +1838,6 @@ InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
 
   DebugState->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
 
-  AllocateMesh(&DebugState->LineMesh, 1024, Heap);
   b32 Result = InitRenderer2D(&DebugState->UiGroup, Heap, Memory);
 
   // TODO(Jesse): Put this in the engine
