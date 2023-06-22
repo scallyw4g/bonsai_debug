@@ -74,10 +74,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
   ui_element_reference DtTable = PushTableStart(UiGroup);
 
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("+"));
-      Text(UiGroup, CS(Dt.Max - Dt.Avg));
-    EndColumn(UiGroup);
+    FormatCountedString(TranArena, "+%f ", Dt.Max - Dt.Avg);
 
     PushNewRow(UiGroup);
 
