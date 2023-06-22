@@ -73,6 +73,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
   ui_style Style = UiStyleFromLightestColor(V3(1));
 
   ui_element_reference DtTable = PushTableStart(UiGroup);
+
     StartColumn(UiGroup, &Style, Padding);
       Text(UiGroup, CS("+"));
       Text(UiGroup, CS(Dt.Max - Dt.Avg));
@@ -119,10 +120,17 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     PushTableStart(UiGroup);
 
+    v4 Padding = {
+      .Left = 5.5f,
+      .Right = 5,
+      .Top = 5,
+      .Bottom = 5,
+    };
+
     {
       TIMED_NAMED_BLOCK("Draw Toggle Buttons");
       ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style))
+      if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
       }
