@@ -72,43 +72,20 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
   v4 Padding = V4(25,0,25,0);
   ui_style Style = UiStyleFromLightestColor(V3(1));
 
-  ui_element_reference DtTable = PushTableStart(UiGroup);
-    // FormatCountedString(TranArena, "+%f ", Dt.Max - Dt.Avg);
+  PushTableStart(UiGroup);
     StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("+"));
-      Text(UiGroup, CS(Dt.Max - Dt.Avg));
-    EndColumn(UiGroup);
-
-    PushColumn(UiGroup, CS(Dt.Avg), &Style, Padding);
-    PushColumn(UiGroup, CS(dt*1000.0f), &Style, Padding);
-
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("-"));
-      Text(UiGroup, CS(Dt.Avg - Dt.Min));
+      Text(UiGroup, FormatCountedString(TranArena, CS("+%.3f %.3f %.3f -%.3f Allocations (%d) Pushes (%d) Draw Calls (%d)"),
+        Dt.Max - Dt.Avg,
+        Dt.Avg,
+        dt*1000.0f,
+        Dt.Avg - Dt.Min,
+        TotalStats.Allocations,
+        TotalStats.Pushes,
+        TotalDrawCalls
+      ));
     EndColumn(UiGroup);
   PushTableEnd(UiGroup);
-
-  PushTableStart(UiGroup, Position_RightOf, DtTable);
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("Allocations ("));
-      Text(UiGroup, CS(TotalStats.Allocations));
-      Text(UiGroup, CS(")"));
-    EndColumn(UiGroup);
-
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("Pushes ("));
-      Text(UiGroup, CS(TotalStats.Pushes));
-      Text(UiGroup, CS(")"));
-    EndColumn(UiGroup);
-
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("Draw Calls ("));
-      Text(UiGroup, CS(TotalDrawCalls));
-      Text(UiGroup, CS(")"));
-    EndColumn(UiGroup);
-  PushTableEnd(UiGroup);
-
-  /* PushNewRow(UiGroup); // TODO(Jesse): This probably shouldn't have to be here. */
+  
   END_BLOCK("Draw Status Bar");
 
   if (DebugState->DisplayDebugMenu)
