@@ -72,45 +72,20 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
   v4 Padding = V4(25,0,25,0);
   ui_style Style = UiStyleFromLightestColor(V3(1));
 
-  ui_element_reference DtTable = PushTableStart(UiGroup);
+  PushTableStart(UiGroup);
     StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("+"));
-      Text(UiGroup, CS(Dt.Max - Dt.Avg));
+      Text(UiGroup, FormatCountedString(TranArena, CS("+%.3f %.3f %.3f -%.3f Allocations (%d) Pushes (%d) Draw Calls (%d)"),
+        Dt.Max - Dt.Avg,
+        Dt.Avg,
+        dt*1000.0f,
+        Dt.Avg - Dt.Min,
+        TotalStats.Allocations,
+        TotalStats.Pushes,
+        TotalDrawCalls
+      ));
     EndColumn(UiGroup);
-
-    PushNewRow(UiGroup);
-
-    PushColumn(UiGroup, CS(Dt.Avg), &Style, Padding);
-    PushColumn(UiGroup, CS(dt*1000.0f), &Style, Padding);
-
-    PushNewRow(UiGroup);
-
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("-"));
-      Text(UiGroup, CS(Dt.Avg - Dt.Min));
-    EndColumn(UiGroup);
-
   PushTableEnd(UiGroup);
-
-  PushTableStart(UiGroup, Position_RightOf, DtTable);
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, CS("Allocations"));
-    EndColumn(UiGroup);
-
-    PushColumn(UiGroup, CS("Pushes"));
-    PushColumn(UiGroup, CS("Draw Calls"));
-    PushNewRow(UiGroup);
-
-#if 1
-    PushColumn(UiGroup, CS(TotalStats.Allocations), &Style, Padding);
-    PushColumn(UiGroup, CS(TotalStats.Pushes));
-    PushColumn(UiGroup, CS(TotalDrawCalls));
-    PushNewRow(UiGroup);
-#endif
-
-  PushTableEnd(UiGroup);
-
-  /* PushNewRow(UiGroup); // TODO(Jesse): This probably shouldn't have to be here. */
+  
   END_BLOCK("Draw Status Bar");
 
   if (DebugState->DisplayDebugMenu)
@@ -119,10 +94,12 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     PushTableStart(UiGroup);
 
+    v4 Padding = V4(25,0,25,0);
+
     {
       TIMED_NAMED_BLOCK("Draw Toggle Buttons");
       ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style))
+      if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
       }
@@ -130,7 +107,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", Style))
+      if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
       }
@@ -147,7 +124,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_CollatedFunctionCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("Functions"), (umm)"Functions", Style))
+      if (Button(UiGroup, CS("Functions"), (umm)"Functions", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_CollatedFunctionCalls);
       }
@@ -155,7 +132,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_CallGraph) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("Callgraph"), (umm)"Callgraph", Style))
+      if (Button(UiGroup, CS("Callgraph"), (umm)"Callgraph", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_CallGraph);
       }
@@ -164,7 +141,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
     {
       ui_style *Style = &DefaultStyle;
       if ( DebugState->UIType & DebugUIType_Memory ) { Style = &DefaultSelectedStyle; }
-      if (Button(UiGroup, CS("Memory"), (umm)"Memory", Style))
+      if (Button(UiGroup, CS("Memory"), (umm)"Memory", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_Memory);
       }
@@ -172,7 +149,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("DrawCalls"), (umm)"DrawCalls", Style))
+      if (Button(UiGroup, CS("DrawCalls"), (umm)"DrawCalls", Style, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
       }
