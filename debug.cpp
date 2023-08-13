@@ -74,7 +74,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
   PushTableStart(UiGroup);
     StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, FormatCountedString(TranArena, CS("%.1f :: +%.1f %.1f -%.1f :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
+      Text(UiGroup, FormatCountedString(TranArena, CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
         r64(dt*1000.0f),
         r64(Dt.Max - Dt.Avg),
         r64(Dt.Avg),
