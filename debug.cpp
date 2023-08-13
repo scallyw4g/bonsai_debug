@@ -10,12 +10,12 @@
 #include <engine/engine.h>
 #include <engine/engine.cpp>
 
-#include <bonsai_debug/debug_data_system.cpp>
-#include <bonsai_debug/debug_render_system.cpp>
+#include <bonsai_debug/src/debug_data_system.cpp>
+#include <bonsai_debug/src/debug_render_system.cpp>
 
 #if BONSAI_WIN32
-#include <bonsai_debug/headers/win32_etw.cpp>
-/* #include <bonsai_debug/headers/win32_pmc.cpp> */
+#include <bonsai_debug/src/platform/win32_etw.cpp>
+/* #include <bonsai_debug/src/platform/win32_pmc.cpp> */
 #endif
 
 /* debug_state *Global_DebugStatePointer; */
