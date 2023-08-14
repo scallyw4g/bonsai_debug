@@ -33,8 +33,8 @@ struct memory_record
 
 typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
 typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
-typedef void                 (*debug_clear_framebuffers_proc)          (render_entity_to_texture_group*);
-typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer*);
+/* typedef void                 (*debug_clear_framebuffers_proc)          (); */
+typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer*, render_entity_to_texture_group*);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
 typedef void                 (*debug_unregister_arena_proc)            (memory_arena*);
@@ -122,7 +122,7 @@ struct debug_state
 
   u64 NumScopes;
 
-  debug_clear_framebuffers_proc             ClearFramebuffers;
+  /* debug_clear_framebuffers_proc             ClearFramebuffers; */
   debug_frame_end_proc                      FrameEnd;
   debug_frame_begin_proc                    FrameBegin;
   debug_register_arena_proc                 RegisterArena;
@@ -164,7 +164,9 @@ struct debug_state
 
   debug_thread_state *ThreadStates;
 
-  render_entity_to_texture_group PickedChunksRenderGroup;
+  /* render_entity_to_texture_group PickedChunksRenderGroup; */
+
+#if DEBUG_SYSTEM_INTERNAL_BUILD
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
   // code that the library relies on.
@@ -172,7 +174,6 @@ struct debug_state
   // NOTE(Jesse): This stuff has to be "hidden" at the end of the struct so the
   // external ABI is the same as the internal ABI until this point
 
-#if DEBUG_SYSTEM_INTERNAL_BUILD
   renderer_2d UiGroup;
 
   untextured_3d_geometry_buffer LineMesh;
@@ -276,7 +277,7 @@ struct debug_timed_function
 #define DEBUG_VALUE_u32(Pointer) do {GetDebugState()->DebugValue_u32(Pointer, #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(a, b, c, d, e, f) do {GetDebugState()->FrameEnd(a, b, c, d, e, f);} while (false)
+#define DEBUG_FRAME_END(a, b, c, d, e, f, g) do {GetDebugState()->FrameEnd(a, b, c, d, e, f, g);} while (false)
 #define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);} while (false)
 
 void DebugTimedMutexWaiting(mutex *Mut);

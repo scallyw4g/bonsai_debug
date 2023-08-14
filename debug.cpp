@@ -25,7 +25,7 @@ global_variable platform Plat = {};
 global_variable hotkeys Hotkeys = {};
 
 link_internal void
-DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer *PickedChunks)
+DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer *PickedChunks, render_entity_to_texture_group *PickedChunksRenderGroup)
 {
   TIMED_FUNCTION();
 
@@ -162,7 +162,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     if (DebugState->UIType & DebugUIType_PickedChunks)
     {
-      DebugState->PickedChunk = DrawPickedChunks(UiGroup, &DebugState->PickedChunksRenderGroup, PickedChunks, DebugState->PickedChunk);
+      DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunksRenderGroup, PickedChunks, DebugState->PickedChunk);
     }
 
     if (DebugState->UIType & DebugUIType_Graphics)
@@ -292,11 +292,11 @@ ProcessInputAndRedrawWindow()
   BindHotkeysToInput(&Hotkeys, &Plat.Input);
 
   DebugFrameBegin(Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
-  DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt, 0);
+  DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt, 0, 0);
 
   BonsaiSwapBuffers(&Os);
 
-  GetDebugState()->ClearFramebuffers(&GetDebugState()->PickedChunksRenderGroup);
+  /* GetDebugState()->ClearFramebuffers(&GetDebugState()->PickedChunksRenderGroup); */
 
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -324,7 +324,7 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
 
   SetThreadLocal_ThreadIndex(0);
 
-  DebugState->ClearFramebuffers               = ClearFramebuffers;
+  /* DebugState->ClearFramebuffers               = ClearFramebuffers; */
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;
   DebugState->RegisterArena                   = RegisterArena;

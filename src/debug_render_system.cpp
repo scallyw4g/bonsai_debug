@@ -1841,7 +1841,7 @@ InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
   b32 Result = InitRenderer2D(&DebugState->UiGroup, Heap, Memory);
 
   // TODO(Jesse): Put this in the engine
-  InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup);
+  /* InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup); */
 
 #if 0
   DebugState->UiGroup.TextGroup     = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
