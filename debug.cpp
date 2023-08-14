@@ -2,7 +2,6 @@
 #define DEBUG_SYSTEM_INTERNAL_BUILD 1
 
 #define PLATFORM_GL_IMPLEMENTATIONS 1
-#define PLATFORM_LIBRARY_AND_WINDOW_IMPLEMENTATIONS 1
 
 #include <bonsai_stdlib/bonsai_stdlib.h>
 #include <bonsai_stdlib/bonsai_stdlib.cpp>
