@@ -296,8 +296,6 @@ ProcessInputAndRedrawWindow()
 
   BonsaiSwapBuffers(&Os);
 
-  /* GetDebugState()->ClearFramebuffers(&GetDebugState()->PickedChunksRenderGroup); */
-
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -324,7 +322,6 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
 
   SetThreadLocal_ThreadIndex(0);
 
-  /* DebugState->ClearFramebuffers               = ClearFramebuffers; */
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;
   DebugState->RegisterArena                   = RegisterArena;

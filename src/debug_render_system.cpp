@@ -1823,12 +1823,11 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
 
   FramebufferTextureLayer(&Group->GameGeoFBO, DebugState->UiGroup.TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
   SetDrawBuffers(&Group->GameGeoFBO);
+
   Group->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(), &Group->ViewProjection);
+
   Group->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
   StandardCamera(Group->Camera, 10000.0f, 100.0f, {});
-
-  GL.ClearColor(f32_MAX, f32_MAX, f32_MAX, f32_MAX);
-  GL.ClearDepth(f64_MAX);
 }
 
 link_internal b32
@@ -1839,50 +1838,6 @@ InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
   DebugState->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
 
   b32 Result = InitRenderer2D(&DebugState->UiGroup, Heap, Memory);
-
-  // TODO(Jesse): Put this in the engine
-  /* InitRenderToTextureGroup(DebugState, &DebugState->PickedChunksRenderGroup); */
-
-#if 0
-  DebugState->UiGroup.TextGroup     = Allocate(debug_text_render_group, ThreadsafeDebugMemoryAllocator(), 1);
-  DebugState->UiGroup.CommandBuffer = Allocate(ui_render_command_buffer, ThreadsafeDebugMemoryAllocator(), 1);
-
-  // TODO(Jesse, memory): Instead of allocate insanely massive buffers (these are ~400x overkill)
-  // we should have a system that streams blocks of memory in as-necessary
-  // @streaming_ui_render_memory
-  u32 ElementCount = (u32)Megabytes(2);
-  AllocateAndInitGeoBuffer(&DebugState->UiGroup.TextGroup->Geo, ElementCount, ThreadsafeDebugMemoryAllocator());
-  AllocateAndInitGeoBuffer(&DebugState->UiGroup.Geo, ElementCount, ThreadsafeDebugMemoryAllocator());
-
-
-  auto TextGroup = DebugState->UiGroup.TextGroup;
-  TextGroup->DebugTextureArray = LoadBitmap("texture_atlas_0.bmp", ThreadsafeDebugMemoryAllocator(), DebugTextureArraySlice_Count);
-  GL.GenBuffers(1, &TextGroup->SolidUIVertexBuffer);
-  GL.GenBuffers(1, &TextGroup->SolidUIColorBuffer);
-  GL.GenBuffers(1, &TextGroup->SolidUIUVBuffer);
-  TextGroup->Text2DShader = LoadShaders( CSz("TextVertexShader.vertexshader"), CSz("TextVertexShader.fragmentshader") );
-  TextGroup->TextTextureUniform = GL.GetUniformLocation(TextGroup->Text2DShader.ID, "TextTextureSampler");
-  DebugState->UiGroup.TextGroup->SolidUIShader = LoadShaders( CSz("SimpleColor.vertexshader"), CSz("SimpleColor.fragmentshader") );
-
-
-
-  v2i TextureDim = V2i(DEBUG_TEXTURE_DIM, DEBUG_TEXTURE_DIM);
-  texture *DepthTexture = MakeDepthTexture( TextureDim, ThreadsafeDebugMemoryAllocator() );
-  FramebufferDepthTexture(DepthTexture);
-
-  b32 Result = CheckAndClearFramebuffer();
-  Assert(Result);
-
-  GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
-  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  AssertNoGlErrors;
-
-  random_series Entropy = {54623153};
-  for (u32 ColorIndex = 0; ColorIndex < RANDOM_COLOR_COUNT; ++ColorIndex)
-  {
-    DebugState->UiGroup.DebugColors[ColorIndex] = RandomV3(&Entropy);
-  }
-#endif
 
   return Result;
 }

@@ -122,7 +122,6 @@ struct debug_state
 
   u64 NumScopes;
 
-  /* debug_clear_framebuffers_proc             ClearFramebuffers; */
   debug_frame_end_proc                      FrameEnd;
   debug_frame_begin_proc                    FrameBegin;
   debug_register_arena_proc                 RegisterArena;
