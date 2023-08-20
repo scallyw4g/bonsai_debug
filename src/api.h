@@ -140,7 +140,6 @@ struct debug_state
   debug_write_memory_record_proc            WriteMemoryRecord;
   debug_clear_memory_records_proc           ClearMemoryRecordsFor;
 
-
   debug_track_draw_call_proc                TrackDrawCall;
   debug_get_thread_local_state              GetThreadLocalState;
   debug_value_r32_proc                      DebugValue_r32;
@@ -151,7 +150,8 @@ struct debug_state
   debug_open_window_proc                    OpenAndInitializeDebugWindow;
   debug_redraw_window_proc                  ProcessInputAndRedrawWindow;
 
-  b32 (*InitializeRenderSystem)(heap_allocator*, memory_arena*);
+  b32  (*InitializeRenderSystem)(heap_allocator*, memory_arena*);
+  void (*SetRenderer)(renderer_2d*);
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
@@ -173,7 +173,9 @@ struct debug_state
   // NOTE(Jesse): This stuff has to be "hidden" at the end of the struct so the
   // external ABI is the same as the internal ABI until this point
 
-  renderer_2d UiGroup;
+  // NOTE(Jesse): This has to be a pointer such that we can initialize it and
+  // pass it to the library, or initialize it and stand on our own two feet.
+  renderer_2d *UiGroup;
 
   untextured_3d_geometry_buffer LineMesh;
 
@@ -290,7 +292,7 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt);} while (false)
 #define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {GetDebugState()->WorkerThreadAdvanceDebugSystem();} while (false)
 
-#define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)                do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
+#define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)              do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
 #if DEBUG_SYSTEM_LOADER_API

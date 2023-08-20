@@ -35,7 +35,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
   min_max_avg_dt Dt = {};
 
-  debug_ui_render_group *UiGroup = &DebugState->UiGroup;
+  debug_ui_render_group *UiGroup = DebugState->UiGroup;
 
   /* BindUserInputFor(UiGroup, Input, ScreenDim, MouseP, MouseDP); */
   /* UiGroup->GameGeo               = &DebugState->GameGeo; */
@@ -94,7 +94,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     PushTableStart(UiGroup);
 
-    v4 Padding = V4(25,0,25,0);
+    v4 Padding = V4(15,0,15,0);
 
     {
       TIMED_NAMED_BLOCK("Draw Toggle Buttons");
@@ -261,6 +261,13 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
   /* State->UiGroup.NumMinimizedWindowsDrawn = 0; */
 }
 
+link_internal void
+SetRenderer(renderer_2d *Renderer)
+{
+  GetDebugState()->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
+  GetDebugState()->UiGroup = Renderer;
+}
+
 link_internal b32
 OpenAndInitializeDebugWindow()
 {
@@ -349,6 +356,7 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
   DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow;
   DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
+  DebugState->SetRenderer                     = SetRenderer;
 }
 
 link_export b32

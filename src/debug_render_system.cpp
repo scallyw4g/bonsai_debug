@@ -1777,7 +1777,7 @@ link_internal void
 DebugValue_r32(r32 Value, const char* Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = &DebugState->UiGroup;
+  debug_ui_render_group* Group = DebugState->UiGroup;
 
   PushTableStart(Group);
     PushColumn(Group, CS(Name));
@@ -1790,7 +1790,7 @@ link_internal void
 DebugValue_u32(u32 Value, const char* Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = &DebugState->UiGroup;
+  debug_ui_render_group* Group = DebugState->UiGroup;
 
   PushTableStart(Group);
     PushColumn(Group, CS(Name));
@@ -1803,7 +1803,7 @@ link_internal void
 DebugValue_u64(u64 Value, const char* Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = &DebugState->UiGroup;
+  debug_ui_render_group* Group = DebugState->UiGroup;
 
   PushTableStart(Group);
     PushColumn(Group, CS(Name));
@@ -1821,7 +1821,7 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
   Group->GameGeoFBO = GenFramebuffer();
   GL.BindFramebuffer(GL_FRAMEBUFFER, Group->GameGeoFBO.ID);
 
-  FramebufferTextureLayer(&Group->GameGeoFBO, DebugState->UiGroup.TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
+  FramebufferTextureLayer(&Group->GameGeoFBO, DebugState->UiGroup->TextGroup->DebugTextureArray, DebugTextureArraySlice_Viewport);
   SetDrawBuffers(&Group->GameGeoFBO);
 
   Group->GameGeoShader = MakeRenderToTextureShader(ThreadsafeDebugMemoryAllocator(), &Group->ViewProjection);
@@ -1836,8 +1836,7 @@ InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
   debug_state *DebugState = GetDebugState();
 
   DebugState->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
-
-  b32 Result = InitRenderer2D(&DebugState->UiGroup, Heap, Memory);
+  b32 Result = InitRenderer2D(DebugState->UiGroup, Heap, Memory);
 
   return Result;
 }
