@@ -890,7 +890,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
 
-  v2 Basis = DefaultWindowBasis(Group->ScreenDim);
+  v2 Basis = DefaultWindowBasis(*Group->ScreenDim);
   window_layout *ThreadWindow = DrawThreadsWindow(Group, DebugState, Basis);
 
   Basis = BasisRightOf(ThreadWindow);
@@ -1836,7 +1836,7 @@ InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
   debug_state *DebugState = GetDebugState();
 
   DebugState->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
-  b32 Result = InitRenderer2D(DebugState->UiGroup, Heap, Memory);
+  b32 Result = InitRenderer2D(DebugState->UiGroup, Heap, Memory, 0, 0, 0, 0);
 
   return Result;
 }

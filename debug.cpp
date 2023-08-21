@@ -25,7 +25,7 @@ global_variable platform Plat = {};
 global_variable hotkeys Hotkeys = {};
 
 link_internal void
-DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer *PickedChunks, render_entity_to_texture_group *PickedChunksRenderGroup)
+DebugFrameEnd(r32 dt)
 {
   TIMED_FUNCTION();
 
@@ -36,19 +36,6 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
   min_max_avg_dt Dt = {};
 
   debug_ui_render_group *UiGroup = DebugState->UiGroup;
-
-  /* BindUserInputFor(UiGroup, Input, ScreenDim, MouseP, MouseDP); */
-  /* UiGroup->GameGeo               = &DebugState->GameGeo; */
-  /* UiGroup->GameGeoShader         = &DebugState->GameGeoShader; */
-  UiGroup->Input                 = Input;
-  UiGroup->ScreenDim             = ScreenDim;
-  UiGroup->MouseP                = MouseP;
-  UiGroup->MouseDP               = MouseDP;
-
-  if ( ! (Input->LMB.Pressed || Input->RMB.Pressed) )
-  {
-    UiGroup->PressedInteractionId = 0;
-  }
 
   TIMED_BLOCK("Draw Status Bar");
 
@@ -96,14 +83,14 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
     v4 Padding = V4(15,0,15,0);
 
-    {
-      TIMED_NAMED_BLOCK("Draw Toggle Buttons");
-      ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks);
-      }
-    }
+/*     { */
+/*       TIMED_NAMED_BLOCK("Draw Toggle Buttons"); */
+/*       ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle; */
+/*       if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style, Padding)) */
+/*       { */
+/*         ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks); */
+/*       } */
+/*     } */
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
@@ -160,10 +147,10 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
 
 
 
-    if (DebugState->UIType & DebugUIType_PickedChunks)
-    {
-      DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunksRenderGroup, PickedChunks, DebugState->PickedChunk);
-    }
+    /* if (DebugState->UIType & DebugUIType_PickedChunks) */
+    /* { */
+    /*   DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunksRenderGroup, PickedChunks, DebugState->PickedChunk); */
+    /* } */
 
     if (DebugState->UIType & DebugUIType_Graphics)
     {
@@ -198,15 +185,6 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
     END_BLOCK("Draw Debug Menu");
   }
 
-  UiGroup->HighestWindow = GetHighestWindow(UiGroup, UiGroup->CommandBuffer);
-
-  if (UiGroup->HighestWindow)
-  {
-    UiGroup->HighestWindow->Scroll.y += Input->MouseWheelDelta * 5;
-  }
-
-  FlushCommandBuffer(UiGroup, UiGroup->CommandBuffer);
-
   DebugState->BytesBufferedToCard = 0;
 
   for( u32 DrawCountIndex = 0;
@@ -223,22 +201,7 @@ DebugFrameEnd(v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picke
     ProgramFunctionCalls[FunctionIndex] = NullFunctionCall;
   }
 
-  if (UiGroup->PressedInteractionId == 0 &&
-      (Input->LMB.Pressed || Input->RMB.Pressed))
-  {
-    UiGroup->PressedInteractionId = StringHash("GameViewport");
-  }
-
-#if 0
-  if (DebugState->DoChunkPicking && Input->LMB.Clicked)
-  {
-    DebugState->DoChunkPicking = False;
-  }
-#endif
-
   GL.Enable(GL_CULL_FACE);
-
-  Ensure( RewindArena(TranArena) );
 
   return;
 }
@@ -247,6 +210,7 @@ link_internal void
 DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
 {
   debug_state *State = GetDebugState();
+
   if (ToggleMenu)
   {
     State->DisplayDebugMenu = !State->DisplayDebugMenu;
@@ -259,6 +223,8 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
 
   /* DebugLine("State->UiGroup.NumMinimizedWindowsDrawn (%u)", State->UiGroup.NumMinimizedWindowsDrawn ); */
   /* State->UiGroup.NumMinimizedWindowsDrawn = 0; */
+
+  Ensure( RewindArena(TranArena) );
 }
 
 link_internal void
@@ -299,7 +265,7 @@ ProcessInputAndRedrawWindow()
   BindHotkeysToInput(&Hotkeys, &Plat.Input);
 
   DebugFrameBegin(Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
-  DebugFrameEnd(&Plat.MouseP, &Plat.MouseDP, V2(Plat.WindowWidth, Plat.WindowHeight), &Plat.Input, Plat.dt, 0, 0);
+  DebugFrameEnd(Plat.dt);
 
   BonsaiSwapBuffers(&Os);
 

@@ -34,7 +34,7 @@ struct memory_record
 typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
 typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 /* typedef void                 (*debug_clear_framebuffers_proc)          (); */
-typedef void                 (*debug_frame_end_proc)                   (v2 *MouseP, v2 *MouseDP, v2 ScreenDim, input *Input, r32 dt, picked_world_chunk_static_buffer*, render_entity_to_texture_group*);
+typedef void                 (*debug_frame_end_proc)                   (r32);
 typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
 typedef void                 (*debug_unregister_arena_proc)            (memory_arena*);
@@ -278,7 +278,7 @@ struct debug_timed_function
 #define DEBUG_VALUE_u32(Pointer) do {GetDebugState()->DebugValue_u32(Pointer, #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(a, b, c, d, e, f, g) do {GetDebugState()->FrameEnd(a, b, c, d, e, f, g);} while (false)
+#define DEBUG_FRAME_END(a) do {GetDebugState()->FrameEnd(a);} while (false)
 #define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);} while (false)
 
 void DebugTimedMutexWaiting(mutex *Mut);
