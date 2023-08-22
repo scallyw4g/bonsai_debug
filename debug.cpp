@@ -28,8 +28,6 @@ DebugFrameEnd(r32 dt)
 {
   TIMED_FUNCTION();
 
-  GL.Disable(GL_CULL_FACE);
-
   debug_state *DebugState = GetDebugState();
 
   min_max_avg_dt Dt = {};
@@ -199,8 +197,6 @@ DebugFrameEnd(r32 dt)
   {
     ProgramFunctionCalls[FunctionIndex] = NullFunctionCall;
   }
-
-  GL.Enable(GL_CULL_FACE);
 
   return;
 }
