@@ -233,7 +233,7 @@ DrawPickedChunks(debug_ui_render_group* Group, world_chunk_static_buffer *Picked
 link_internal counted_string
 BuildNameStringFor(char Prefix, counted_string Name, u32 DepthAdvance)
 {
-  counted_string Result = FormatCountedString(TranArena, CSz("%*c%S"), DepthAdvance, Prefix, Name);
+  counted_string Result = FormatCountedString(GetTranArena(), CSz("%*c%S"), DepthAdvance, Prefix, Name);
   return Result;
 }
 
@@ -481,7 +481,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
   {
     TIMED_NAMED_BLOCK("Thread Loop");
 
-    PushColumn(Group, FormatCountedString(TranArena, CSz("T %u "), ThreadIndex));
+    PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
     /* PushNewRow(Group); */
 
     StartColumn(Group);
@@ -698,7 +698,7 @@ DumpScopeTreeDataToConsole_Internal(debug_profile_scope *Scope_in, debug_profile
     unique_debug_profile_scope* GotUniqueScope = ListContainsScope(UniqueScopes, CurrentUniqueScopeQuery);
     if (!GotUniqueScope )
     {
-      GotUniqueScope = AllocateProtection(unique_debug_profile_scope, TranArena, 1, False);
+      GotUniqueScope = AllocateProtection(unique_debug_profile_scope, GetTranArena(), 1, False);
       GotUniqueScope->NextUnique = UniqueScopes;
       UniqueScopes = GotUniqueScope;
     }
@@ -747,7 +747,7 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
     unique_debug_profile_scope* GotUniqueScope = ListContainsScope(UniqueScopes, CurrentUniqueScopeQuery);
     if (!GotUniqueScope )
     {
-      GotUniqueScope = AllocateProtection(unique_debug_profile_scope, TranArena, 1, False);
+      GotUniqueScope = AllocateProtection(unique_debug_profile_scope, GetTranArena(), 1, False);
       GotUniqueScope->NextUnique = UniqueScopes;
       UniqueScopes = GotUniqueScope;
       GotUniqueScope->Name = CurrentUniqueScopeQuery->Name;
@@ -1074,7 +1074,7 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
         }
       }
 
-      sort_key* SortBuffer = Allocate(sort_key, TranArena, SortKeyCount);
+      sort_key* SortBuffer = Allocate(sort_key, GetTranArena(), SortKeyCount);
 
       {
         u32 CurrentSortKeyIndex = 0;
@@ -1223,7 +1223,7 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
 link_internal interactable_handle
 PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId, r32 BarHeight)
 {
-  counted_string StatsString = FormatCountedString(TranArena, CSz("%S / %S (%S)"), MemorySize(TotalUsed), MemorySize(TotalUsed + Remaining), MemorySize(Remaining));
+  counted_string StatsString = FormatCountedString(GetTranArena(), CSz("%S / %S (%S)"), MemorySize(TotalUsed), MemorySize(TotalUsed + Remaining), MemorySize(Remaining));
   PushColumn(Group, StatsString);
   PushNewRow(Group);
 
@@ -1617,7 +1617,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     if (Current->Expanded)
     {
 
-      counted_string TitleStats = FormatCountedString( TranArena,
+      counted_string TitleStats = FormatCountedString( GetTranArena(),
                                                        CSz("Allocs(%lu) Pushes(%lu) TotalSize(%S) Used(%S) Remaining(%S)"),
                                                        MemStats.Allocations,
                                                        MemStats.Pushes,
@@ -1626,7 +1626,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
                                                        MemorySize(MemStats.Remaining)
                                                      );
 
-      /* counted_string TitleStats = FormatCountedString( TranArena, */
+      /* counted_string TitleStats = FormatCountedString( GetTranArena(), */
       /*                                                  CSz("%s :: Allocs(%lu) Pushes(%lu) TotalSize(%lu) Used(%lu) Remaining(%lu)"), */
       /*                                                  Current->Name, */
       /*                                                  MemStats.Allocations, */

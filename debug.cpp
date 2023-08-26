@@ -58,7 +58,7 @@ DebugFrameEnd(r32 dt)
 
   PushTableStart(UiGroup);
     StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, FormatCountedString(TranArena, CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
+      Text(UiGroup, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
         r64(dt*1000.0f),
         r64(Dt.Max - Dt.Avg),
         r64(Dt.Avg),
@@ -219,7 +219,7 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
   /* DebugLine("State->UiGroup.NumMinimizedWindowsDrawn (%u)", State->UiGroup.NumMinimizedWindowsDrawn ); */
   /* State->UiGroup.NumMinimizedWindowsDrawn = 0; */
 
-  Ensure( RewindArena(TranArena) );
+  Ensure( RewindArena(GetTranArena()) );
 }
 
 link_internal void
@@ -337,8 +337,6 @@ InitDebugState(debug_state *DebugState, u64 AllocationSize)
   Global_DebugStatePointer = DebugState;
 
   InitDebugDataSystem(DebugState);
-
-  DEBUG_REGISTER_NAMED_ARENA(TranArena, 0, "debug_lib TranArena");
 
 #if BONSAI_WIN32
   Platform_EnableContextSwitchTracing();
