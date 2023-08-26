@@ -181,7 +181,6 @@ struct debug_state
 
   selected_arenas *SelectedArenas;
 
-  b32 TriggerRuntimeBreak;
   b32 DisplayDebugMenu;
 
   debug_profile_scope* HotFunction;
