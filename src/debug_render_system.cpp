@@ -1220,28 +1220,6 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
 /*******************************            **********************************/
 
 
-link_internal void
-PushBargraph(debug_ui_render_group *Group, r32 PercFilled, v3 FColor, v3 BColor, r32 BarWidth, r32 BarHeight = Global_Font.Size.y)
-{
-  v2 BackgroundQuadDim = V2(BarWidth, BarHeight);
-  v2 ShadedQuadDim = BackgroundQuadDim * V2(PercFilled, 1);
-
-  v2 UnshadedQuadDim = V2(BackgroundQuadDim.x - ShadedQuadDim.x, BackgroundQuadDim.y);
-
-  ui_style Style = UiStyleFromLightestColor(FColor);
-  /* PushUntexturedQuad(Group, V2(0), ShadedQuadDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance); */
-  PushUntexturedQuad(Group, V2(0), ShadedQuadDim, zDepth_TitleBar, &Style);
-
-  Style = UiStyleFromLightestColor(BColor);
-  /* PushUntexturedQuad(Group, V2(0), UnshadedQuadDim, zDepth_TitleBar, &Style, V4(0), QuadRenderParam_NoAdvance); */
-  PushUntexturedQuad(Group, V2(0), UnshadedQuadDim, zDepth_TitleBar, &Style);
-
-  /* PushForceAdvance(Group, BackgroundQuadDim); */
-  /* PushForceAdvance(Group, V2(BackgroundQuadDim.x, 0)); */
-
-  return;
-}
-
 link_internal interactable_handle
 PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId, r32 BarHeight)
 {
