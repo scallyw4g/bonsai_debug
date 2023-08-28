@@ -56,6 +56,7 @@ DebugFrameEnd(r32 dt)
   v4 Padding = V4(25,0,25,0);
   ui_style Style = UiStyleFromLightestColor(V3(1));
 
+  PushNewRow(UiGroup);
   PushTableStart(UiGroup);
     StartColumn(UiGroup, &Style, Padding);
       Text(UiGroup, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
@@ -79,15 +80,6 @@ DebugFrameEnd(r32 dt)
     PushTableStart(UiGroup);
 
     v4 Padding = V4(15,0,15,0);
-
-/*     { */
-/*       TIMED_NAMED_BLOCK("Draw Toggle Buttons"); */
-/*       ui_style *Style = (DebugState->UIType & DebugUIType_PickedChunks) ? &DefaultSelectedStyle : &DefaultStyle; */
-/*       if (Button(UiGroup, CS("PickedChunks"), (umm)"PickedChunks", Style, Padding)) */
-/*       { */
-/*         ToggleBitfieldValue(DebugState->UIType, DebugUIType_PickedChunks); */
-/*       } */
-/*     } */
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
@@ -143,11 +135,6 @@ DebugFrameEnd(r32 dt)
 
 
 
-
-    /* if (DebugState->UIType & DebugUIType_PickedChunks) */
-    /* { */
-    /*   DebugState->PickedChunk = DrawPickedChunks(UiGroup, PickedChunksRenderGroup, PickedChunks, DebugState->PickedChunk); */
-    /* } */
 
     if (DebugState->UIType & DebugUIType_Graphics)
     {

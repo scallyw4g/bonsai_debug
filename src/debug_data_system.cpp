@@ -487,7 +487,7 @@ AdvanceThreadState(debug_thread_state *ThreadState, u32 NextFrameId)
 inline void
 WorkerThreadAdvanceDebugSystem()
 {
-  /* Assert(ThreadLocal_ThreadIndex != 0); */
+  Assert(ThreadLocal_ThreadIndex != INVALID_THREAD_LOCAL_THREAD_INDEX);
 
   debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);

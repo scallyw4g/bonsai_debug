@@ -409,7 +409,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 Bas
 
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
-  local_persist window_layout CycleGraphWindow = WindowLayout("Threads", BasisP);
+  local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", BasisP);
 
   PushWindowStart(Group, &CycleGraphWindow);
 
@@ -894,7 +894,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
   window_layout *ThreadWindow = DrawThreadsWindow(Group, DebugState, Basis);
 
   Basis = BasisRightOf(ThreadWindow);
-  local_persist window_layout CallgraphWindow = WindowLayout("Callgraph", Basis);
+  local_persist window_layout CallgraphWindow = WindowLayout("Function Tree", Basis);
 
   TIMED_BLOCK("Call Graph");
 

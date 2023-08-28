@@ -109,7 +109,6 @@ enum debug_ui_type
   DebugUIType_Graphics              = (1 << 4),
   DebugUIType_Network               = (1 << 5),
   DebugUIType_DrawCalls             = (1 << 6),
-  DebugUIType_PickedChunks          = (1 << 7),
 };
 
 struct debug_state
