@@ -35,7 +35,7 @@ typedef debug_scope_tree*    (*get_read_scope_tree_proc)(u32);
 typedef debug_scope_tree*    (*get_write_scope_tree_proc)();
 /* typedef void                 (*debug_clear_framebuffers_proc)          (); */
 typedef void                 (*debug_frame_end_proc)                   (r32);
-typedef void                 (*debug_frame_begin_proc)                 (b32, b32);
+typedef void                 (*debug_frame_begin_proc)                 (renderer_2d*, r32, b32, b32);
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
 typedef void                 (*debug_unregister_arena_proc)            (memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
@@ -277,7 +277,7 @@ struct debug_timed_function
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
 #define DEBUG_FRAME_END(a) do {GetDebugState()->FrameEnd(a);} while (false)
-#define DEBUG_FRAME_BEGIN(bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(bToggleMenu, bToggleProfile);} while (false)
+#define DEBUG_FRAME_BEGIN(Ui, PrevDt, bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(Ui, PrevDt, bToggleMenu, bToggleProfile);} while (false)
 
 void DebugTimedMutexWaiting(mutex *Mut);
 void DebugTimedMutexAquired(mutex *Mut);

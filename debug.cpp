@@ -30,48 +30,9 @@ DebugFrameEnd(r32 dt)
 
   debug_state *DebugState = GetDebugState();
 
-  min_max_avg_dt Dt = {};
-
   debug_ui_render_group *UiGroup = DebugState->UiGroup;
 
-  TIMED_BLOCK("Draw Status Bar");
-
-  memory_arena_stats TotalStats = GetTotalMemoryArenaStats();
-
-  u32 TotalDrawCalls = 0;
-
-  for( u32 DrawCountIndex = 0;
-       DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
-       ++ DrawCountIndex)
-  {
-    debug_draw_call *Call = &GetDebugState()->TrackedDrawCalls[DrawCountIndex];
-    if (Call->Caller)
-    {
-      TotalDrawCalls += Call->Calls;
-    }
-  }
-
-  Dt = ComputeMinMaxAvgDt();
-
-  v4 Padding = V4(25,0,25,0);
-  ui_style Style = UiStyleFromLightestColor(V3(1));
-
-  PushNewRow(UiGroup);
-  PushTableStart(UiGroup);
-    StartColumn(UiGroup, &Style, Padding);
-      Text(UiGroup, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
-        r64(dt*1000.0f),
-        r64(Dt.Max - Dt.Avg),
-        r64(Dt.Avg),
-        r64(Dt.Avg-Dt.Min),
-        TotalStats.Allocations,
-        TotalStats.Pushes,
-        TotalDrawCalls
-      ));
-    EndColumn(UiGroup);
-  PushTableEnd(UiGroup);
-  
-  END_BLOCK("Draw Status Bar");
+  min_max_avg_dt Dt = ComputeMinMaxAvgDt();
 
   if (DebugState->DisplayDebugMenu)
   {
@@ -189,7 +150,7 @@ DebugFrameEnd(r32 dt)
 }
 
 link_internal void
-DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
+DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling)
 {
   debug_state *State = GetDebugState();
 
@@ -207,6 +168,48 @@ DebugFrameBegin(b32 ToggleMenu, b32 ToggleProfiling)
   /* State->UiGroup.NumMinimizedWindowsDrawn = 0; */
 
   Ensure( RewindArena(GetTranArena()) );
+
+
+
+  TIMED_BLOCK("Draw Status Bar");
+
+  memory_arena_stats TotalStats = GetTotalMemoryArenaStats();
+
+  u32 TotalDrawCalls = 0;
+
+  for( u32 DrawCountIndex = 0;
+       DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
+       ++ DrawCountIndex)
+  {
+    debug_draw_call *Call = &GetDebugState()->TrackedDrawCalls[DrawCountIndex];
+    if (Call->Caller)
+    {
+      TotalDrawCalls += Call->Calls;
+    }
+  }
+
+
+  min_max_avg_dt Dt = ComputeMinMaxAvgDt();
+
+  v4 Padding = V4(25,0,25,0);
+  ui_style Style = UiStyleFromLightestColor(V3(1));
+
+  PushTableStart(Ui);
+    StartColumn(Ui, &Style, Padding);
+      Text(Ui, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
+        r64(PrevDt*1000.0f),
+        r64(Dt.Max - Dt.Avg),
+        r64(Dt.Avg),
+        r64(Dt.Avg-Dt.Min),
+        TotalStats.Allocations,
+        TotalStats.Pushes,
+        TotalDrawCalls
+      ));
+    EndColumn(Ui);
+  PushTableEnd(Ui);
+  
+  END_BLOCK("Draw Status Bar");
+
 }
 
 link_internal void
@@ -246,7 +249,7 @@ ProcessInputAndRedrawWindow()
 
   BindHotkeysToInput(&Hotkeys, &Plat.Input);
 
-  DebugFrameBegin(Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
+  DebugFrameBegin(GetDebugState()->UiGroup, Plat.dt, Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
   DebugFrameEnd(Plat.dt);
 
   BonsaiSwapBuffers(&Os);
