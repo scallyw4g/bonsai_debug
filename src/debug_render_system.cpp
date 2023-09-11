@@ -1791,7 +1791,8 @@ DebugValue_u64(u64 Value, const char* Name)
 }
 
 
-void
+#if 0
+link_internal void
 InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group *Group)
 {
   AllocateGpuElementBuffer(&Group->GameGeo, (u32)Megabytes(4));
@@ -1806,7 +1807,10 @@ InitRenderToTextureGroup(debug_state *DebugState, render_entity_to_texture_group
 
   Group->Camera = Allocate(camera, ThreadsafeDebugMemoryAllocator(), 1);
   StandardCamera(Group->Camera, 10000.0f, 100.0f, {});
+
+  Ensure(CheckAndClearFramebuffer());
 }
+#endif
 
 link_internal b32
 InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
