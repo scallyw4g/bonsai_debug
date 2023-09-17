@@ -236,7 +236,7 @@ OpenAndInitializeDebugWindow()
   return Result;
 }
 
-link_internal b32
+link_internal void
 ProcessInputAndRedrawWindow()
 {
   ResetInputForFrameStart(&Plat.Input, &Hotkeys);
@@ -256,8 +256,6 @@ ProcessInputAndRedrawWindow()
 
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  return Os.ContinueRunning;
 }
 
 
