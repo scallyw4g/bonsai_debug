@@ -59,7 +59,7 @@ typedef void                 (*debug_clear_memory_records_proc)          (memory
 typedef void                 (*debug_write_memory_record_proc)           (memory_record*);
 
 typedef b32                  (*debug_open_window_proc)                 ();
-typedef b32                  (*debug_redraw_window_proc)               ();
+typedef void                 (*debug_redraw_window_proc)               ();
 
 
 typedef debug_state*         (*get_debug_state_proc)  ();
