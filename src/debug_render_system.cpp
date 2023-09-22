@@ -1230,7 +1230,7 @@ PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalU
   r32 BargraphWidth = 800.f;
 
   interactable_handle Handle = PushButtonStart(Group, InteractionId);
-    PushBargraph(Group, TotalPerc, FColor, BColor, BargraphWidth, BarHeight);
+    PushBargraph(Group, TotalPerc, FColor, BColor, BargraphWidth, &BarHeight);
   PushButtonEnd(Group);
 
   PushNewRow(Group);
