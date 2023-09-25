@@ -52,18 +52,14 @@ GetThreadLocalStateFor(s32 ThreadIndex)
   return Result;
 }
 
-#if 1
 void
 RegisterThread(thread_startup_params *Params)
 {
   ThreadLocal_ThreadIndex = Params->ThreadIndex;
 
   debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
-  ThreadState->ThreadId = GetCurrentThreadId(); // Params->ThreadId;
-  /* Assert(ThreadState->ThreadId); */
-  return;
+  ThreadState->ThreadId = GetCurrentThreadId();
 }
-#endif
 
 inline debug_thread_state*
 GetThreadLocalState()
@@ -929,9 +925,6 @@ InitDebugDataSystem(debug_state *DebugState)
       ThreadState->WriteIndex = GetDebugState()->ReadScopeIndex + 1;
     }
   }
-
-
-
 
   return;
 }

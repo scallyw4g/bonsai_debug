@@ -368,6 +368,14 @@ SetupPropsForContextSwitchEventTracing(EVENT_TRACE_PROPERTIES *EventTracingProps
 link_internal DWORD WINAPI
 Win32TracingThread(void *ignored)
 {
+  // Wait for all worker threads to be initialized.
+  s32 TotalThreadCount = (s32)GetTotalThreadCount();
+  for ( s32 ThreadIndex = 0; ThreadIndex < TotalThreadCount; ++ThreadIndex)
+  {
+    debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+    if (ThreadState->ThreadId == 0) { SleepMs(1); }
+  }
+
   Global_EventTracingStatus = EventTracingStatus_Starting;
 
   u32 BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
