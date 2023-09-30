@@ -373,7 +373,16 @@ Win32TracingThread(void *ignored)
   for ( s32 ThreadIndex = 0; ThreadIndex < TotalThreadCount; ++ThreadIndex)
   {
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-    if (ThreadState->ThreadId == 0) { SleepMs(1); }
+    while (ThreadState->ThreadId == 0) { SleepMs(1); }
+  }
+
+  debug_state *DebugState = GetDebugState();
+  for (s32 ThreadIndex = 0; ThreadIndex < TotalThreadCount; ++ThreadIndex)
+  {
+    debug_thread_state *TS = DebugState->ThreadStates + ThreadIndex;
+    while (TS->ThreadId == 0) { SleepMs(1); }
+
+    /* DebugLine("TS->ThreadId(%u), ThreadIndex(%u)", TS->ThreadId, ThreadIndex); */
   }
 
   Global_EventTracingStatus = EventTracingStatus_Starting;
