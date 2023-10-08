@@ -1,3 +1,25 @@
+struct debug_state;
+typedef debug_state*         (*get_debug_state_proc)  ();
+typedef u64                  (*query_memory_requirements_proc)();
+typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *);
+typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *, thread_local_state *);
+
+
+struct bonsai_debug_api
+{
+  query_memory_requirements_proc QueryMemoryRequirements;
+  init_debug_system_proc         InitDebugState;
+  patch_debug_lib_pointers_proc  BonsaiDebug_OnLoad;
+};
+
+struct bonsai_debug_system
+{
+  shared_lib Lib;
+  bonsai_debug_api Api;
+
+  b32 Initialized;
+};
+
 #if DEBUG_SYSTEM_API
 
 struct debug_state;
@@ -61,11 +83,6 @@ typedef void                 (*debug_write_memory_record_proc)           (memory
 typedef b32                  (*debug_open_window_proc)                 ();
 typedef void                 (*debug_redraw_window_proc)               ();
 
-
-typedef debug_state*         (*get_debug_state_proc)  ();
-typedef u64                  (*query_memory_requirements_proc)();
-typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *, u64 DebugStateSize);
-typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *, thread_local_state *);
 
 
 struct debug_profile_scope
@@ -293,21 +310,12 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)              do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
-#if DEBUG_SYSTEM_LOADER_API
-
 /* #include <dlfcn.h> */
 #include <stdio.h>
 #include <time.h>
 
 #define BonsaiDebug_DefaultLibPath "lib_bonsai_debug/lib_bonsai_debug.so"
 /* global_variable debug_state *Global_DebugStatePointer; */
-
-struct bonsai_debug_api
-{
-  query_memory_requirements_proc QueryMemoryRequirements;
-  init_debug_system_proc         InitDebugState;
-  patch_debug_lib_pointers_proc  BonsaiDebug_OnLoad;
-};
 
 global_variable r64 Global_LastDebugTime = 0;
 r64 GetDt()
@@ -332,12 +340,19 @@ InitializeBootstrapDebugApi(shared_lib DebugLib, bonsai_debug_api *Api)
   Api->BonsaiDebug_OnLoad = (patch_debug_lib_pointers_proc)GetProcFromLib(DebugLib, "BonsaiDebug_OnLoad");
   Result &= (Api->InitDebugState != 0);
 
+  u64 BytesRequested = Api->QueryMemoryRequirements();
+  Global_DebugStatePointer = (debug_state*)calloc(BytesRequested, 1);
+
   return Result;
 }
 
-shared_lib
+
+
+bonsai_debug_system
 InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates)
 {
+  bonsai_debug_system Result = {};
+
   shared_lib DebugLib = OpenLibrary(DebugLibName); //, RTLD_NOW);
 
   if (DebugLib)
@@ -347,14 +362,14 @@ InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates
     bonsai_debug_api DebugApi = {};
     if (InitializeBootstrapDebugApi(DebugLib, &DebugApi))
     {
-      u64 BytesRequested = DebugApi.QueryMemoryRequirements();
-      Global_DebugStatePointer = (debug_state*)calloc(BytesRequested, 1);
-
       DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer, ThreadStates);
 
-      if (DebugApi.InitDebugState(Global_DebugStatePointer, BytesRequested))
+      if (DebugApi.InitDebugState(Global_DebugStatePointer))
       {
         printf("Success initializing lib_bonsai_debug\n");
+        Result.Lib = DebugLib;
+        Result.Api = DebugApi;
+        Result.Initialized = True;
       }
       else { printf("Error initializing lib_bonsai_debug\n"); DebugLib = 0; }
     }
@@ -362,11 +377,8 @@ InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates
   }
   else { printf("OpenLibrary Failed (%s)\n", ""); DebugLib = 0; }
 
-  return DebugLib;
+  return Result;
 }
-
-
-#endif // DEBUG_SYSTEM_LOADER_API
 
 
 #else // DEBUG_SYSTEM_API

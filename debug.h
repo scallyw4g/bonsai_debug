@@ -240,10 +240,5 @@ enum event_tracing_status
 
 global_variable volatile event_tracing_status Global_EventTracingStatus = {};
 
-
-
-/* #include <bonsai_debug/headers/api.h> */
-/* global_variable debug_profile_scope NullDebugProfileScope = {}; */
-
 #endif
 

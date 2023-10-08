@@ -271,6 +271,9 @@ QueryMemoryRequirements()
 link_export void
 BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
 {
+  Assert(DebugState);
+  Assert(ThreadStates);
+
   InitializeOpenglFunctions();
 
   Global_DebugStatePointer = DebugState;
@@ -309,9 +312,9 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
 }
 
 link_export b32
-InitDebugState(debug_state *DebugState, u64 AllocationSize)
+InitDebugState(debug_state *DebugState)
 {
-  Assert(AllocationSize >= QueryMemoryRequirements());
+  /* Assert(AllocationSize >= QueryMemoryRequirements()); */
   Assert(DebugState->Initialized == False);
 
   Assert(ThreadLocal_ThreadIndex == 0);
