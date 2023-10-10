@@ -2,7 +2,7 @@ struct debug_state;
 typedef debug_state*         (*get_debug_state_proc)  ();
 typedef u64                  (*query_memory_requirements_proc)();
 typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *);
-typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *, thread_local_state *);
+typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *, thread_local_state *, u32);
 
 
 struct bonsai_debug_api
@@ -362,7 +362,7 @@ InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates
     bonsai_debug_api DebugApi = {};
     if (InitializeBootstrapDebugApi(DebugLib, &DebugApi))
     {
-      DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer, ThreadStates);
+      DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer, ThreadStates, BONSAI_INTERNAL);
 
       if (DebugApi.InitDebugState(Global_DebugStatePointer))
       {

@@ -34,102 +34,6 @@ DebugFrameEnd(r32 dt)
 
   min_max_avg_dt Dt = ComputeMinMaxAvgDt();
 
-  if (DebugState->DisplayDebugMenu)
-  {
-    TIMED_BLOCK("Draw Debug Menu");
-
-    PushTableStart(UiGroup);
-
-    v4 Padding = V4(15,0,15,0);
-
-    {
-      ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("Graphics"), (umm)"Graphics", Style, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
-      }
-    }
-
-    {
-      /* ui_style *Style = &DefaultStyle; */
-      /* if ( DebugState->UIType & DebugUIType_Network)  *1/ */ /* { */ /*   Style = &DefaultSelectedStyle; */ /* } */
-      /* if (Button(UiGroup, CS("Network"), (umm)"Network", Style)) */
-      /* { */
-      /*   ToggleBitfieldValue(DebugState->UIType, DebugUIType_Network); */
-      /* } */
-    }
-
-    {
-      ui_style *Style = (DebugState->UIType & DebugUIType_CollatedFunctionCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("Functions"), (umm)"Functions", Style, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_CollatedFunctionCalls);
-      }
-    }
-
-    {
-      ui_style *Style = (DebugState->UIType & DebugUIType_CallGraph) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("Callgraph"), (umm)"Callgraph", Style, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_CallGraph);
-      }
-    }
-
-    {
-      ui_style *Style = &DefaultStyle;
-      if ( DebugState->UIType & DebugUIType_Memory ) { Style = &DefaultSelectedStyle; }
-      if (Button(UiGroup, CS("Memory"), (umm)"Memory", Style, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Memory);
-      }
-    }
-
-    {
-      ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(UiGroup, CS("DrawCalls"), (umm)"DrawCalls", Style, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
-      }
-    }
-
-    PushTableEnd(UiGroup);
-
-
-
-
-    if (DebugState->UIType & DebugUIType_Graphics)
-    {
-      DebugDrawGraphicsHud(UiGroup, DebugState);
-    }
-
-    /* if (DebugState->UIType & DebugUIType_Network) */
-    /* { */
-    /*   DebugDrawNetworkHud(UiGroup, &Plat->Network, ServerState); */
-    /* } */
-
-    if (DebugState->UIType & DebugUIType_CollatedFunctionCalls)
-    {
-      DebugDrawCollatedFunctionCalls(UiGroup, DebugState);
-    }
-
-    if (DebugState->UIType & DebugUIType_CallGraph)
-    {
-      DebugDrawCallGraph(UiGroup, DebugState, Dt.Max);
-    }
-
-    if (DebugState->UIType & DebugUIType_Memory)
-    {
-      DebugDrawMemoryHud(UiGroup, DebugState);
-    }
-
-    if (DebugState->UIType & DebugUIType_DrawCalls)
-    {
-      DebugDrawDrawCalls(UiGroup);
-    }
-
-    END_BLOCK("Draw Debug Menu");
-  }
-
   DebugState->BytesBufferedToCard = 0;
 
   for( u32 DrawCountIndex = 0;
@@ -153,6 +57,7 @@ link_internal void
 DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling)
 {
   debug_state *State = GetDebugState();
+  State->UiGroup = Ui;
 
   if (ToggleMenu)
   {
@@ -191,22 +96,121 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
   min_max_avg_dt Dt = ComputeMinMaxAvgDt();
 
-  v4 Padding = V4(25,0,25,0);
-  ui_style Style = UiStyleFromLightestColor(V3(1));
+  {
+    v4 Padding = V4(25,0,25,0);
+    ui_style Style = UiStyleFromLightestColor(V3(1));
 
-  PushTableStart(Ui);
-    StartColumn(Ui, &Style, Padding);
-      Text(Ui, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
-        r64(PrevDt*1000.0f),
-        r64(Dt.Max - Dt.Avg),
-        r64(Dt.Avg),
-        r64(Dt.Avg-Dt.Min),
-        TotalStats.Allocations,
-        TotalStats.Pushes,
-        TotalDrawCalls
-      ));
-    EndColumn(Ui);
-  PushTableEnd(Ui);
+    PushTableStart(Ui);
+      StartColumn(Ui, &Style, Padding);
+        Text(Ui, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
+          r64(PrevDt*1000.0f),
+          r64(Dt.Max - Dt.Avg),
+          r64(Dt.Avg),
+          r64(Dt.Avg-Dt.Min),
+          TotalStats.Allocations,
+          TotalStats.Pushes,
+          TotalDrawCalls
+        ));
+      EndColumn(Ui);
+    PushTableEnd(Ui);
+  }
+
+  debug_state *DebugState = GetDebugState();
+  if (DebugState->DisplayDebugMenu)
+  {
+    TIMED_NAMED_BLOCK("DrawDebugMenu");
+
+    PushTableStart(Ui);
+
+    v4 Padding = V4(15,0,15,0);
+
+    {
+      ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(Ui, CS("Graphics"), (umm)"Graphics", Style, Padding))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
+      }
+    }
+
+    {
+      /* ui_style *Style = &DefaultStyle; */
+      /* if ( DebugState->UIType & DebugUIType_Network)  *1/ */ /* { */ /*   Style = &DefaultSelectedStyle; */ /* } */
+      /* if (Button(Ui, CS("Network"), (umm)"Network", Style)) */
+      /* { */
+      /*   ToggleBitfieldValue(DebugState->UIType, DebugUIType_Network); */
+      /* } */
+    }
+
+    {
+      ui_style *Style = (DebugState->UIType & DebugUIType_CollatedFunctionCalls) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(Ui, CS("Functions"), (umm)"Functions", Style, Padding))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_CollatedFunctionCalls);
+      }
+    }
+
+    {
+      ui_style *Style = (DebugState->UIType & DebugUIType_CallGraph) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(Ui, CS("Callgraph"), (umm)"Callgraph", Style, Padding))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_CallGraph);
+      }
+    }
+
+    {
+      ui_style *Style = &DefaultStyle;
+      if ( DebugState->UIType & DebugUIType_Memory ) { Style = &DefaultSelectedStyle; }
+      if (Button(Ui, CS("Memory"), (umm)"Memory", Style, Padding))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Memory);
+      }
+    }
+
+    {
+      ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle;
+      if (Button(Ui, CS("DrawCalls"), (umm)"DrawCalls", Style, Padding))
+      {
+        ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
+      }
+    }
+
+    PushTableEnd(Ui);
+
+
+
+
+    if (DebugState->UIType & DebugUIType_Graphics)
+    {
+      DebugDrawGraphicsHud(Ui, DebugState);
+    }
+
+    /* if (DebugState->UIType & DebugUIType_Network) */
+    /* { */
+    /*   DebugDrawNetworkHud(Ui, &Plat->Network, ServerState); */
+    /* } */
+
+    if (DebugState->UIType & DebugUIType_CollatedFunctionCalls)
+    {
+      DebugDrawCollatedFunctionCalls(Ui, DebugState);
+    }
+
+    if (DebugState->UIType & DebugUIType_CallGraph)
+    {
+      DebugDrawCallGraph(Ui, DebugState, Dt.Max);
+    }
+
+    if (DebugState->UIType & DebugUIType_Memory)
+    {
+      DebugDrawMemoryHud(Ui, DebugState);
+    }
+
+    if (DebugState->UIType & DebugUIType_DrawCalls)
+    {
+      DebugDrawDrawCalls(Ui);
+    }
+
+  }
+
   
   END_BLOCK("Draw Status Bar");
 
@@ -269,8 +273,16 @@ QueryMemoryRequirements()
 }
 
 link_export void
-BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates)
+BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s32 CallerIsInternalBuild)
 {
+  s32 WeAreInternalBuild = BONSAI_INTERNAL;
+
+  // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build!
+  if (WeAreInternalBuild != CallerIsInternalBuild)
+  {
+    Error("Detected Loading unmatched interal/external build for bonsai debug lib.  CallerInternal(%d), DebugInternal(%d)", CallerIsInternalBuild, WeAreInternalBuild);
+  }
+
   Assert(DebugState);
   Assert(ThreadStates);
 
