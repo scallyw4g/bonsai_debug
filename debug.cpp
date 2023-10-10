@@ -6,8 +6,8 @@
 #include <bonsai_stdlib/bonsai_stdlib.h>
 #include <bonsai_stdlib/bonsai_stdlib.cpp>
 
-#include <engine/engine.h>
-#include <engine/engine.cpp>
+/* #include <engine/engine.h> */
+/* #include <engine/engine.cpp> */
 
 #include <bonsai_debug/src/debug_data_system.cpp>
 #include <bonsai_debug/src/debug_render_system.cpp>

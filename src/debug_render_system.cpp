@@ -3,6 +3,8 @@
 /****************************                       **************************/
 
 
+debug_global memory_arena Global_PermDebugMemory;
+
 
 #if 0
 link_internal void
@@ -1477,7 +1479,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
             }
             else
             {
-              const char* Name = GetNullTerminated(CS(Meta->ArenaMemoryBlock), &Global_PermMemory);
+              const char* Name = GetNullTerminated(CS(Meta->ArenaMemoryBlock), &Global_PermDebugMemory);
               RegisterArena(Name, (memory_arena*)Meta->ArenaMemoryBlock, ThreadIndex);
             }
           }

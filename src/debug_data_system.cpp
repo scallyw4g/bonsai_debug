@@ -293,7 +293,10 @@ DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char*
     .PushCount = 1
   };
   WriteMemoryRecord(&ArenaMetadata);
+
+#if BONSAI_INTERNAL
   Arena->Pushes++;
+#endif
 
   if (!Result) { Error("Pushing %s on Line: %d, in file %s", AllocationUUID, Line, File); }
 
@@ -305,7 +308,9 @@ GetMemoryArenaStats(memory_arena *ArenaIn)
 {
   memory_arena_stats Result = {};
 
+#if BONSAI_INTERNAL
   AcquireFutex(&ArenaIn->DebugFutex);
+#endif
 
   memory_arena *Arena = ArenaIn;
   while (Arena)
@@ -324,7 +329,9 @@ GetMemoryArenaStats(memory_arena *ArenaIn)
     Arena = Arena->Prev;
   }
 
+#if BONSAI_INTERNAL
   ReleaseFutex(&ArenaIn->DebugFutex);
+#endif
 
   return Result;
 }
