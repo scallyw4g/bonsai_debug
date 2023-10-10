@@ -55,6 +55,9 @@ GetThreadLocalStateFor(s32 ThreadIndex)
 void
 RegisterThread(thread_startup_params *Params)
 {
+  // NOTE(Jesse): This cold-sets this because it's called every time the worker
+  // threads loop such that hot-loading works properly
+  /* SetThreadLocal_ThreadIndex(Params->ThreadIndex); */
   ThreadLocal_ThreadIndex = Params->ThreadIndex;
 
   debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
