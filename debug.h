@@ -65,13 +65,6 @@ struct min_max_avg_dt
   r32 Max;
   r32 Avg;
 };
-
-struct cycle_range
-{
-  u64 StartCycle;
-  u64 TotalCycles;
-};
-
 struct memory_arena_stats
 {
   u64 Allocations;
