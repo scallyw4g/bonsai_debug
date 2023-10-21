@@ -122,7 +122,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     PushTableStart(Ui);
 
-    v4 Padding = V4(15,0,15,0);
+    v4 Padding = V4(15,5,15,5);
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
