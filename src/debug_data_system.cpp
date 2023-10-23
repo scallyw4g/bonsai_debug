@@ -174,8 +174,8 @@ ClearMemoryRecordsFor(memory_arena *Arena)
           ++ThreadIndex)
   {
     for ( u32 MetaIndex = 0;
-        MetaIndex < META_TABLE_SIZE;
-        ++MetaIndex)
+              MetaIndex < META_TABLE_SIZE;
+            ++MetaIndex)
     {
       memory_record *Meta = GetThreadLocalStateFor(ThreadIndex)->MetaTable + MetaIndex;
       if (Meta->ArenaMemoryBlock == ArenaBlockHash || Meta->ArenaAddress == ArenaHash)
@@ -256,7 +256,6 @@ void
 CollateMetadata(memory_record *InputMeta, memory_record *MetaTable)
 {
   WriteToMetaTable(InputMeta, MetaTable, PushesShareHeadArena);
-  return;
 }
 
 void
@@ -268,7 +267,6 @@ WriteMemoryRecord(memory_record *InputMeta)
     memory_record *MetaTable = Thread->MetaTable;
     WriteToMetaTable(InputMeta, MetaTable, PushesMatchExactly);
   }
-  return;
 }
 
 
@@ -280,7 +278,7 @@ WriteMemoryRecord(memory_record *InputMeta)
 
 
 void*
-DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char* AllocationUUID, s32 Line, const char* File, umm Alignment, b32 MemProtect)
+DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char *AllocationUUID, s32 Line, const char *File, umm Alignment, b32 MemProtect)
 {
   umm PushSize = StructCount * StructSize;
   void* Result = PushStruct( Arena, PushSize, Alignment, MemProtect);
