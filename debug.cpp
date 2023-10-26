@@ -275,6 +275,11 @@ QueryMemoryRequirements()
 link_export void
 BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s32 CallerIsInternalBuild)
 {
+  SetThreadLocal_ThreadIndex(0);
+
+  Global_DebugStatePointer = DebugState;
+  Global_ThreadStates = ThreadStates;
+
   s32 WeAreInternalBuild = BONSAI_INTERNAL;
 
   // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build!
@@ -287,11 +292,6 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s3
   Assert(ThreadStates);
 
   InitializeOpenglFunctions();
-
-  Global_DebugStatePointer = DebugState;
-  Global_ThreadStates = ThreadStates;
-
-  SetThreadLocal_ThreadIndex(0);
 
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;

@@ -165,6 +165,7 @@ ClearMemoryRecordsFor(memory_arena *Arena)
 {
   TIMED_FUNCTION();
 
+#if 1
   umm ArenaBlockHash = HashArenaBlock(Arena);
   umm ArenaHash = HashArena(Arena);
   s32 TotalThreadCount = (s32)GetTotalThreadCount();
@@ -184,8 +185,8 @@ ClearMemoryRecordsFor(memory_arena *Arena)
       }
     }
   }
+#endif
 
-  return;
 }
 
 
