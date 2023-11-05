@@ -356,13 +356,14 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
 }
 
 link_internal window_layout *
-DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState, v2 BasisP)
+DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
 {
   TIMED_FUNCTION();
 
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
-  local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", BasisP);
+  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupAlign_Bottom|WindowLayoutFlag_StartupSize_InferHeight);
+  local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", {}, V2(0.f, TotalGraphWidth+150.f), Flags);
 
   PushWindowStart(Group, &CycleGraphWindow);
 
@@ -838,45 +839,40 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
 
   DrawFrameTicker(Group, DebugState, Max(33.3f, MaxMs));
 
-  s32 TotalThreadCount = (s32)GetTotalThreadCount();
+  DrawThreadsWindow(Group, DebugState);
+
 
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
 
-  v2 Basis = DefaultWindowBasis(*Group->ScreenDim);
-  window_layout *ThreadWindow = DrawThreadsWindow(Group, DebugState, Basis);
-
-  Basis = BasisRightOf(ThreadWindow);
-  local_persist window_layout CallgraphWindow = WindowLayout("Function Tree", Basis);
-
   TIMED_BLOCK("Call Graph");
+    local_persist window_layout FunctionTreeWindow = WindowLayout("Function Tree", WindowLayoutFlag_StartupAlign_Right);
 
-    PushWindowStart(Group, &CallgraphWindow);
+    PushWindowStart(Group, &FunctionTreeWindow);
+      PushTableStart(Group);
+        PushColumn(Group, CSz("Frame %"));
+        PushColumn(Group, CSz("Cycles"));
+        PushColumn(Group, CSz("Calls"));
+        PushColumn(Group, CSz("Name"));
+        PushNewRow(Group);
 
-    PushTableStart(Group);
+        s32 TotalThreadCount = (s32)GetTotalThreadCount();
+        for ( s32 ThreadIndex = 0;
+                  ThreadIndex < TotalThreadCount;
+                ++ThreadIndex )
+        {
+          debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+          debug_scope_tree *ReadTree = ThreadState->ScopeTrees + DebugState->ReadScopeIndex;
+          frame_stats *Frame = DebugState->Frames + DebugState->ReadScopeIndex;
 
-    PushColumn(Group, CSz("Frame %"));
-    PushColumn(Group, CSz("Cycles"));
-    PushColumn(Group, CSz("Calls"));
-    PushColumn(Group, CSz("Name"));
-    PushNewRow(Group);
-
-    for ( s32 ThreadIndex = 0;
-          ThreadIndex < TotalThreadCount;
-        ++ThreadIndex )
-    {
-      debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-      debug_scope_tree *ReadTree = ThreadState->ScopeTrees + DebugState->ReadScopeIndex;
-      frame_stats *Frame = DebugState->Frames + DebugState->ReadScopeIndex;
-
-      if (Frame->TotalCycles && MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
-      {
-        debug_timed_function BlockTimer2("Buffer First Call To Each");
-        BufferFirstCallToEach(Group, ReadTree->Root, ReadTree->Root, ThreadsafeDebugMemoryAllocator(), &CallgraphWindow, Frame->TotalCycles, 0);
-      }
-    }
-    PushTableEnd(Group);
-    PushWindowEnd(Group, &CallgraphWindow);
+          if (Frame->TotalCycles && MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
+          {
+            debug_timed_function BlockTimer2("Buffer First Call To Each");
+            BufferFirstCallToEach(Group, ReadTree->Root, ReadTree->Root, ThreadsafeDebugMemoryAllocator(), &FunctionTreeWindow, Frame->TotalCycles, 0);
+          }
+        }
+      PushTableEnd(Group);
+    PushWindowEnd(Group, &FunctionTreeWindow);
 
   END_BLOCK("Call Graph");
 
