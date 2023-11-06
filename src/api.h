@@ -205,13 +205,14 @@ struct debug_state
 
   volatile umm MinCycles; // span of start/end frame cycles
   volatile umm MaxCycles;
+
 #define DEBUG_FRAMES_TRACKED (128)
   frame_stats Frames[DEBUG_FRAMES_TRACKED];
 
   u32 ReadScopeIndex;
   s32 FreeScopeCount;
 
-#define REGISTERED_MEMORY_ARENA_COUNT (256)
+#define REGISTERED_MEMORY_ARENA_COUNT (1024)
   registered_memory_arena RegisteredMemoryArenas[REGISTERED_MEMORY_ARENA_COUNT];
 
 #define TRACKED_DRAW_CALLS_MAX (128)
