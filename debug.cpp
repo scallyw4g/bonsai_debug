@@ -275,24 +275,8 @@ QueryMemoryRequirements()
 link_export void
 BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s32 CallerIsInternalBuild)
 {
-  SetThreadLocal_ThreadIndex(0);
-
-  Global_DebugStatePointer = DebugState;
-  Global_ThreadStates = ThreadStates;
-
-  s32 WeAreInternalBuild = BONSAI_INTERNAL;
-
-  // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build!
-  if (WeAreInternalBuild != CallerIsInternalBuild)
-  {
-    Error("Detected Loading unmatched interal/external build for bonsai debug lib.  CallerInternal(%d), DebugInternal(%d)", CallerIsInternalBuild, WeAreInternalBuild);
-  }
-
-  Assert(DebugState);
-  Assert(ThreadStates);
-
-  InitializeOpenglFunctions();
-
+  // NOTE(Jesse): hook debug functions up before we make any function calls
+  // such that we have a well-working state to go from
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;
   DebugState->RegisterArena                   = RegisterArena;
@@ -321,6 +305,23 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s3
   DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
   DebugState->SetRenderer                     = SetRenderer;
+  SetThreadLocal_ThreadIndex(0);
+
+  Global_DebugStatePointer = DebugState;
+  Global_ThreadStates = ThreadStates;
+
+  s32 WeAreInternalBuild = BONSAI_INTERNAL;
+
+  // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build!
+  if (WeAreInternalBuild != CallerIsInternalBuild)
+  {
+    Error("Detected Loading unmatched interal/external build for bonsai debug lib.  CallerInternal(%d), DebugInternal(%d)", CallerIsInternalBuild, WeAreInternalBuild);
+  }
+
+  Assert(DebugState);
+  Assert(ThreadStates);
+
+  InitializeOpenglFunctions();
 }
 
 link_export b32
