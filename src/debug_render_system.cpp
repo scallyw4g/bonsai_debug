@@ -438,7 +438,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
     PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
     /* PushNewRow(Group); */
 
-    StartColumn(Group);
+    u32 StartIndex = StartColumn(Group);
 
     /* PushColumn(Group, CSz("Foo")); */
 
@@ -500,7 +500,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
       PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
     }
 
-    EndColumn(Group);
+    EndColumn(Group, StartIndex);
 
     PushNewRow(Group);
   }

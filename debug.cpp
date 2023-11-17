@@ -101,7 +101,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
     ui_style Style = UiStyleFromLightestColor(V3(1));
 
     PushTableStart(Ui);
-      StartColumn(Ui, &Style, Padding);
+      u32 Start = StartColumn(Ui, &Style, Padding);
         Text(Ui, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
           r64(PrevDt*1000.0f),
           r64(Dt.Max - Dt.Avg),
@@ -111,7 +111,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
           TotalStats.Pushes,
           TotalDrawCalls
         ));
-      EndColumn(Ui);
+      EndColumn(Ui, Start);
     PushTableEnd(Ui);
   }
 
