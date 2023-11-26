@@ -579,7 +579,7 @@ int RunPMCStuff() {
 
     /* memory_arena *Arena = AllocateArena(); */
     /* heap_allocator Heap = InitHeap(Gigabytes(8)); */
-    /* LoadVoxModel(Arena, &Heap, "models/chr_rain.vox"); */
+    /* LoadVoxModels(Arena, &Heap, "models/chr_rain.vox"); */
 
     session.stop();
 
