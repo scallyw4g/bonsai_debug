@@ -179,8 +179,6 @@ struct debug_state
 
   debug_thread_state *ThreadStates;
 
-  /* render_entity_to_texture_group PickedChunksRenderGroup; */
-
 #if DEBUG_SYSTEM_INTERNAL_BUILD
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
