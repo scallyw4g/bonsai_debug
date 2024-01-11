@@ -173,7 +173,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
   window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupAlign_Bottom|WindowLayoutFlag_StartupSize_InferHeight);
-  local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", {}, V2(0.f, TotalGraphWidth+150.f), Flags);
+  local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", {}, V2(TotalGraphWidth+150.f, 0.f), Flags);
 
   PushWindowStart(Group, &CycleGraphWindow);
 
@@ -246,73 +246,76 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
     TIMED_NAMED_BLOCK("Thread Loop");
 
     PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
-    /* PushNewRow(Group); */
-
-    u32 StartIndex = StartColumn(Group);
-
-    /* PushColumn(Group, CSz("Foo")); */
-
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-    Assert(ThreadState->ThreadId);
+
+    if (ThreadState->ThreadId)
+    {
+      u32 StartIndex = StartColumn(Group);
 
 #if 1
-    debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
-    debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
-    debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
-    while (CurrentBlock)
-    {
-      debug_context_switch_event_buffer *ContextSwitches = &CurrentBlock->Buffer;
-      debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
-
-      /* if (ThreadIndex == 0) */
-      /* { */
-      /*   DebugLine("%u", ContextSwitches->At); */
-      /* } */
-
-      b32 FoundOutOfOrderEvent = False;
-      for ( u32 ContextSwitchEventIndex = 1;
-                ContextSwitchEventIndex < ContextSwitches->At;
-              ++ContextSwitchEventIndex )
+      debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
+      debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
+      debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
+      while (CurrentBlock)
       {
-        debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
+        debug_context_switch_event_buffer *ContextSwitches = &CurrentBlock->Buffer;
+        debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
 
-        if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
-             RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
+        /* if (ThreadIndex == 0) */
+        /* { */
+        /*   DebugLine("%u", ContextSwitches->At); */
+        /* } */
+
+        b32 FoundOutOfOrderEvent = False;
+        for ( u32 ContextSwitchEventIndex = 1;
+                  ContextSwitchEventIndex < ContextSwitches->At;
+                ++ContextSwitchEventIndex )
         {
-          cycle_range Range = {
-            .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
-            .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
-          };
+          debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
 
-          if (LastCSwitchEvt->Type == ContextSwitch_On)
+          if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
+               RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
           {
-            v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
-            ui_style Style = UiStyleFromLightestColor(CoreColor);
-            PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+            cycle_range Range = {
+              .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
+              .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
+            };
+
+            if (LastCSwitchEvt->Type == ContextSwitch_On)
+            {
+              v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
+              ui_style Style = UiStyleFromLightestColor(CoreColor);
+              PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+            }
           }
+
+          LastCSwitchEvt = CSwitch;
         }
 
-        LastCSwitchEvt = CSwitch;
+        PrevBlock = CurrentBlock;
+        CurrentBlock = CurrentBlock->Next;
       }
 
-      PrevBlock = CurrentBlock;
-      CurrentBlock = CurrentBlock->Next;
-    }
-
-    PushForceAdvance(Group, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
+      PushForceAdvance(Group, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
 #endif
 
 
-    debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
-    if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
-    {
-      debug_timed_function BlockTimer2("Push Scope Bars");
-      PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+      debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
+      if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
+      {
+        debug_timed_function BlockTimer2("Push Scope Bars");
+        PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+      }
+
+      EndColumn(Group, StartIndex);
+
+      PushNewRow(Group);
     }
-
-    EndColumn(Group, StartIndex);
-
-    PushNewRow(Group);
+    else
+    {
+      PushColumn(Group, CSz(" : Unlaunched"));
+      PushNewRow(Group);
+    }
   }
 
   /* PushTableEnd(Group); */
@@ -651,7 +654,6 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
 
   DrawThreadsWindow(Group, DebugState);
 
-
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
 
@@ -737,13 +739,27 @@ PushCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At)
   if (At)
   {
     u64 CycleCount = GetCycleCount(At);
-    PushColumn(Group, CS(At->Name));
-    PushColumn(Group, CS(CycleCount));
-    PushNewRow(Group);
+    cs Name = FSz("%s %lu", At->Name, CycleCount);
 
     if (At->Child)
     {
-      PushCallgraphRecursive(Group, At->Child);
+      if (ToggleButton(Group, Name, Name, UiId(At, 0), &DefaultStyle,  DefaultButtonPadding, ColumnRenderParam_LeftAlign))
+      {
+        PushNewRow(Group);
+
+        PushForceUpdateBasis(Group, V2(20.f, 0.f));
+          PushCallgraphRecursive(Group, At->Child);
+        PushForceUpdateBasis(Group, V2(-20.f, 0.f));
+      }
+      else
+      {
+        PushNewRow(Group);
+      }
+    }
+    else
+    {
+      PushColumn(Group, Name, ColumnRenderParam_LeftAlign);
+      PushNewRow(Group);
     }
 
     if (At->Sibling)
@@ -751,8 +767,6 @@ PushCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At)
       PushCallgraphRecursive(Group, At->Sibling);
     }
   }
-
-  return;
 }
 
 link_internal void
@@ -811,10 +825,6 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
 #endif
 
   TIMED_BLOCK("Hot Function Stuff");
-    local_persist window_layout HotFunctionWindow = WindowLayout("Hot Function Window?", V2(400, 200));
-    PushWindowStart(Group, &HotFunctionWindow);
-    PushTableStart(Group);
-
 
     if (DebugState->HotFunction)
     {
@@ -857,9 +867,13 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
 
 
       {
+        local_persist window_layout HotFunctionWindow = WindowLayout("Hot Function Window", V2(400, 200));
+        PushWindowStart(Group, &HotFunctionWindow);
+        PushTableStart(Group);
+
         for (u32 SortIndex = 0;
-             SortIndex < Min(100u, SortKeyCount);
-             ++SortIndex)
+                 SortIndex < SortKeyCount;
+               ++SortIndex)
         {
           debug_profile_scope* CurrentScope = (debug_profile_scope*)SortBuffer[SortIndex].Index;
 
@@ -873,13 +887,18 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
           DebugChars("\n");
 #else
           PushColumn(Group, CS(CurrentScope->Name));
-          PushNewRow(Group);
           PushColumn(Group, CS(GetCycleCount(CurrentScope)));
           PushNewRow(Group);
+          PushNewRow(Group);
           PushCallgraphRecursive(Group, CurrentScope->Child);
+          PushNewRow(Group);
+          PushNewRow(Group);
 #endif
 
         }
+
+        PushTableEnd(Group);
+        PushWindowEnd(Group, &HotFunctionWindow);
       }
 #if TEXT_OUTPUT_FOR_FUNCTION_CALLS
       exit(0);
@@ -888,8 +907,6 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
 
     }
 
-    PushTableEnd(Group);
-    PushWindowEnd(Group, &HotFunctionWindow);
   END_BLOCK();
 
 

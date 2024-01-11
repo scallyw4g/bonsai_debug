@@ -20,7 +20,7 @@ struct bonsai_debug_system
   b32 Initialized;
 };
 
-#if DEBUG_SYSTEM_API
+#if BONSAI_DEBUG_SYSTEM_API
 
 struct debug_state;
 struct debug_scope_tree;
@@ -179,7 +179,7 @@ struct debug_state
 
   debug_thread_state *ThreadStates;
 
-#if DEBUG_SYSTEM_INTERNAL_BUILD
+#if BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
   // code that the library relies on.
@@ -317,12 +317,12 @@ void DebugTimedMutexReleased(mutex *Mut);
 /* global_variable debug_state *Global_DebugStatePointer; */
 
 global_variable r64 Global_LastDebugTime = 0;
-r64 GetDt()
+r32 GetDt()
 {
   r64 ThisTime = GetHighPrecisionClock();
   r64 Result = ThisTime - Global_LastDebugTime;
   Global_LastDebugTime = ThisTime;
-  return Result;
+  return r32(Result);
 }
 
 bool
@@ -380,7 +380,7 @@ InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates
 }
 
 
-#else // DEBUG_SYSTEM_API
+#else // BONSAI_DEBUG_SYSTEM_API
 
 
 #define TIMED_FUNCTION(...)
@@ -407,4 +407,4 @@ InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates
 #define DEBUG_TRACK_DRAW_CALL(...)
 
 
-#endif //  DEBUG_SYSTEM_API
+#endif //  BONSAI_DEBUG_SYSTEM_API

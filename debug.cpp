@@ -1,5 +1,6 @@
-#define DEBUG_SYSTEM_API 1
-#define DEBUG_SYSTEM_INTERNAL_BUILD 1
+#define BONSAI_DEBUG_SYSTEM_API 1
+#define BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD 1
+
 
 #define PLATFORM_WINDOW_IMPLEMENTATIONS 1
 
@@ -16,6 +17,8 @@
 #include <bonsai_debug/src/platform/win32_etw.cpp>
 /* #include <bonsai_debug/src/platform/win32_pmc.cpp> */
 #endif
+
+CAssert(BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD == 1);
 
 /* debug_state *Global_DebugStatePointer; */
 
@@ -37,15 +40,15 @@ DebugFrameEnd(r32 dt)
   DebugState->BytesBufferedToCard = 0;
 
   for( u32 DrawCountIndex = 0;
-       DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
-       ++ DrawCountIndex)
+           DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
+         ++DrawCountIndex)
   {
     GetDebugState()->TrackedDrawCalls[DrawCountIndex] = NullDrawCall;
   }
 
   for ( u32 FunctionIndex = 0;
-      FunctionIndex < MAX_RECORDED_FUNCTION_CALLS;
-      ++FunctionIndex)
+            FunctionIndex < MAX_RECORDED_FUNCTION_CALLS;
+          ++FunctionIndex)
   {
     ProgramFunctionCalls[FunctionIndex] = NullFunctionCall;
   }
@@ -73,7 +76,6 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
   /* State->UiGroup.NumMinimizedWindowsDrawn = 0; */
 
   Ensure( RewindArena(GetTranArena()) );
-
 
 
   TIMED_BLOCK("Draw Status Bar");

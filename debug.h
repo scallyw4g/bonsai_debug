@@ -1,5 +1,5 @@
 
-#if DEBUG_SYSTEM_API
+#if BONSAI_DEBUG_SYSTEM_API
 
 #define DEFAULT_DEBUG_LIB "./bin/lib_debug_system_loadable" PLATFORM_RUNTIME_LIB_EXTENSION
 
