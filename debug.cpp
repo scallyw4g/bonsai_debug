@@ -114,6 +114,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
           TotalDrawCalls
         ));
       EndColumn(Ui, Start);
+      PushNewRow(Ui);
     PushTableEnd(Ui);
   }
 
@@ -176,6 +177,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
       }
     }
 
+    PushNewRow(Ui);
     PushTableEnd(Ui);
 
 
