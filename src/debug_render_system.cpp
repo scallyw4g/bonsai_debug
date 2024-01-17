@@ -128,6 +128,7 @@ global_variable r32 Global_CoreBarPadding = 3.f;
 
 link_internal void
 PushScopeBarsRecursive( debug_ui_render_group *Group,
+                        window_layout *Window,
                         debug_profile_scope *Scope,
                         cycle_range *Frame,
                         r32 TotalGraphWidth,
@@ -151,14 +152,14 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
 
     {
       cs ScopeName = CS(Scope->Name);
-      interactable_handle Bar = PushButtonStart(Group, (umm)"CycleBarHoverInteraction"^(umm)Scope);
+      interactable_handle Bar = PushButtonStart(Group, UiId(Window, "CycleBarHoverInteraction", Scope));
         PushCycleBar(Group, &Range, Frame, TotalGraphWidth, BarHeight, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
       PushButtonEnd(Group);
       if (Hover(Group, &Bar)) { PushTooltip(Group, ScopeName); }
       if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
     }
 
-    if (Scope->Expanded) { PushScopeBarsRecursive(Group, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
+    if (Scope->Expanded) { PushScopeBarsRecursive(Group, Window, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
     Scope = Scope->Sibling;
   }
 
@@ -304,7 +305,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
       if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
       {
         debug_timed_function BlockTimer2("Push Scope Bars");
-        PushScopeBarsRecursive(Group, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
       }
 
       EndColumn(Group, StartIndex);
@@ -503,8 +504,12 @@ DumpScopeTreeDataToConsole_Internal(debug_profile_scope *Scope_in, debug_profile
 
 link_internal void
 BufferFirstCallToEach(debug_ui_render_group *Group,
-                      debug_profile_scope *Scope_in, debug_profile_scope *TreeRoot,
-                      memory_arena *Memory, window_layout* Window, u64 TotalFrameCycles, u32 Depth)
+                      debug_profile_scope *Scope_in,
+                      debug_profile_scope *TreeRoot,
+                      memory_arena *Memory,
+                      window_layout* Window,
+                      u64 TotalFrameCycles,
+                      u32 Depth)
 {
   unique_debug_profile_scope* UniqueScopes = {};
 
@@ -533,7 +538,7 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
 
   while (UniqueScopes)
   {
-    interactable_handle ScopeTextInteraction = PushButtonStart(Group, (umm)UniqueScopes->Scope);
+    interactable_handle ScopeTextInteraction = PushButtonStart(Group, UiId(Window, "profile_scope", UniqueScopes->Scope) );
       BufferScopeTreeEntry(Group, UniqueScopes->Scope, UniqueScopes->TotalCycles, TotalFrameCycles, UniqueScopes->CallCount, Depth);
     PushButtonEnd(Group);
     PushNewRow(Group);
@@ -554,7 +559,7 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
 }
 
 link_internal void
-DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
+DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
@@ -614,7 +619,7 @@ DrawFrameTicker(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs
          UiStyleFromLightestColor(V3(Brightness, Brightness, Brightness)) :
          DefaultBlurredStyle;
 
-      interactable_handle B = PushButtonStart(Group, (umm)"FrameTickerHoverInteraction"+(umm)FrameIndex);
+      interactable_handle B = PushButtonStart(Group, UiId(Window, "FrameTickerHoverInteraction", FrameIndex) );
         PushUntexturedQuad(Group, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, QuadRenderParam_NoAdvance);
         PushUntexturedQuad(Group, Offset, QuadDim, zDepth_Background, &Style, Pad);
       PushButtonEnd(Group);
@@ -650,7 +655,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
 {
   TIMED_FUNCTION();
 
-  DrawFrameTicker(Group, DebugState, Max(33.3f, MaxMs));
+  DrawFrameTicker(Group, 0, DebugState, Max(33.3f, MaxMs));
 
   DrawThreadsWindow(Group, DebugState);
 
@@ -734,7 +739,7 @@ DumpScopeTreeDataToConsole()
 
 
 link_internal void
-PushCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At)
+PushCallgraphRecursive(debug_ui_render_group *Group, window_layout *Window, debug_profile_scope* At)
 {
   if (At)
   {
@@ -743,12 +748,12 @@ PushCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At)
 
     if (At->Child)
     {
-      if (ToggleButton(Group, Name, Name, UiId(At, 0), &DefaultStyle,  DefaultButtonPadding, ColumnRenderParam_LeftAlign))
+      if (ToggleButton(Group, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle,  DefaultButtonPadding, ColumnRenderParam_LeftAlign))
       {
         PushNewRow(Group);
 
         PushForceUpdateBasis(Group, V2(20.f, 0.f));
-          PushCallgraphRecursive(Group, At->Child);
+          PushCallgraphRecursive(Group, Window, At->Child);
         PushForceUpdateBasis(Group, V2(-20.f, 0.f));
       }
       else
@@ -764,7 +769,7 @@ PushCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At)
 
     if (At->Sibling)
     {
-      PushCallgraphRecursive(Group, At->Sibling);
+      PushCallgraphRecursive(Group, Window, At->Sibling);
     }
   }
 }
@@ -890,7 +895,7 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
           PushColumn(Group, CS(GetCycleCount(CurrentScope)));
           PushNewRow(Group);
           PushNewRow(Group);
-          PushCallgraphRecursive(Group, CurrentScope->Child);
+          PushCallgraphRecursive(Group, &HotFunctionWindow, CurrentScope->Child);
           PushNewRow(Group);
           PushNewRow(Group);
 #endif
@@ -997,7 +1002,7 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
 
 
 link_internal interactable_handle
-PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, umm InteractionId, r32 BarHeight)
+PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, ui_id InteractionId, r32 BarHeight)
 {
   counted_string StatsString = FormatCountedString(GetTranArena(), CSz("%S / %S (%S)"), MemorySize(TotalUsed), MemorySize(TotalUsed + Remaining), MemorySize(Remaining));
   PushColumn(Group, StatsString);
@@ -1015,7 +1020,7 @@ PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalU
 }
 
 link_internal void
-PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
+PushMemoryBargraphTable(debug_ui_render_group *Group, window_layout *Window, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
 {
   PushNewRow(Group);
   v3 DefaultForegroundColor =  V3(.25f, .1f, .35f);
@@ -1023,7 +1028,8 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedA
 
   r32 TotalPerc = (r32)SafeDivide0(TotalUsed, MemStats.TotalAllocated);
   // TODO(Jesse, id: 110, tags: ui, semantic): Should we do something special when interacting with this thing instead of Ignored-ing it?
-  PushArenaBargraph(Group, DefaultForegroundColor, DefaultBackgroundColor, TotalUsed, TotalPerc, MemStats.Remaining, (umm)"Ignored", Global_Font.Size.y);
+  ui_id Ignored = {};
+  PushArenaBargraph(Group, DefaultForegroundColor, DefaultBackgroundColor, TotalUsed, TotalPerc, MemStats.Remaining, Ignored, Global_Font.Size.y);
   PushNewRow(Group);
 
   memory_arena *CurrentArena = HeadArena;
@@ -1046,7 +1052,7 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, selected_arenas *SelectedA
     u64 CurrentUsed = TotalSize(CurrentArena) - Remaining(CurrentArena);
     r32 CurrentPerc = (r32)SafeDivide0(CurrentUsed, TotalSize(CurrentArena));
 
-    interactable_handle Handle = PushArenaBargraph(Group, FColor, BColor, CurrentUsed, CurrentPerc, Remaining(CurrentArena), HashArena(CurrentArena), Global_Font.Size.y*.5f);
+    interactable_handle Handle = PushArenaBargraph(Group, FColor, BColor, CurrentUsed, CurrentPerc, Remaining(CurrentArena), UiId(Window, "arena_bargraph", HashArena(CurrentArena)), Global_Font.Size.y*.5f);
     if (Clicked(Group, &Handle))
     {
       selected_memory_arena *Found = 0;
@@ -1294,7 +1300,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     ui_style UnnamedStyle = UntrackedAllocationsExpanded ? DefaultSelectedStyle : DefaultStyle;
 
     interactable_handle UnknownAllocationsExpandInteraction =
-    PushButtonStart(Group, (umm)"unnamed MemoryWindowExpandInteraction");
+    PushButtonStart(Group, UiId(MemoryArenaList, "unnamed arenas memory_window_expand_interaction", 0ull));
       PushColumn(Group, CSz("?"), &UnnamedStyle);
       PushColumn(Group, CSz("?"), &UnnamedStyle);
       PushColumn(Group, CSz("?"), &UnnamedStyle);
@@ -1326,7 +1332,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     if (Current->Tombstone)
     {
       ExpandInteraction =
-      PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
         PushColumn(Group, CS(Current->Name),                   &Style);
         PushColumn(Group, CSz("Tombstoned"),                   &Style);
         PushColumn(Group, CS(0),                               &Style);
@@ -1340,7 +1346,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
 
       ExpandInteraction =
-      PushButtonStart(Group, (umm)"MemoryWindowExpandInteraction"^(umm)Current);
+      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
         PushColumn(Group, CS(Current->Name),                   &Style);
         PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
         PushColumn(Group, CS(MemStats.Pushes),                 &Style);
@@ -1421,7 +1427,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       /* PushTableEnd(Group); */
 
       ui_element_reference BargraphTable = PushTableStart(Group);
-        PushMemoryBargraphTable(Group, SelectedArenas, MemStats, TotalUsed, Current->Arena);
+        PushMemoryBargraphTable(Group, MemoryArenaDetails, SelectedArenas, MemStats, TotalUsed, Current->Arena);
       PushTableEnd(Group);
 
       PushTableStart(Group);
