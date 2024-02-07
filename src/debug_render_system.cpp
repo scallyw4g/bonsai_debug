@@ -361,7 +361,10 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
     }
   }
 
-  u64 AvgCycles = TotalCycles / AtElements(&SharedState->HistogramSamples);
+  u64 Elements = AtElements(&SharedState->HistogramSamples);
+
+  u64 AvgCycles = 0;
+  if (Elements) { AvgCycles = TotalCycles / Elements; }
 
   PushColumn(Ui, CSz("Max Cycles"));
   PushColumn(Ui, CSz("Min Cycles"));
