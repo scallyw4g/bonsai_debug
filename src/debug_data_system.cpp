@@ -730,6 +730,12 @@ GetAllocationSize(memory_record *Meta)
   return AllocationSize;
 }
 
+link_internal void
+PushHistogramDataPoint(debug_timed_function *Timer)
+{
+  debug_state *DebugState = GetDebugState();
+  Push(&DebugState->HistogramSamples, *Timer->Scope);
+}
 
 
 /********************                               **************************/
@@ -830,7 +836,7 @@ AllocateContextSwitchBufferStream(memory_arena *Arena, u32 EventCount)
   return Result;
 }
 
-void
+link_internal void
 InitDebugDataSystem(debug_state *DebugState)
 {
   Assert(ThreadLocal_ThreadIndex == 0);
@@ -839,6 +845,8 @@ InitDebugDataSystem(debug_state *DebugState)
 
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
   MainThreadState->ThreadId = GetCurrentThreadId();
+
+  DebugState->HistogramSamples = DebugProfileScopeCursor(DEBUG_HISTOGRAM_MAX_SAMPLES, ThreadsafeDebugMemoryAllocator());
 
   s32 TotalThreadCount = (s32)GetTotalThreadCount();
   for (s32 ThreadIndex = 0;

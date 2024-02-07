@@ -10,6 +10,7 @@
 /* #include <engine/engine.h> */
 /* #include <engine/engine.cpp> */
 
+
 #include <bonsai_debug/src/debug_data_system.cpp>
 #include <bonsai_debug/src/debug_render_system.cpp>
 
@@ -309,6 +310,7 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s3
   DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
   DebugState->SetRenderer                     = SetRenderer;
+  DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
   SetThreadLocal_ThreadIndex(0);
 
   Global_DebugStatePointer = DebugState;

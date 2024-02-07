@@ -79,50 +79,6 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
   return;
 }
 
-/* #if 1 */
-/* bonsai_function scope_stats */
-/* GetStatsFor( debug_profile_scope *Target, debug_profile_scope *Root) */
-/* { */
-/*   scope_stats Result = {}; */
-
-/*   debug_profile_scope *Current = Root; */
-/*   if (Target->Parent) Current = Target->Parent->Child; // Selects first sibling */
-
-/*   while (Current) */
-/*   { */
-/*     if (Current == Target) // Find Ourselves */
-/*     { */
-/*       if (Result.Calls == 0) // We're first */
-/*       { */
-/*         Result.IsFirst = True; */
-/*       } */
-/*       else */
-/*       { */
-/*         break; */
-/*       } */
-/*     } */
-
-/*     // These are compile-time string constants, so we can compare pointers to */
-/*     // find equality */
-/*     if (Current->Name == Target->Name) */
-/*     { */
-/*       ++Result.Calls; */
-/*       Result.CumulativeCycles += Current->CycleCount; */
-
-/*       if (!Result.MinScope || Current->CycleCount < Result.MinScope->CycleCount) */
-/*         Result.MinScope = Current; */
-
-/*       if (!Result.MaxScope || Current->CycleCount > Result.MaxScope->CycleCount) */
-/*         Result.MaxScope = Current; */
-/*     } */
-
-/*     Current = Current->Sibling; */
-/*   } */
-
-/*   return Result; */
-/* } */
-/* #endif */
-
 global_variable r32 Global_CoreBarHeight = 3.f;
 global_variable r32 Global_CoreBarPadding = 3.f;
 
@@ -166,7 +122,7 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
   return;
 }
 
-link_internal window_layout *
+link_internal void
 DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
 {
   TIMED_FUNCTION();
@@ -359,10 +315,84 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
   END_BLOCK("Mutex Record Collation");
 #endif
   PushWindowEnd(Group, &CycleGraphWindow);
-
-  return &CycleGraphWindow;
 }
 
+link_internal interactable_handle
+DrawHistogramCell(renderer_2d *Ui, window_layout *Window, u32 ThingIndex, v2 MaxCellDim, r32 Perc, v3 Foreground, v3 Background, v4 Pad)
+{
+  r32 VerticalAdvance = MaxCellDim.y;
+
+  v2 QuadDim = MaxCellDim * V2(1.0f, Perc);
+  v2 Offset = V2(0.f, VerticalAdvance-QuadDim.y);
+
+  ui_style Style = UiStyleFromLightestColor(Foreground);
+  ui_style BackgroundStyle = UiStyleFromLightestColor(Background);
+
+  interactable_handle B = PushButtonStart(Ui, UiId(Window, "HistogramInteraction", ThingIndex) );
+    PushUntexturedQuad(Ui, V2(Pad.x, 0), MaxCellDim, zDepth_Background, &BackgroundStyle, {}, QuadRenderParam_NoAdvance);
+    PushUntexturedQuad(Ui, Offset, QuadDim, zDepth_Background, &Style, Pad);
+  PushButtonEnd(Ui);
+
+  return B;
+}
+
+link_internal void
+DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
+{
+  TIMED_FUNCTION();
+
+  random_series Entropy = {};
+  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupAlign_BottomRight|WindowLayoutFlag_StartupSize_InferHeight);
+  local_persist window_layout Window = WindowLayout("Histogram", Flags);
+
+  r32 GraphHeight = 200.f;
+  PushWindowStart(Ui, &Window);
+
+  u64 MinCycles = u64_MAX;
+  u64 MaxCycles = 0;
+  u64 TotalCycles = 0;
+  {
+    IterateOver(&SharedState->HistogramSamples, Sample, SampleIndex)
+    {
+      u64 CycleCount = Sample->EndingCycle-Sample->StartingCycle;
+      MaxCycles = Max(MaxCycles, CycleCount);
+      MinCycles = Min(MinCycles, CycleCount);
+      TotalCycles += CycleCount;
+    }
+  }
+
+  u64 AvgCycles = TotalCycles / AtElements(&SharedState->HistogramSamples);
+
+  PushColumn(Ui, CSz("Max Cycles"));
+  PushColumn(Ui, CSz("Min Cycles"));
+  PushColumn(Ui, CSz("Avg Cycles"));
+  PushNewRow(Ui);
+
+  PushColumn(Ui, CS(MaxCycles));
+  PushColumn(Ui, CS(MinCycles));
+  PushColumn(Ui, CS(AvgCycles));
+  PushNewRow(Ui);
+
+  {
+    IterateOver(&SharedState->HistogramSamples, Sample, SampleIndex)
+    {
+      Assert(Sample->EndingCycle>=Sample->StartingCycle);
+
+      u64 CycleCount = Sample->EndingCycle-Sample->StartingCycle;
+      /* r32 Perc = log2f(CycleCount/MaxCycles); */
+      r32 Perc = r32(r64(CycleCount)/r64(MaxCycles));
+
+      interactable_handle B = DrawHistogramCell(Ui, &Window, u32(SampleIndex), V2(1.f, GraphHeight), Perc, V3(1.f), V3(0.3f), V4(0.f));
+
+      if (Hover(Ui, &B))
+      {
+        PushTooltip(Ui, FSz("%lu / %lu (%.2f)%%", CycleCount, MaxCycles, r64(Perc*100.f)));
+      }
+    }
+  }
+
+  PushWindowEnd(Ui, &Window);
+}
 
 
 /******************************              *********************************/
@@ -658,6 +688,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
   DrawFrameTicker(Group, 0, DebugState, Max(33.3f, MaxMs));
 
   DrawThreadsWindow(Group, DebugState);
+  DrawHistogram(Group, DebugState);
 
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;

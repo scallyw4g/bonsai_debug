@@ -77,8 +77,8 @@ typedef void                 (*debug_value_u32_proc)                   (u32, con
 typedef void                 (*debug_value_u64_proc)                   (u64, const char*);
 typedef void                 (*debug_dump_scope_tree_data_to_console)  ();
 
-typedef void                 (*debug_clear_memory_records_proc)          (memory_arena*);
-typedef void                 (*debug_write_memory_record_proc)           (memory_record*);
+typedef void                 (*debug_clear_memory_records_proc)        (memory_arena*);
+typedef void                 (*debug_write_memory_record_proc)         (memory_record*);
 
 typedef b32                  (*debug_open_window_proc)                 ();
 typedef void                 (*debug_redraw_window_proc)               ();
@@ -107,6 +107,12 @@ struct debug_profile_scope
 // every time we need another one)
 /* CAssert(sizeof(debug_profile_scope) == CACHE_LINE_SIZE); */
 
+poof(are_equal(debug_profile_scope))
+#include <generated/are_equal_debug_profile_scope.h>
+
+poof(generate_cursor(debug_profile_scope))
+#include <generated/generate_cursor_debug_profile_scope.h>
+
 struct debug_scope_tree
 {
   debug_profile_scope *Root;
@@ -127,6 +133,8 @@ enum debug_ui_type
   DebugUIType_Network               = (1 << 5),
   DebugUIType_DrawCalls             = (1 << 6),
 };
+
+struct debug_timed_function;
 
 struct debug_state
 {
@@ -168,6 +176,7 @@ struct debug_state
 
   b32  (*InitializeRenderSystem)(heap_allocator*, memory_arena*);
   void (*SetRenderer)(renderer_2d*);
+  void (*PushHistogramDataPoint)(debug_timed_function*);
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
@@ -197,7 +206,10 @@ struct debug_state
 
   b32 DisplayDebugMenu;
 
-  debug_profile_scope* HotFunction;
+  debug_profile_scope *HotFunction;
+
+#define DEBUG_HISTOGRAM_MAX_SAMPLES (32000) // TODO(Jesse): ??
+  debug_profile_scope_cursor HistogramSamples;
 
   debug_profile_scope FreeScopeSentinel;
 
@@ -282,8 +294,30 @@ struct debug_timed_function
 
 };
 
+struct debug_histogram_function : debug_timed_function
+{
+  debug_histogram_function(const char* Name) : debug_timed_function(Name) {}
+
+  ~debug_histogram_function()
+  {
+    debug_state *DebugState = GetDebugState();
+    if (DebugState)
+    {
+      if (!DebugState->DebugDoScopeProfiling) return;
+      if (!this->Scope) return;
+
+      // NOTE(Jesse): Kinda henious hack because the constructor/destructor
+      // ordering is the wrong way for this to work.  I couldn't think of a
+      // better way to do this..
+      this->Scope->EndingCycle = __rdtsc();
+      DebugState->PushHistogramDataPoint(this);
+    }
+  }
+};
+
 #define TIMED_FUNCTION() debug_timed_function FunctionTimer(__func__)
 #define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockTimer1(BlockName)
+#define HISTOGRAM_FUNCTION() debug_histogram_function FunctionTimer(__func__)
 
 #define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer0(BlockName)
 #define END_BLOCK(BlockName) } do {} while (0)
@@ -385,6 +419,7 @@ InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates
 
 #define TIMED_FUNCTION(...)
 #define TIMED_NAMED_BLOCK(...)
+#define HISTOGRAM_FUNCTION(...)
 
 #define TIMED_BLOCK(...)
 #define END_BLOCK(...)
