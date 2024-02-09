@@ -734,6 +734,11 @@ link_internal void
 PushHistogramDataPoint(debug_timed_function *Timer)
 {
   debug_state *DebugState = GetDebugState();
+  if (AtElements(&DebugState->HistogramSamples) == TotalElements(&DebugState->HistogramSamples))
+  {
+    DebugState->HistogramSamples.At = DebugState->HistogramSamples.Start;
+  }
+
   Push(&DebugState->HistogramSamples, *Timer->Scope);
 }
 

@@ -345,23 +345,34 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
   window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupAlign_BottomRight|WindowLayoutFlag_StartupSize_InferHeight);
   local_persist window_layout Window = WindowLayout("Histogram", Flags);
 
+
   r32 GraphHeight = 200.f;
   PushWindowStart(Ui, &Window);
 
   u64 MinCycles = u64_MAX;
   u64 MaxCycles = 0;
   u64 TotalCycles = 0;
+
+  u64 Elements = 0;
+  const char *Name = 0;
   {
-    IterateOver(&SharedState->HistogramSamples, Sample, SampleIndex)
+    for (u32 SampleIndex = 0; SampleIndex < DEBUG_HISTOGRAM_MAX_SAMPLES; ++SampleIndex)
     {
+      debug_profile_scope *Sample = SharedState->HistogramSamples.Start+SampleIndex;
+
       u64 CycleCount = Sample->EndingCycle-Sample->StartingCycle;
       MaxCycles = Max(MaxCycles, CycleCount);
       MinCycles = Min(MinCycles, CycleCount);
       TotalCycles += CycleCount;
+      if (CycleCount) { ++Elements; Name = Sample->Name; }
     }
   }
 
-  u64 Elements = AtElements(&SharedState->HistogramSamples);
+  if (Name)
+  {
+    Window.Title = FSz("Histogram : %s", Name);
+  }
+
 
   u64 AvgCycles = 0;
   if (Elements) { AvgCycles = TotalCycles / Elements; }
@@ -377,19 +388,21 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
   PushNewRow(Ui);
 
   {
-    IterateOver(&SharedState->HistogramSamples, Sample, SampleIndex)
+    for (u32 SampleIndex = 0; SampleIndex < DEBUG_HISTOGRAM_MAX_SAMPLES; ++SampleIndex)
     {
-      Assert(Sample->EndingCycle>=Sample->StartingCycle);
+      debug_profile_scope *Sample = SharedState->HistogramSamples.Start+SampleIndex;
 
-      u64 CycleCount = Sample->EndingCycle-Sample->StartingCycle;
-      /* r32 Perc = log2f(CycleCount/MaxCycles); */
-      r32 Perc = r32(r64(CycleCount)/r64(MaxCycles));
-
-      interactable_handle B = DrawHistogramCell(Ui, &Window, u32(SampleIndex), V2(1.f, GraphHeight), Perc, V3(1.f), V3(0.3f), V4(0.f));
-
-      if (Hover(Ui, &B))
+      if (Sample->EndingCycle > Sample->StartingCycle)
       {
-        PushTooltip(Ui, FSz("%lu / %lu (%.2f)%%", CycleCount, MaxCycles, r64(Perc*100.f)));
+        u64 CycleCount = Sample->EndingCycle-Sample->StartingCycle;
+        r32 Perc = r32(r64(CycleCount)/r64(MaxCycles));
+
+        interactable_handle B = DrawHistogramCell(Ui, &Window, u32(SampleIndex), V2(1.f, GraphHeight), Perc, V3(1.f), V3(0.3f), V4(0.f));
+
+        if (Hover(Ui, &B))
+        {
+          PushTooltip(Ui, FSz("%lu / %lu (%.2f)%%", CycleCount, MaxCycles, r64(Perc*100.f)));
+        }
       }
     }
   }
