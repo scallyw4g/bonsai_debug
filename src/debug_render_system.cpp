@@ -362,9 +362,13 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
 
       u64 CycleCount = Sample->EndingCycle-Sample->StartingCycle;
       MaxCycles = Max(MaxCycles, CycleCount);
-      MinCycles = Min(MinCycles, CycleCount);
-      TotalCycles += CycleCount;
-      if (CycleCount) { ++Elements; Name = Sample->Name; }
+      if (CycleCount)
+      {
+        MinCycles = Min(MinCycles, CycleCount);
+        TotalCycles += CycleCount;
+       ++Elements;
+       Name = Sample->Name; 
+      }
     }
   }
 
