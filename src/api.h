@@ -208,7 +208,7 @@ struct debug_state
 
   debug_profile_scope *HotFunction;
 
-#define DEBUG_HISTOGRAM_MAX_SAMPLES (1024*2) // TODO(Jesse): ??
+#define DEBUG_HISTOGRAM_MAX_SAMPLES (1024*10) // TODO(Jesse): ??
   debug_profile_scope_cursor HistogramSamples;
 
   debug_profile_scope FreeScopeSentinel;
