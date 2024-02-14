@@ -1,6 +1,9 @@
 /* debug_global thread_local u32 ThreadLocal_ThreadIndex = 0; */
 debug_global b32 DebugGlobal_RedrawEveryPush = 0;
 
+inline memory_arena *
+ThreadsafeDebugMemoryAllocator();
+
 debug_scope_tree* GetReadScopeTree(u32 ThreadIndex)
 {
   debug_scope_tree *RootScope = &GetDebugState()->ThreadStates[ThreadIndex].ScopeTrees[GetDebugState()->ReadScopeIndex];
@@ -218,7 +221,7 @@ GetRegisteredMemoryArena(memory_arena *Arena)
   return Result;
 }
 
-void
+link_internal void
 WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Comparator)
 {
   u32 HashValue = (umm)Hash(CS(Query->Name)) % META_TABLE_SIZE;
@@ -248,6 +251,10 @@ WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Com
   else
   {
     *PickMeta = *Query;
+
+    // NOTE(Jesse): We have to copy the string when we write a new record so
+    // that we don't hold pointers into old DLLs when we reload.
+    PickMeta->Name = CopyZString(Query->Name, ThreadsafeDebugMemoryAllocator());
   }
 
   return;
@@ -277,6 +284,36 @@ WriteMemoryRecord(memory_record *InputMeta)
 /****************************                    *****************************/
 
 
+
+#if 0
+// NOTE(Jesse): The `void *Source` is whatever allocator it came from
+link_internal void
+TrackAllocation(void* Source, umm StructSize, umm StructCount, const char *AllocationUUID, s32 Line, const char *File, umm Alignment, b32 MemProtect)
+{
+  umm PushSize = StructCount * StructSize;
+  void* Result = PushStruct( Arena, PushSize, Alignment, MemProtect);
+
+  memory_record ArenaMetadata =
+  {
+    .Name = AllocationUUID,
+    .ArenaAddress = HashArena(Arena),
+    .ArenaMemoryBlock = HashArenaBlock(Arena),
+    .StructSize = StructSize,
+    .StructCount = StructCount,
+    .ThreadId = ThreadLocal_ThreadIndex,
+    .PushCount = 1
+  };
+  WriteMemoryRecord(&ArenaMetadata);
+
+#if BONSAI_INTERNAL
+  Arena->Pushes++;
+#endif
+
+  if (!Result) { Error("Pushing %s on Line: %d, in file %s", AllocationUUID, Line, File); }
+
+  return Result;
+}
+#endif
 
 void*
 DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char *AllocationUUID, s32 Line, const char *File, umm Alignment, b32 MemProtect)
