@@ -254,7 +254,7 @@ ProcessInputAndRedrawWindow()
   while ( ProcessOsMessages(&Os, &Plat) );
   Plat.MouseDP = LastMouseP - Plat.MouseP;
 
-  Assert(Plat.WindowWidth && Plat.WindowHeight);
+  Assert(Plat.ScreenDim.x > 0 && Plat.ScreenDim.y > 0);
 
   BindHotkeysToInput(&Hotkeys, &Plat.Input);
 
