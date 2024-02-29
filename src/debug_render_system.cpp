@@ -129,7 +129,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
 
   random_series Entropy = {};
   r32 TotalGraphWidth = 1500.0f;
-  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupAlign_Bottom|WindowLayoutFlag_StartupSize_InferHeight);
+  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_Align_Bottom|WindowLayoutFlag_StartupSize_InferHeight);
   local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", {}, V2(TotalGraphWidth+150.f, 0.f), Flags);
 
   PushWindowStart(Group, &CycleGraphWindow);
@@ -342,7 +342,7 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
   TIMED_FUNCTION();
 
   random_series Entropy = {};
-  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupAlign_BottomRight|WindowLayoutFlag_StartupSize_InferHeight);
+  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_Align_BottomRight|WindowLayoutFlag_StartupSize_InferHeight);
   local_persist window_layout Window = WindowLayout("Histogram", Flags);
 
 
@@ -714,7 +714,7 @@ DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 Ma
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
 
   TIMED_BLOCK("Call Graph");
-    local_persist window_layout FunctionTreeWindow = WindowLayout("Function Tree", WindowLayoutFlag_StartupAlign_Right);
+    local_persist window_layout FunctionTreeWindow = WindowLayout("Function Tree", WindowLayoutFlag_Align_Right);
 
     PushWindowStart(Group, &FunctionTreeWindow);
       PushTableStart(Group);
