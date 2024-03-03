@@ -1079,7 +1079,7 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, window_layout *Window, sel
 
   r32 TotalPerc = (r32)SafeDivide0(TotalUsed, MemStats.TotalAllocated);
   // TODO(Jesse, id: 110, tags: ui, semantic): Should we do something special when interacting with this thing instead of Ignored-ing it?
-  ui_id Ignored = {};
+  ui_id Ignored = {1,2,3,4};
   PushArenaBargraph(Group, DefaultForegroundColor, DefaultBackgroundColor, TotalUsed, TotalPerc, MemStats.Remaining, Ignored, Global_Font.Size.y);
   PushNewRow(Group);
 
@@ -1384,7 +1384,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     {
       ExpandInteraction =
       PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(Current->Name),                   &Style);
+        PushColumn(Group, CS(""),                              &Style);
         PushColumn(Group, CSz("Tombstoned"),                   &Style);
         PushColumn(Group, CS(0),                               &Style);
         PushColumn(Group, CS(Current->ThreadId),               &Style);
