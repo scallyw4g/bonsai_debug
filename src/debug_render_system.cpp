@@ -790,7 +790,7 @@ DumpScopeTreeDataToConsole()
 
 
 link_internal void
-PushCallgraphRecursive(debug_ui_render_group *Group, window_layout *Window, debug_profile_scope* At)
+PushCallgraphRecursive(debug_ui_render_group *Ui, window_layout *Window, debug_profile_scope* At)
 {
   if (At)
   {
@@ -799,28 +799,27 @@ PushCallgraphRecursive(debug_ui_render_group *Group, window_layout *Window, debu
 
     if (At->Child)
     {
-      if (ToggleButton(Group, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle,  DefaultButtonPadding, ColumnRenderParam_LeftAlign))
+      if (ToggleButton(Ui, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle,  DefaultButtonPadding, ColumnRenderParam_LeftAlign))
       {
-        PushNewRow(Group);
-
-        PushForceUpdateBasis(Group, V2(20.f, 0.f));
-          PushCallgraphRecursive(Group, Window, At->Child);
-        PushForceUpdateBasis(Group, V2(-20.f, 0.f));
+        PushNewRow(Ui);
+        OPEN_INDENT_FOR_TOGGLEABLE_REGION();
+        PushCallgraphRecursive(Ui, Window, At->Child);
+        CLOSE_INDENT_FOR_TOGGLEABLE_REGION();
       }
       else
       {
-        PushNewRow(Group);
+        PushNewRow(Ui);
       }
     }
     else
     {
-      PushColumn(Group, Name, ColumnRenderParam_LeftAlign);
-      PushNewRow(Group);
+      PushColumn(Ui, Name, ColumnRenderParam_LeftAlign);
+      PushNewRow(Ui);
     }
 
     if (At->Sibling)
     {
-      PushCallgraphRecursive(Group, Window, At->Sibling);
+      PushCallgraphRecursive(Ui, Window, At->Sibling);
     }
   }
 }
