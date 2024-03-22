@@ -74,7 +74,7 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 
   u32 DepthSpaces = (Depth*2)+1;
   counted_string NameString = BuildNameStringFor(Prefix, CS(Scope->Name), DepthSpaces);
-  PushColumn(Group, NameString, &DefaultStyle, DefaultColumnPadding, ColumnRenderParam_LeftAlign);
+  PushColumn(Group, NameString, &DefaultStyle, DefaultColumnPadding, UiElementAlignmentFlag_LeftAlign);
 
   return;
 }
@@ -181,12 +181,12 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
     {
       r32 FramePerc = 16.666666f/TotalMs;
       r32 xOffset = FramePerc*TotalGraphWidth;
-      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), QuadRenderParam_NoAdvance);
+      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
     {
       r32 FramePerc = 33.333333f/TotalMs;
       r32 xOffset = FramePerc*TotalGraphWidth;
-      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), QuadRenderParam_NoAdvance);
+      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
   }
 #endif
@@ -329,7 +329,7 @@ DrawHistogramCell(renderer_2d *Ui, window_layout *Window, u32 ThingIndex, v2 Max
   ui_style BackgroundStyle = UiStyleFromLightestColor(Background);
 
   interactable_handle B = PushButtonStart(Ui, UiId(Window, "HistogramInteraction", ThingIndex) );
-    PushUntexturedQuad(Ui, V2(Pad.x, 0), MaxCellDim, zDepth_Background, &BackgroundStyle, {}, QuadRenderParam_NoAdvance);
+    PushUntexturedQuad(Ui, V2(Pad.x, 0), MaxCellDim, zDepth_Background, &BackgroundStyle, {}, UiElementLayoutFlag_NoAdvance);
     PushUntexturedQuad(Ui, Offset, QuadDim, zDepth_Background, &Style, Pad);
   PushButtonEnd(Ui);
 
@@ -625,14 +625,14 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
       r32 MsPerc = SafeDivide0(33.333f, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
-      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), QuadRenderParam_NoAdvance);
+      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
 
     {
       r32 MsPerc = (r32)SafeDivide0(16.666f, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
-      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), QuadRenderParam_NoAdvance);
+      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
 
     volatile umm MinCycles = u64_MAX;
@@ -670,7 +670,7 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
          DefaultBlurredStyle;
 
       interactable_handle B = PushButtonStart(Group, UiId(Window, "FrameTickerHoverInteraction", FrameIndex) );
-        PushUntexturedQuad(Group, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, QuadRenderParam_NoAdvance);
+        PushUntexturedQuad(Group, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, UiElementLayoutFlag_NoAdvance);
         PushUntexturedQuad(Group, Offset, QuadDim, zDepth_Background, &Style, Pad);
       PushButtonEnd(Group);
 
@@ -799,7 +799,7 @@ PushCallgraphRecursive(debug_ui_render_group *Ui, window_layout *Window, debug_p
 
     if (At->Child)
     {
-      if (ToggleButton(Ui, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle,  DefaultButtonPadding, ColumnRenderParam_LeftAlign))
+      if (ToggleButton(Ui, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle,  DefaultButtonPadding, UiElementAlignmentFlag_LeftAlign))
       {
         PushNewRow(Ui);
         OPEN_INDENT_FOR_TOGGLEABLE_REGION();
@@ -813,7 +813,7 @@ PushCallgraphRecursive(debug_ui_render_group *Ui, window_layout *Window, debug_p
     }
     else
     {
-      PushColumn(Ui, Name, ColumnRenderParam_LeftAlign);
+      PushColumn(Ui, Name, UiElementAlignmentFlag_LeftAlign);
       PushNewRow(Ui);
     }
 
