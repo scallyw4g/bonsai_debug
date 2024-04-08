@@ -327,7 +327,7 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s3
   Assert(DebugState);
   Assert(ThreadStates);
 
-  InitializeOpenglFunctions();
+  /* InitializeOpenglFunctions(); */
 }
 
 link_export b32
