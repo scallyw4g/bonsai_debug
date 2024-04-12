@@ -270,7 +270,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
     }
     else
     {
-      PushColumn(Group, CSz(" : Unlaunched"));
+      PushColumn(Group, CSz(" --- Thread Not Registered ---"));
       PushNewRow(Group);
     }
   }
