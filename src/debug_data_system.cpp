@@ -768,7 +768,7 @@ GetAllocationSize(memory_record *Meta)
 }
 
 link_internal void
-PushHistogramDataPoint(debug_timed_function *Timer)
+PushHistogramDataPoint(u64 Sample)
 {
   debug_state *DebugState = GetDebugState();
   if (AtElements(&DebugState->HistogramSamples) == TotalElements(&DebugState->HistogramSamples))
@@ -776,7 +776,7 @@ PushHistogramDataPoint(debug_timed_function *Timer)
     DebugState->HistogramSamples.At = DebugState->HistogramSamples.Start;
   }
 
-  Push(&DebugState->HistogramSamples, *Timer->Scope);
+  Push(&DebugState->HistogramSamples, Sample);
 }
 
 
@@ -888,7 +888,8 @@ InitDebugDataSystem(debug_state *DebugState)
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
   MainThreadState->ThreadId = GetCurrentThreadId();
 
-  DebugState->HistogramSamples = DebugProfileScopeCursor(DEBUG_HISTOGRAM_MAX_SAMPLES, ThreadsafeDebugMemoryAllocator());
+  DebugState->HistogramSamples = U64Cursor(DEBUG_HISTOGRAM_MAX_SAMPLES, ThreadsafeDebugMemoryAllocator());
+    /* DebugProfileScopeCursor(DEBUG_HISTOGRAM_MAX_SAMPLES, ThreadsafeDebugMemoryAllocator()); */
 
   s32 TotalThreadCount = (s32)GetTotalThreadCount();
   for (s32 ThreadIndex = 0;

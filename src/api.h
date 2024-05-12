@@ -177,7 +177,7 @@ struct debug_state
 
   b32  (*InitializeRenderSystem)(heap_allocator*, memory_arena*);
   void (*SetRenderer)(renderer_2d*);
-  void (*PushHistogramDataPoint)(debug_timed_function*);
+  void (*PushHistogramDataPoint)(u64);
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
@@ -209,8 +209,8 @@ struct debug_state
 
   debug_profile_scope *HotFunction;
 
-#define DEBUG_HISTOGRAM_MAX_SAMPLES (1024*10) // TODO(Jesse): ??
-  debug_profile_scope_cursor HistogramSamples;
+#define DEBUG_HISTOGRAM_MAX_SAMPLES (1024*4) // TODO(Jesse): ??
+  u64_cursor HistogramSamples;
 
   debug_profile_scope FreeScopeSentinel;
 
@@ -311,7 +311,7 @@ struct debug_histogram_function : debug_timed_function
       // ordering is the wrong way for this to work.  I couldn't think of a
       // better way to do this..
       this->Scope->EndingCycle = __rdtsc();
-      DebugState->PushHistogramDataPoint(this);
+      DebugState->PushHistogramDataPoint(this->Scope->EndingCycle-this->Scope->StartingCycle);
     }
   }
 };
