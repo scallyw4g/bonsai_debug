@@ -551,8 +551,6 @@ WorkerThreadAdvanceDebugSystem()
   }
 }
 
-global_variable r64 LastMs;
-
 void
 MainThreadAdvanceDebugSystem(r32 Dt)
 {

@@ -1,11 +1,11 @@
-#define BONSAI_DEBUG_SYSTEM_API 1
-#define BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD 1
+/* #define BONSAI_DEBUG_SYSTEM_API 1 */
+/* #define BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD 1 */
 
 
-#define PLATFORM_WINDOW_IMPLEMENTATIONS 1
+/* #define PLATFORM_WINDOW_IMPLEMENTATIONS 1 */
 
-#include <bonsai_stdlib/bonsai_stdlib.h>
-#include <bonsai_stdlib/bonsai_stdlib.cpp>
+/* #include <bonsai_stdlib/bonsai_stdlib.h> */
+/* #include <bonsai_stdlib/bonsai_stdlib.cpp> */
 
 /* #include <engine/engine.h> */
 /* #include <engine/engine.cpp> */
@@ -19,13 +19,28 @@
 /* #include <bonsai_debug/src/platform/win32_pmc.cpp> */
 #endif
 
-CAssert(BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD == 1);
+/* CAssert(BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD == 1); */
 
 /* debug_state *Global_DebugStatePointer; */
 
-global_variable os Os = {};
-global_variable platform Plat = {};
-global_variable hotkeys Hotkeys = {};
+/* global_variable os Os = {}; */
+/* global_variable platform Plat = {}; */
+/* global_variable hotkeys Hotkeys = {}; */
+
+link_internal debug_state *
+GetDebugState()
+{
+  debug_state *Result = 0;
+  if (GetStdlib)
+  {
+    bonsai_stdlib *Stdlib = GetStdlib();
+    if (Stdlib && Stdlib->DebugState.Initialized)
+    {
+      Result = &Stdlib->DebugState;
+    }
+  }
+  return Result;
+}
 
 link_internal void
 DebugFrameEnd(r32 dt)
@@ -83,6 +98,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
   memory_arena_stats TotalStats = GetTotalMemoryArenaStats();
 
+#if 0
   u32 TotalDrawCalls = 0;
 
   for( u32 DrawCountIndex = 0;
@@ -95,6 +111,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
       TotalDrawCalls += Call->Calls;
     }
   }
+#endif
 
 
   min_max_avg_dt Dt = ComputeMinMaxAvgDt();
@@ -105,14 +122,13 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     PushTableStart(Ui);
       u32 Start = StartColumn(Ui, &Style, Padding);
-        Text(Ui, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d) DrawCalls(%d)"),
+        Text(Ui, FormatCountedString(GetTranArena(), CS("(%.1f) :: (+%.1f) (%.1f) (-%.1f) :: Allocations(%d) Pushes(%d)"),
           r64(PrevDt*1000.0f),
           r64(Dt.Max - Dt.Avg),
           r64(Dt.Avg),
           r64(Dt.Avg-Dt.Min),
           TotalStats.Allocations,
-          TotalStats.Pushes,
-          TotalDrawCalls
+          TotalStats.Pushes
         ));
       EndColumn(Ui, Start);
       PushNewRow(Ui);
@@ -228,6 +244,7 @@ SetRenderer(renderer_2d *Renderer)
   GetDebugState()->UiGroup = Renderer;
 }
 
+#if 0
 link_internal b32
 OpenAndInitializeDebugWindow()
 {
@@ -266,11 +283,13 @@ ProcessInputAndRedrawWindow()
   GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
   GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
+#endif
 
 
 
 // DLL API
 
+#if 0
 link_export u64
 QueryMemoryRequirements()
 {
@@ -329,6 +348,7 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s3
 
   /* InitializeOpenglFunctions(); */
 }
+#endif
 
 link_export b32
 InitDebugState(debug_state *DebugState)
@@ -338,13 +358,47 @@ InitDebugState(debug_state *DebugState)
 
   Assert(ThreadLocal_ThreadIndex == 0);
 
-  LastMs = GetHighPrecisionClock();
+
+  /* global_variable r64 LastMs = GetHighPrecisionClock(); */
 
   DebugState->Frames[1].StartingCycle = GetCycleCount();
 
+  // NOTE(Jesse): hook debug functions up before we make any function calls
+  // such that we have a well-working state to go from
+  DebugState->FrameEnd                        = DebugFrameEnd;
+  DebugState->FrameBegin                      = DebugFrameBegin;
+  DebugState->RegisterArena                   = RegisterArena;
+  DebugState->UnregisterArena                 = UnregisterArena;
+  DebugState->WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
+  DebugState->MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;
+  DebugState->MutexWait                       = MutexWait;
+  DebugState->MutexAquired                    = MutexAquired;
+  DebugState->MutexReleased                   = MutexReleased;
+  DebugState->GetProfileScope                 = GetProfileScope;
+  DebugState->Debug_Allocate                  = DEBUG_Allocate;
+  DebugState->RegisterThread                  = RegisterThread;
+  DebugState->TrackDrawCall                   = TrackDrawCall;
+  DebugState->GetThreadLocalState             = GetThreadLocalState;
+  DebugState->DebugValue_r32                  = DebugValue_r32;
+  DebugState->DebugValue_u32                  = DebugValue_u32;
+  DebugState->DebugValue_u64                  = DebugValue_u64;
+  DebugState->DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
+  DebugState->GetReadScopeTree                = GetReadScopeTree;
+  DebugState->GetWriteScopeTree               = GetWriteScopeTree;
+
+  DebugState->WriteMemoryRecord               = WriteMemoryRecord;
+  DebugState->ClearMemoryRecordsFor           = ClearMemoryRecordsFor;
+
+  /* DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow; */
+  /* DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow; */
+  DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
+  DebugState->SetRenderer                     = SetRenderer;
+  DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
+  /* SetThreadLocal_ThreadIndex(0); */
+
   DebugState->Initialized = True;
 
-  Global_DebugStatePointer = DebugState;
+/*   Global_DebugStatePointer = DebugState; */
 
   InitDebugDataSystem(DebugState);
 
@@ -354,7 +408,96 @@ InitDebugState(debug_state *DebugState)
 
   DebugState->DebugDoScopeProfiling = True;
 
+
+  /* Global_DebugStatePointer = DebugState; */
+  /* Global_ThreadStates = ThreadStates; */
+
+  /* s32 WeAreInternalBuild = BONSAI_INTERNAL; */
+  /* // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build! */
+  /* if (WeAreInternalBuild != CallerIsInternalBuild) */
+  /* { */
+  /*   Error("Detected Loading unmatched interal/external build for bonsai debug lib.  CallerInternal(%d), DebugInternal(%d)", CallerIsInternalBuild, WeAreInternalBuild); */
+  /* } */
+
+  Assert(DebugState);
+  /* Assert(ThreadStates); */
+
+  /* InitializeOpenglFunctions(); */
+
   b32 Result = True;
   return Result;
 }
 
+
+
+
+debug_timed_function::debug_timed_function(const char *Name)
+{
+  this->Scope = 0;
+  this->Tree = 0;
+
+  debug_state *DebugState = GetDebugState();
+  if (DebugState)
+  {
+    if (!DebugState->DebugDoScopeProfiling) return;
+
+    ++DebugState->NumScopes;
+
+    this->Scope = DebugState->GetProfileScope();
+    this->Tree = DebugState->GetWriteScopeTree();
+
+    if (this->Scope && this->Tree)
+    {
+      (*this->Tree->WriteScope) = this->Scope;
+      this->Tree->WriteScope = &this->Scope->Child;
+
+      this->Scope->Parent = this->Tree->ParentOfNextScope;
+      this->Tree->ParentOfNextScope = this->Scope;
+
+      this->Scope->Name = Name;
+      this->Scope->StartingCycle = __rdtsc(); // Intentionally last
+    }
+  }
+
+  return;
+}
+
+#if !POOF_PREPROCESSOR
+debug_timed_function::~debug_timed_function()
+{
+  debug_state *DebugState = GetDebugState();
+  if (DebugState)
+  {
+    if (!DebugState->DebugDoScopeProfiling) return;
+    if (!this->Scope) return;
+
+    this->Scope->EndingCycle = __rdtsc(); // Intentionally first;
+
+    Assert(this->Scope->EndingCycle > this->Scope->StartingCycle);
+    Assert(this->Scope->Parent != this->Scope);
+    Assert(this->Scope->Sibling != this->Scope);
+    Assert(this->Scope->Child != this->Scope);
+
+    // 'Pop' the scope stack
+    this->Tree->WriteScope = &this->Scope->Sibling;
+    this->Tree->ParentOfNextScope = this->Scope->Parent;
+  }
+}
+
+
+debug_histogram_function::~debug_histogram_function()
+{
+  debug_state *DebugState = GetDebugState();
+  if (DebugState)
+  {
+    if (!DebugState->DebugDoScopeProfiling) return;
+    if (!this->Scope) return;
+
+    // NOTE(Jesse): Kinda henious hack because the constructor/destructor
+    // ordering is the wrong way for this to work.  I couldn't think of a
+    // better way to do this..
+    this->Scope->EndingCycle = __rdtsc();
+    DebugState->PushHistogramDataPoint(this->Scope->EndingCycle-this->Scope->StartingCycle);
+  }
+}
+#endif
