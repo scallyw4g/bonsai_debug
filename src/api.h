@@ -291,17 +291,6 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
 
 #if 0
-global_variable r64 Global_LastDebugTime = 0;
-r32 GetDt()
-{
-  // Remove this function
-  NotImplemented;
-
-  r64 ThisTime = GetHighPrecisionClock();
-  r64 Result = ThisTime - Global_LastDebugTime;
-  Global_LastDebugTime = ThisTime;
-  return r32(Result);
-}
 
 /* #include <dlfcn.h> */
 #include <stdio.h>
