@@ -805,7 +805,7 @@ PushCallgraphRecursive(debug_ui_render_group *Ui, window_layout *Window, debug_p
 
     if (At->Child)
     {
-      if (ToggleButton(Ui, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle,  DefaultButtonPadding, UiElementAlignmentFlag_LeftAlign))
+      if (ToggleButton(Ui, Name, Name, UiId(Window, "callgraph scope toggle_button", At), &DefaultStyle, &DefaultBackgroundStyle, DefaultButtonPadding, UiElementAlignmentFlag_LeftAlign))
       {
         PushNewRow(Ui);
         OPEN_INDENT_FOR_TOGGLEABLE_REGION();

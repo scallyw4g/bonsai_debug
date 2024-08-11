@@ -146,7 +146,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(Ui, CS("Graphics"), UiId(0, "Graphics", u32(DebugState->UIType)), Style, Padding))
+      if (Button(Ui, CS("Graphics"), UiId(0, "Graphics", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
       }
@@ -163,7 +163,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_CollatedFunctionCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(Ui, CS("Functions"), UiId(0, "Functions", u32(DebugState->UIType)), Style, Padding))
+      if (Button(Ui, CS("Functions"), UiId(0, "Functions", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_CollatedFunctionCalls);
       }
@@ -171,7 +171,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_CallGraph) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(Ui, CS("Callgraph"), UiId(0, "Callgraph", u32(DebugState->UIType)), Style, Padding))
+      if (Button(Ui, CS("Callgraph"), UiId(0, "Callgraph", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_CallGraph);
       }
@@ -180,7 +180,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
     {
       ui_style *Style = &DefaultStyle;
       if ( DebugState->UIType & DebugUIType_Memory ) { Style = &DefaultSelectedStyle; }
-      if (Button(Ui, CS("Memory"), UiId(0, "Memory", u32(DebugState->UIType)), Style, Padding))
+      if (Button(Ui, CS("Memory"), UiId(0, "Memory", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_Memory);
       }
@@ -188,7 +188,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     {
       ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(Ui, CS("DrawCalls"), UiId(0, "DrawCalls", u32(DebugState->UIType)), Style, Padding))
+      if (Button(Ui, CS("DrawCalls"), UiId(0, "DrawCalls", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
       {
         ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
       }
