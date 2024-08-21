@@ -138,7 +138,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
   debug_state *DebugState = GetDebugState();
   if (DebugState->DisplayDebugMenu)
   {
-    TIMED_NAMED_BLOCK("DrawDebugMenu");
+    TIMED_NAMED_BLOCK(DrawDebugMenu);
 
     PushTableStart(Ui);
 

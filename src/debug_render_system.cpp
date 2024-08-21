@@ -200,7 +200,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             ThreadIndex < TotalThreadCount;
           ++ThreadIndex)
   {
-    TIMED_NAMED_BLOCK("Thread Loop");
+    TIMED_NAMED_BLOCK(Thread_Loop);
 
     PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
     debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);

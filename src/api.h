@@ -263,7 +263,7 @@ struct debug_histogram_function : debug_timed_function
 link_export b32 InitDebugState(debug_state *DebugState);
 
 #define TIMED_FUNCTION() debug_timed_function FunctionTimer(__func__)
-#define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockTimer1(BlockName)
+#define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockName##_block_timer(STRINGIZE(BlockName))
 #define HISTOGRAM_FUNCTION() debug_histogram_function FunctionTimer(__func__)
 
 #define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer0(BlockName)

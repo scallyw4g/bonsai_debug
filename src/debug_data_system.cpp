@@ -168,9 +168,9 @@ ClearMemoryRecordsFor(memory_arena *Arena)
 {
   TIMED_FUNCTION();
 
-#if 0
-  umm ArenaBlockHash = HashArenaBlock(Arena);
-  umm ArenaHash = HashArena(Arena);
+#if 1
+  umm ArenaBlockHash   =      HashArenaBlock(Arena);
+  umm ArenaHash        =      HashArena(Arena);
   s32 TotalThreadCount = (s32)GetTotalThreadCount();
 
   for ( s32 ThreadIndex = 0;
@@ -224,7 +224,9 @@ GetRegisteredMemoryArena(memory_arena *Arena)
 link_internal void
 WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Comparator)
 {
-  u32 HashValue = (umm)Hash(CS(Query->Name)) % META_TABLE_SIZE;
+#if 1
+  cs QueryName = CS(Query->Name);
+  u32 HashValue = u32(Hash(QueryName)) % META_TABLE_SIZE;
   u32 FirstHashValue = HashValue;
 
   memory_record *PickMeta = Table + HashValue;
@@ -258,6 +260,7 @@ WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Com
   }
 
   return;
+#endif
 }
 
 void
