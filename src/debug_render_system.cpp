@@ -1241,12 +1241,12 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
 
 
   for ( u32 ThreadIndex = 0;
-      ThreadIndex < TotalThreadCount;
-      ++ThreadIndex)
+            ThreadIndex < TotalThreadCount;
+          ++ThreadIndex)
   {
     for ( u32 MetaIndex = 0;
-        MetaIndex < META_TABLE_SIZE;
-        ++MetaIndex)
+              MetaIndex < META_TABLE_SIZE;
+            ++MetaIndex)
     {
       memory_record *Meta = &GetDebugState()->ThreadStates[ThreadIndex].MetaTable[MetaIndex];
 

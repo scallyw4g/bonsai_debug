@@ -199,6 +199,9 @@ struct debug_state
   // TODO(Jesse): Can this go away ..?
   debug_thread_state *ThreadStates;
 
+  // @meta_table_allocation_name_copy
+  memory_arena *MetaTableNameStringsArena;
+
 /* #if BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD */
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering

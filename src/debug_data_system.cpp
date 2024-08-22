@@ -256,11 +256,46 @@ WriteToMetaTable(memory_record *Query, memory_record *Table, meta_comparator Com
 
     // NOTE(Jesse): We have to copy the string when we write a new record so
     // that we don't hold pointers into old DLLs when we reload.
-    PickMeta->Name = CopyZString(Query->Name, ThreadsafeDebugMemoryAllocator());
+    //
+    // NOTE(Jesse): We can't copy the strings here because we have no way of
+    // freeing them when the allocation turns out to be on an arena that gets
+    // rolled back or vaporized and the allocation table entries get cleared.
+    //
+    // Instead, when we reload the DLL we copy the strings into a temp arena
+    // so we don't point to an old DLL, and we can roll it back every time we
+    // reload so we don't leak.
+    //
+    // @meta_table_allocation_name_copy
+    /* PickMeta->Name = CopyZString(Query->Name, ThreadsafeDebugMemoryAllocator()); */
   }
 
   return;
 #endif
+}
+
+
+// @meta_table_allocation_name_copy
+link_internal void
+DuplicateMetaTableNameStrings(engine_resources *Engine)
+{
+  debug_state *DebugState = GetDebugState();
+
+  memory_arena *NewArena = AllocateArena();
+  DEBUG_REGISTER_NAMED_ARENA(NewArena, ThreadLocal_ThreadIndex, "MetaTableNameStringsArena");
+
+  s32 ThreadCount = s32(GetTotalThreadCount());
+  RangeIterator(ThreadIndex, ThreadCount)
+  {
+    debug_thread_state *Thread = GetThreadLocalStateFor(ThreadIndex);
+    RangeIterator( MetaIndex, META_TABLE_SIZE )
+    {
+      memory_record *Meta = Thread->MetaTable + MetaIndex;
+      if (Meta->Name)  { Meta->Name = CopyZString(Meta->Name, NewArena); }
+    }
+  }
+
+  VaporizeArena(DebugState->MetaTableNameStringsArena);
+  DebugState->MetaTableNameStringsArena = NewArena;
 }
 
 void
