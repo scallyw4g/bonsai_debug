@@ -202,7 +202,6 @@ struct debug_state
   // @meta_table_allocation_name_copy
   memory_arena *MetaTableNameStringsArena;
 
-/* #if BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD */
   // TODO(Jesse): Put this into some sort of debug_render struct such that
   // users of the library (externally) don't have to include all the rendering
   // code that the library relies on.
@@ -222,8 +221,9 @@ struct debug_state
 
   debug_profile_scope *HotFunction;
 
-#define DEBUG_HISTOGRAM_MAX_SAMPLES (1024*4) // TODO(Jesse): ??
+#define DEBUG_HISTOGRAM_MAX_SAMPLES (1024*32) // TODO(Jesse): ??
   u64_cursor HistogramSamples;
+  bonsai_futex HistogramFutex;
 
   debug_profile_scope FreeScopeSentinel;
 
@@ -241,12 +241,7 @@ struct debug_state
 
 #define TRACKED_DRAW_CALLS_MAX (4096)
   debug_draw_call TrackedDrawCalls[TRACKED_DRAW_CALLS_MAX];
-/* #endif */
 };
-
-
-/* #define GetDebugState() Global_DebugStatePointer */
-/* global_variable debug_state *Global_DebugStatePointer; */
 
 struct debug_timed_function
 {
@@ -292,95 +287,6 @@ void DebugTimedMutexReleased(mutex *Mut);
 
 #define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)              do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
 #define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
-
-#if 0
-
-/* #include <dlfcn.h> */
-#include <stdio.h>
-#include <time.h>
-
-#define BonsaiDebug_DefaultLibPath "lib_bonsai_debug/lib_bonsai_debug.so"
-/* global_variable debug_state *Global_DebugStatePointer; */
-
-bool
-InitializeBootstrapDebugApi(shared_lib DebugLib, bonsai_debug_api *Api, debug_state **Dest)
-{
-  b32 Result = 1;
-
-  Api->QueryMemoryRequirements = (query_memory_requirements_proc)GetProcFromLib(DebugLib, "QueryMemoryRequirements");
-  Result &= (Api->QueryMemoryRequirements != 0);
-
-  Api->InitDebugState = (init_debug_system_proc)GetProcFromLib(DebugLib, "InitDebugState");
-  Result &= (Api->InitDebugState != 0);
-
-  Api->BonsaiDebug_OnLoad = (patch_debug_lib_pointers_proc)GetProcFromLib(DebugLib, "BonsaiDebug_OnLoad");
-  Result &= (Api->InitDebugState != 0);
-
-  u64 BytesRequested = Api->QueryMemoryRequirements();
-  *Dest = (debug_state*)calloc(BytesRequested, 1);
-
-  return Result;
-}
-
-
-
-bonsai_debug_system
-InitializeBonsaiDebug(const char* DebugLibName, thread_local_state *ThreadStates)
-{
-  bonsai_debug_system Result = {};
-
-  shared_lib DebugLib = OpenLibrary(DebugLibName); //, RTLD_NOW);
-
-  if (DebugLib)
-  {
-    printf("Library (%s) loaded!\n", DebugLibName);
-
-    bonsai_debug_api DebugApi = {};
-    if (InitializeBootstrapDebugApi(DebugLib, &DebugApi))
-    {
-      DebugApi.BonsaiDebug_OnLoad(Global_DebugStatePointer, ThreadStates, BONSAI_INTERNAL);
-
-      if (DebugApi.InitDebugState(Global_DebugStatePointer))
-      {
-        printf("Success initializing lib_bonsai_debug\n");
-        Result.Lib = DebugLib;
-        Result.Api = DebugApi;
-        Result.Initialized = True;
-      }
-      else { printf("Error initializing lib_bonsai_debug\n"); DebugLib = 0; }
-    }
-    else { printf("Error initializing lib_bonsai_debug bootstrap API\n"); DebugLib = 0; }
-  }
-  else { printf("OpenLibrary Failed (%s)\n", ""); DebugLib = 0; }
-
-  return Result;
-}
-
-#endif
-
-/* bonsai_debug_system */
-/* InitializeBonsaiDebug(thread_local_state *ThreadStates) */
-/* { */
-/*   bonsai_debug_system Result = {}; */
-
-/*   { */
-/*       BonsaiDebug_OnLoad(Global_DebugStatePointer, ThreadStates, BONSAI_INTERNAL); */
-
-/*       if (DebugApi.InitDebugState(Global_DebugStatePointer)) */
-/*       { */
-/*         printf("Success initializing lib_bonsai_debug\n"); */
-/*         Result.Lib = DebugLib; */
-/*         Result.Api = DebugApi; */
-/*         Result.Initialized = True; */
-/*       } */
-/*       else { printf("Error initializing lib_bonsai_debug\n"); DebugLib = 0; } */
-/*     } */
-/*     else { printf("Error initializing lib_bonsai_debug bootstrap API\n"); DebugLib = 0; } */
-/*   } */
-/*   else { printf("OpenLibrary Failed (%s)\n", ""); DebugLib = 0; } */
-
-/*   return Result; */
-/* } */
 
 #else // BONSAI_DEBUG_SYSTEM_API
 

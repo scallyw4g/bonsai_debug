@@ -807,12 +807,17 @@ link_internal void
 PushHistogramDataPoint(u64 Sample)
 {
   debug_state *DebugState = GetDebugState();
-  if (AtElements(&DebugState->HistogramSamples) == TotalElements(&DebugState->HistogramSamples))
+  AcquireFutex(&DebugState->HistogramFutex);
+  if (TotalElements(&DebugState->HistogramSamples) > 0)
   {
-    DebugState->HistogramSamples.At = DebugState->HistogramSamples.Start;
-  }
+    if (AtElements(&DebugState->HistogramSamples) == TotalElements(&DebugState->HistogramSamples))
+    {
+      DebugState->HistogramSamples.At = DebugState->HistogramSamples.Start;
+    }
 
-  Push(&DebugState->HistogramSamples, Sample);
+    Push(&DebugState->HistogramSamples, Sample);
+  }
+  ReleaseFutex(&DebugState->HistogramFutex);
 }
 
 
