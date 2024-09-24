@@ -274,6 +274,7 @@ ETWEventCallback(EVENT_RECORD *Event)
         u64 CycleCount = (u64)Event->EventHeader.TimeStamp.QuadPart;
 
         debug_context_switch_event CSwitch = {
+          .Type = ContextSwitch_Undefined,
           .ProcessorNumber = ProcessorNumber,
           .CycleCount = CycleCount,
           /* .SystemEvent = SystemEvent, */
