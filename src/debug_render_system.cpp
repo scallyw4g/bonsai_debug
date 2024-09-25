@@ -342,7 +342,7 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
   TIMED_FUNCTION();
 
   random_series Entropy = {};
-  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_Align_BottomRight|WindowLayoutFlag_StartupSize_InferHeight);
+  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupSize_InferHeight);
   local_persist window_layout Window = WindowLayout("Histogram", Flags);
 
   r32 GraphHeight = 200.f;
@@ -412,6 +412,11 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
         if (Hover(Ui, &B))
         {
           PushTooltip(Ui, FSz("%lu / %lu (%.2f)%%", Sample, MaxCycles, r64(Perc*100.f)));
+        }
+
+        if ((SampleIndex+1) % 1024 == 0)
+        {
+          PushNewRow(Ui);
         }
       }
     }
