@@ -1,23 +1,12 @@
 struct debug_state;
+struct selected_arenas;
 typedef debug_state*         (*get_debug_state_proc)  ();
 typedef u64                  (*query_memory_requirements_proc)();
 typedef get_debug_state_proc (*init_debug_system_proc)(debug_state *);
 typedef void                 (*patch_debug_lib_pointers_proc)(debug_state *, thread_local_state *, u32);
 
-
-#if 0
-struct bonsai_debug_api
-{
-  query_memory_requirements_proc QueryMemoryRequirements;
-  init_debug_system_proc         InitDebugState;
-  patch_debug_lib_pointers_proc  BonsaiDebug_OnLoad;
-};
-#endif
-
 struct bonsai_debug_system
 {
-  /* shared_lib Lib; */
-  /* bonsai_debug_api Api; */
   debug_state *DebugState;
   b32 Initialized;
 };
@@ -297,7 +286,8 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define TIMED_BLOCK(...)
 #define END_BLOCK(...)
 
-#define DEBUG_VALUE(...)
+#define DEBUG_VALUE_r32(...)
+#define DEBUG_VALUE_u32(...)
 
 #define TIMED_MUTEX_WAITING(...)
 #define TIMED_MUTEX_AQUIRED(...)
