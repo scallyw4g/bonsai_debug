@@ -90,7 +90,7 @@ RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
 
     const char *CurrentName = Current->Name;
-    if (!CurrentName)
+    if (CurrentName == 0)
     {
       if (AtomicCompareExchange( (volatile void **)&Current->Name, (void*)Name, (void*)CurrentName ))
       {
@@ -108,7 +108,7 @@ RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
 
   if (!Registered)
   {
-    SoftError("Registering Arena (%s); too many arenas registered!", Name);
+    SoftError("Registering Arena (%s); too many arenas registered.  Discarding.", Name);
   }
 
   return;
@@ -125,6 +125,7 @@ UnregisterArena(memory_arena *Arena)
   {
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
     if (Current->Arena == Arena) { Found = True; Current->Tombstone = True; }
+    /* if (Current->Arena == Arena) { Found = True; *Current = {}; } */
   }
 }
 
