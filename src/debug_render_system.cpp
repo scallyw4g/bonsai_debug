@@ -1380,6 +1380,9 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
 
+  //
+  // Draw active arenas
+  //
   for ( u32 Index = 0;
         Index < REGISTERED_MEMORY_ARENA_COUNT;
         ++Index )
@@ -1387,20 +1390,13 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
     if (!Current->Arena) continue;
 
+
     ui_style Style = Current->Expanded? DefaultSelectedStyle : DefaultStyle;
     interactable_handle ExpandInteraction;
 
     // TODO(Jesse): Improve this behavior?
     if (Current->Tombstone)
     {
-      ExpandInteraction =
-      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(""),                              &Style);
-        PushColumn(Group, CSz("Tombstoned"),                   &Style);
-        PushColumn(Group, CS(0),                               &Style);
-        PushColumn(Group, CS(Current->ThreadId),               &Style);
-        PushNewRow(Group);
-      PushButtonEnd(Group);
     }
     else
     {
@@ -1420,6 +1416,34 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     if (Clicked(Group, &ExpandInteraction))
     {
       Current->Expanded = !Current->Expanded;
+    }
+  }
+
+  //
+  // Draw tombstoned arenas
+  //
+  for ( u32 Index = 0;
+        Index < REGISTERED_MEMORY_ARENA_COUNT;
+        ++Index )
+  {
+    registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+    if (!Current->Arena) continue;
+
+
+    ui_style Style = Current->Expanded? DefaultSelectedStyle : DefaultStyle;
+    interactable_handle ExpandInteraction;
+
+    // TODO(Jesse): Improve this behavior?
+    if (Current->Tombstone)
+    {
+      Style = DefaultDisabledStyle;
+      ExpandInteraction =
+      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
+        PushColumn(Group, CS(Current->Name),     &Style);
+        PushColumn(Group, CSz("- TOMBSTONED -"), &Style);
+        PushColumn(Group, CS(Current->ThreadId), &Style);
+        PushNewRow(Group);
+      PushButtonEnd(Group);
     }
   }
 
