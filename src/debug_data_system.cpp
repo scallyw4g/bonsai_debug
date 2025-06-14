@@ -111,7 +111,7 @@ RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
 
   if (!Registered)
   {
-    Error("Registering Arena (%s); too many arenas registered!", Name);
+    SoftError("Registering Arena (%s); too many arenas registered!", Name);
   }
 
   return;
