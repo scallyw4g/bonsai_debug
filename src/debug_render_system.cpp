@@ -1595,6 +1595,19 @@ DebugDrawGraphicsHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
 link_internal void
+DebugValue(v3 *Value, const char* Name)
+{
+  debug_state* DebugState = GetDebugState();
+  debug_ui_render_group* Group = DebugState->UiGroup;
+
+  PushTableStart(Group);
+    PushColumn(Group, CS(Name));
+    PushColumn(Group, FSz("(%.2f %.2f %.2f)", r64(Value->x), r64(Value->y), r64(Value->z)));
+    PushNewRow(Group);
+  PushTableEnd(Group);
+}
+
+link_internal void
 DebugValue_r32(r32 Value, const char* Name)
 {
   debug_state* DebugState = GetDebugState();

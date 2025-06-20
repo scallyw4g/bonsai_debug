@@ -256,8 +256,9 @@ link_export b32 InitDebugState(debug_state *DebugState);
 #define TIMED_BLOCK(BlockName) { debug_timed_function BlockTimer0(BlockName)
 #define END_BLOCK(BlockName) } do {} while (0)
 
-#define DEBUG_VALUE_r32(Pointer) do {GetDebugState()->DebugValue_r32(Pointer, #Pointer);} while (false)
-#define DEBUG_VALUE_u32(Pointer) do {GetDebugState()->DebugValue_u32(Pointer, #Pointer);} while (false)
+#define DEBUG_VALUE_r32(Pointer) do {GetDebugState()->DebugValue_r32((Pointer), #Pointer);} while (false)
+#define DEBUG_VALUE_u32(Pointer) do {GetDebugState()->DebugValue_u32((Pointer), #Pointer);} while (false)
+#define DEBUG_VALUE(Pointer) do {DebugValue((Pointer), #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
 #define DEBUG_FRAME_END(a) do {GetDebugState()->FrameEnd(a);} while (false)
@@ -286,6 +287,7 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define TIMED_BLOCK(...)
 #define END_BLOCK(...)
 
+#define DEBUG_VALUE(...)
 #define DEBUG_VALUE_r32(...)
 #define DEBUG_VALUE_u32(...)
 
