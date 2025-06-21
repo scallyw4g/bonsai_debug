@@ -62,7 +62,7 @@ typedef void                 (*debug_mutex_released_proc)              (mutex*);
 typedef debug_profile_scope* (*debug_get_profile_scope_proc)           ();
 typedef void*                (*debug_arena_allocate_proc)              (memory_arena*,   umm, umm, const char*, s32 , const char*, umm, b32);
 typedef void*                (*debug_heap_allocate_proc)               (heap_allocator*, umm, umm, const char*, s32 , const char*, umm, b32);
-typedef void                 (*debug_register_thread_proc)             (thread_startup_params*);
+typedef void                 (*debug_register_thread_proc)             (thread_local_state*);
 typedef void                 (*debug_track_draw_call_proc)             (const char*, u32);
 typedef debug_thread_state*  (*debug_get_thread_local_state)           (void);
 typedef void                 (*debug_value_r32_proc)                   (r32, const char*);
