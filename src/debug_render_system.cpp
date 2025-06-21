@@ -3,8 +3,6 @@
 /****************************                       **************************/
 
 
-debug_global memory_arena Global_PermDebugMemory;
-
 
 #if 0
 link_internal void
@@ -1274,10 +1272,13 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
   return;
 }
 
+
 link_internal void
 DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 {
   TIMED_FUNCTION();
+
+  debug_global memory_arena Global_PermDebugMemory;
 
   local_persist b32 UntrackedAllocationsExpanded = {};
   b32 FoundUntrackedAllocations = False;

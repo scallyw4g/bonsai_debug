@@ -1,16 +1,3 @@
-/* #define BONSAI_DEBUG_SYSTEM_API 1 */
-/* #define BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD 1 */
-
-
-/* #define PLATFORM_WINDOW_IMPLEMENTATIONS 1 */
-
-/* #include <bonsai_stdlib/bonsai_stdlib.h> */
-/* #include <bonsai_stdlib/bonsai_stdlib.cpp> */
-
-/* #include <engine/engine.h> */
-/* #include <engine/engine.cpp> */
-
-
 #include <bonsai_debug/src/debug_data_system.cpp>
 #include <bonsai_debug/src/debug_render_system.cpp>
 
@@ -18,14 +5,6 @@
 #include <bonsai_debug/src/platform/win32_etw.cpp>
 /* #include <bonsai_debug/src/platform/win32_pmc.cpp> */
 #endif
-
-/* CAssert(BONSAI_DEBUG_SYSTEM_INTERNAL_BUILD == 1); */
-
-/* debug_state *Global_DebugStatePointer; */
-
-/* global_variable os Os = {}; */
-/* global_variable platform Plat = {}; */
-/* global_variable hotkeys Hotkeys = {}; */
 
 link_internal debug_state *
 GetDebugState()
@@ -244,111 +223,6 @@ SetRenderer(renderer_2d *Renderer)
   GetDebugState()->UiGroup = Renderer;
 }
 
-#if 0
-link_internal b32
-OpenAndInitializeDebugWindow()
-{
-  Assert(GetDebugState());
-  Assert(GetDebugState()->Initialized);
-
-  b32 WindowSuccess = OpenAndInitializeWindow(&Os, &Plat, 1);
-  if (!WindowSuccess) { Error("Initializing Window :( "); return False; }
-  Assert(Os.Window);
-
-  heap_allocator Heap = InitHeap(Megabytes(128));
-  memory_arena *GraphicsMemory2D = AllocateArena();
-  b32 Result = InitDebugRenderSystem(&Heap, GraphicsMemory2D);
-
-  return Result;
-}
-
-link_internal void
-ProcessInputAndRedrawWindow()
-{
-  ResetInputForFrameStart(&Plat.Input, &Hotkeys);
-
-  v2 LastMouseP = Plat.MouseP;
-  while ( ProcessOsMessages(&Os, &Plat) );
-  Plat.MouseDP = LastMouseP - Plat.MouseP;
-
-  Assert(Plat.ScreenDim.x > 0 && Plat.ScreenDim.y > 0);
-
-  BindHotkeysToInput(&Hotkeys, &Plat.Input);
-
-  DebugFrameBegin(GetDebugState()->UiGroup, Plat.dt, Hotkeys.Debug_ToggleMenu, Hotkeys.Debug_ToggleProfiling);
-  DebugFrameEnd(Plat.dt);
-
-  BonsaiSwapBuffers(&Os);
-
-  GetStdlib()->GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
-  GetStdlib()->GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-#endif
-
-
-
-// DLL API
-
-#if 0
-link_export u64
-QueryMemoryRequirements()
-{
-  return sizeof(debug_state);
-}
-
-link_export void
-BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s32 CallerIsInternalBuild)
-{
-  // NOTE(Jesse): hook debug functions up before we make any function calls
-  // such that we have a well-working state to go from
-  DebugState->FrameEnd                        = DebugFrameEnd;
-  DebugState->FrameBegin                      = DebugFrameBegin;
-  DebugState->RegisterArena                   = RegisterArena;
-  DebugState->UnregisterArena                 = UnregisterArena;
-  DebugState->WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
-  DebugState->MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;
-  DebugState->MutexWait                       = MutexWait;
-  DebugState->MutexAquired                    = MutexAquired;
-  DebugState->MutexReleased                   = MutexReleased;
-  DebugState->GetProfileScope                 = GetProfileScope;
-  DebugState->Debug_Allocate                  = DEBUG_Allocate;
-  DebugState->RegisterThread                  = RegisterThread;
-  DebugState->TrackDrawCall                   = TrackDrawCall;
-  DebugState->GetThreadLocalState             = GetThreadLocalState;
-  DebugState->DebugValue_r32                  = DebugValue_r32;
-  DebugState->DebugValue_u32                  = DebugValue_u32;
-  DebugState->DebugValue_u64                  = DebugValue_u64;
-  DebugState->DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
-  DebugState->GetReadScopeTree                = GetReadScopeTree;
-  DebugState->GetWriteScopeTree               = GetWriteScopeTree;
-
-  DebugState->WriteMemoryRecord               = WriteMemoryRecord;
-  DebugState->ClearMemoryRecordsFor           = ClearMemoryRecordsFor;
-
-  DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow;
-  DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow;
-  DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
-  DebugState->SetRenderer                     = SetRenderer;
-  DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
-  SetThreadLocal_ThreadIndex(0);
-
-  Global_DebugStatePointer = DebugState;
-  Global_ThreadStates = ThreadStates;
-
-  s32 WeAreInternalBuild = BONSAI_INTERNAL;
-
-  // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build!
-  if (WeAreInternalBuild != CallerIsInternalBuild)
-  {
-    Error("Detected Loading unmatched interal/external build for bonsai debug lib.  CallerInternal(%d), DebugInternal(%d)", CallerIsInternalBuild, WeAreInternalBuild);
-  }
-
-  Assert(DebugState);
-  Assert(ThreadStates);
-
-  /* InitializeOpenglFunctions(); */
-}
-#endif
 
 link_export b32
 InitDebugState(debug_state *DebugState)
