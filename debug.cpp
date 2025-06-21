@@ -6,21 +6,6 @@
 /* #include <bonsai_debug/src/platform/win32_pmc.cpp> */
 #endif
 
-link_internal debug_state *
-GetDebugState()
-{
-  debug_state *Result = 0;
-  if (GetStdlib)
-  {
-    bonsai_stdlib *Stdlib = GetStdlib();
-    if (Stdlib && Stdlib->DebugState.Initialized)
-    {
-      Result = &Stdlib->DebugState;
-    }
-  }
-  return Result;
-}
-
 link_internal void
 DebugFrameEnd(r32 dt)
 {
