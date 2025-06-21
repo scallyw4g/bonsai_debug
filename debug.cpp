@@ -280,8 +280,8 @@ ProcessInputAndRedrawWindow()
 
   BonsaiSwapBuffers(&Os);
 
-  GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
-  GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  GetStdlib()->GL.BindFramebuffer(GL_FRAMEBUFFER, 0);
+  GetStdlib()->GL.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 #endif
 
@@ -353,13 +353,8 @@ BonsaiDebug_OnLoad(debug_state *DebugState, thread_local_state *ThreadStates, s3
 link_export b32
 InitDebugState(debug_state *DebugState)
 {
-  /* Assert(AllocationSize >= QueryMemoryRequirements()); */
   Assert(DebugState->Initialized == False);
-
   Assert(ThreadLocal_ThreadIndex == 0);
-
-
-  /* global_variable r64 LastMs = GetHighPrecisionClock(); */
 
   DebugState->Frames[1].StartingCycle = GetCycleCount();
 
@@ -388,41 +383,15 @@ InitDebugState(debug_state *DebugState)
 
   DebugState->WriteMemoryRecord               = WriteMemoryRecord;
   DebugState->ClearMemoryRecordsFor           = ClearMemoryRecordsFor;
-
-  /* DebugState->OpenAndInitializeDebugWindow    = OpenAndInitializeDebugWindow; */
-  /* DebugState->ProcessInputAndRedrawWindow     = ProcessInputAndRedrawWindow; */
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
   DebugState->SetRenderer                     = SetRenderer;
   DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
-  /* SetThreadLocal_ThreadIndex(0); */
 
   DebugState->Initialized = True;
 
-/*   Global_DebugStatePointer = DebugState; */
-
   InitDebugDataSystem(DebugState);
 
-#if BONSAI_WIN32
-  Platform_EnableContextSwitchTracing();
-#endif
-
   DebugState->DebugDoScopeProfiling = True;
-
-
-  /* Global_DebugStatePointer = DebugState; */
-  /* Global_ThreadStates = ThreadStates; */
-
-  /* s32 WeAreInternalBuild = BONSAI_INTERNAL; */
-  /* // NOTE(Jesse): This can't be an assert because they get compiled out if the debug lib is an external build! */
-  /* if (WeAreInternalBuild != CallerIsInternalBuild) */
-  /* { */
-  /*   Error("Detected Loading unmatched interal/external build for bonsai debug lib.  CallerInternal(%d), DebugInternal(%d)", CallerIsInternalBuild, WeAreInternalBuild); */
-  /* } */
-
-  Assert(DebugState);
-  /* Assert(ThreadStates); */
-
-  /* InitializeOpenglFunctions(); */
 
   b32 Result = True;
   return Result;

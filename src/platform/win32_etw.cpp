@@ -411,10 +411,10 @@ Win32TracingThread(void *ignored)
     {
       EVENT_TRACE_LOGFILE Logfile = {};
 
-      Logfile.LoggerName = (char*)KERNEL_LOGGER_NAME;
-      Logfile.ProcessTraceMode = (PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP);
+      Logfile.LoggerName          = (char*)KERNEL_LOGGER_NAME;
+      Logfile.ProcessTraceMode    = (PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP);
       Logfile.EventRecordCallback = ETWEventCallback;
-      Logfile.BufferCallback = ETWBufferCallback;
+      Logfile.BufferCallback      = ETWBufferCallback;
 
       Info("OpenTrace");
       TRACEHANDLE OpenTraceHandle = OpenTrace(&Logfile);
@@ -460,7 +460,6 @@ Win32TracingThread(void *ignored)
 void
 Platform_EnableContextSwitchTracing()
 {
-  Info("Creating tracing thread");
   HANDLE ThreadHandle = CreateThread(0, 0, Win32TracingThread, 0, 0, 0);
 }
 
