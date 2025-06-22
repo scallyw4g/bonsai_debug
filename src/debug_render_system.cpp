@@ -1594,57 +1594,81 @@ DebugDrawGraphicsHud(debug_ui_render_group *Group, debug_state *DebugState)
 /******************************              *********************************/
 
 
+link_internal void
+DebugValue(m4 *Value, cs Name)
+{
+  auto Ui = GetDebugState()->UiGroup;
+
+  PushColumn(Ui, Name);
+  PushNewRow(Ui);
+
+  PushColumn(Ui, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->E[0].x), r64(Value->E[0].y), r64(Value->E[0].z), r64(Value->E[0].w)));
+  PushNewRow(Ui);
+
+  PushColumn(Ui, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->E[1].x), r64(Value->E[1].y), r64(Value->E[1].z), r64(Value->E[1].w)));
+  PushNewRow(Ui);
+
+  PushColumn(Ui, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->E[2].x), r64(Value->E[2].y), r64(Value->E[2].z), r64(Value->E[2].w)));
+  PushNewRow(Ui);
+
+  PushColumn(Ui, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->E[3].x), r64(Value->E[3].y), r64(Value->E[3].z), r64(Value->E[3].w)));
+  PushNewRow(Ui);
+}
+
 
 link_internal void
-DebugValue(v3 *Value, const char* Name)
+DebugValue(v4 *Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
   debug_ui_render_group* Group = DebugState->UiGroup;
 
-  PushTableStart(Group);
-    PushColumn(Group, CS(Name));
-    PushColumn(Group, FSz("(%.2f %.2f %.2f)", r64(Value->x), r64(Value->y), r64(Value->z)));
-    PushNewRow(Group);
-  PushTableEnd(Group);
+  PushColumn(Group, Name);
+  PushColumn(Group, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->x), r64(Value->y), r64(Value->z), r64(Value->w)));
+  PushNewRow(Group);
 }
 
 link_internal void
-DebugValue_r32(r32 Value, const char* Name)
+DebugValue(v3 *Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
   debug_ui_render_group* Group = DebugState->UiGroup;
 
-  PushTableStart(Group);
-    PushColumn(Group, CS(Name));
-    PushColumn(Group, CS(Value));
-    PushNewRow(Group);
-  PushTableEnd(Group);
+  PushColumn(Group, Name);
+  PushColumn(Group, FSz("(%.2f %.2f %.2f)", r64(Value->x), r64(Value->y), r64(Value->z)));
+  PushNewRow(Group);
 }
 
 link_internal void
-DebugValue_u32(u32 Value, const char* Name)
+DebugValue(r32 Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
   debug_ui_render_group* Group = DebugState->UiGroup;
 
-  PushTableStart(Group);
-    PushColumn(Group, CS(Name));
-    PushColumn(Group, CS(Value));
-    PushNewRow(Group);
-  PushTableEnd(Group);
+  PushColumn(Group, Name);
+  PushColumn(Group, CS(Value));
+  PushNewRow(Group);
 }
 
 link_internal void
-DebugValue_u64(u64 Value, const char* Name)
+DebugValue(u32 Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
   debug_ui_render_group* Group = DebugState->UiGroup;
 
-  PushTableStart(Group);
-    PushColumn(Group, CS(Name));
+  PushColumn(Group, Name);
+  PushColumn(Group, CS(Value));
+  PushNewRow(Group);
+}
+
+link_internal void
+DebugValue(u64 Value, cs Name)
+{
+  debug_state* DebugState = GetDebugState();
+  debug_ui_render_group* Group = DebugState->UiGroup;
+
+    PushColumn(Group, Name);
     PushColumn(Group, CS(Value));
     PushNewRow(Group);
-  PushTableEnd(Group);
 }
 
 link_internal b32

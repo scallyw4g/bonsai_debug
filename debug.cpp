@@ -233,9 +233,9 @@ InitDebugState(debug_state *DebugState)
   DebugState->RegisterThread                  = RegisterThread;
   DebugState->TrackDrawCall                   = TrackDrawCall;
   DebugState->GetThreadLocalState             = GetThreadLocalState;
-  DebugState->DebugValue_r32                  = DebugValue_r32;
-  DebugState->DebugValue_u32                  = DebugValue_u32;
-  DebugState->DebugValue_u64                  = DebugValue_u64;
+  /* DebugState->DebugValue_r32                  = DebugValue_r32; */
+  /* DebugState->DebugValue_u32                  = DebugValue_u32; */
+  /* DebugState->DebugValue_u64                  = DebugValue_u64; */
   DebugState->DumpScopeTreeDataToConsole      = DumpScopeTreeDataToConsole;
   DebugState->GetReadScopeTree                = GetReadScopeTree;
   DebugState->GetWriteScopeTree               = GetWriteScopeTree;
