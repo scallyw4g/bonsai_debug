@@ -618,7 +618,7 @@ MainThreadAdvanceDebugSystem(r32 Dt)
 
     u32 NextFrameWriteIndex = GetNextDebugFrameIndex(ThisFrameWriteIndex);
     frame_stats *NextFrame = SharedState->Frames + NextFrameWriteIndex;
-    Clear(NextFrame);
+    *NextFrame = {};
     NextFrame->StartingCycle = CurrentCycles;
   }
 }

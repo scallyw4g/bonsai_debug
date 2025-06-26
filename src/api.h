@@ -261,7 +261,7 @@ link_export b32 InitDebugState(debug_state *DebugState);
 #define DEBUG_VALUE(Pointer) do {DebugValue((Pointer), #Pointer);} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(a) do {GetDebugState()->FrameEnd(a);} while (false)
+#define DEBUG_FRAME_END(dt) do {GetDebugState()->FrameEnd(dt);} while (false)
 #define DEBUG_FRAME_BEGIN(Ui, PrevDt, bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(Ui, PrevDt, bToggleMenu, bToggleProfile);} while (false)
 
 void DebugTimedMutexWaiting(mutex *Mut);
