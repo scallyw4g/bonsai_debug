@@ -22,6 +22,8 @@ struct context_switch_event
 };
 #pragma pack(pop)
 
+CAssert(sizeof(context_switch_event) == 24);
+
 global_variable memory_arena *ETWArena = AllocateArena();
 
 link_internal debug_context_switch_event_buffer_stream_block*
@@ -242,7 +244,7 @@ ETWEventCallback(EVENT_RECORD *Event)
     case 36:
     {
 #if 1
-      Assert(Event->UserDataLength == sizeof(context_switch_event));
+      Assert(Event->UserDataLength >= sizeof(context_switch_event));
 
 #if 0
       // According to the docs, the events aren't packed at any particular
