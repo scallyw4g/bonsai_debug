@@ -216,7 +216,8 @@ struct frame_stats
 struct registered_memory_arena
 {
   memory_arena *Arena;
-  const char* Name;
+  const char* SourceLocation;
+  const char* UserSuppliedName;
   s32 ThreadId;
   b32 Expanded;
   b32 Tombstone;
@@ -232,6 +233,18 @@ enum event_tracing_status
 };
 
 global_variable volatile event_tracing_status Global_EventTracingStatus = {};
+
+link_internal void
+UnregisterArena(memory_arena *Arena);
+
+link_internal void
+DebugRegisterArenaName(const char *Name, memory_arena *Arena);
+
+link_internal void
+DebugRegisterArena(const char *SourceLocation, memory_arena *Arena, s32 ThreadId);
+
+void
+RegisterThread(thread_local_state *Thread);
 
 #endif
 

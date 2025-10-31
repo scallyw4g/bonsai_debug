@@ -1312,7 +1312,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
             }
           }
 
-          if (!FoundRecordOwner)
+          if (FoundRecordOwner == False)
           {
             if (Meta->ArenaAddress == BONSAI_NO_ARENA)
             {
@@ -1321,8 +1321,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
             }
             else
             {
-              const char* Name = GetNullTerminated(CS(Meta->ArenaMemoryBlock), &Global_PermDebugMemory);
-              RegisterArena(Name, (memory_arena*)Meta->ArenaMemoryBlock, ThreadIndex);
+              const char *Name = GetNullTerminated(FSz("Unknown Arena : memory_location(%p)", Meta->ArenaMemoryBlock), &Global_PermDebugMemory);
+              DebugRegisterArenaName(Name, (memory_arena*)Meta->ArenaMemoryBlock);
             }
           }
         }
@@ -1351,6 +1351,7 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
   ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
 
 
+  PushColumn(Group, CSz("SourceLocation"),   &TitleStyle);
   PushColumn(Group, CSz("Name"),   &TitleStyle);
   PushColumn(Group, CSz("Size"),   &TitleStyle);
   PushColumn(Group, CSz("Pushes"), &TitleStyle);
@@ -1397,6 +1398,15 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     // TODO(Jesse): Improve this behavior?
     if (Current->Tombstone)
     {
+      ExpandInteraction =
+      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
+        PushColumn(Group, CS(""),                              &Style);
+        PushColumn(Group, CS(""),                              &Style);
+        PushColumn(Group, CSz("Tombstoned"),                   &Style);
+        PushColumn(Group, CS(0),                               &Style);
+        PushColumn(Group, CS(Current->ThreadId),               &Style);
+        PushNewRow(Group);
+      PushButtonEnd(Group);
     }
     else
     {
@@ -1405,7 +1415,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
       ExpandInteraction =
       PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(Current->Name),                   &Style);
+        PushColumn(Group, CS(Current->SourceLocation),                   &Style);
+        PushColumn(Group, CS(Current->UserSuppliedName),                   &Style);
         PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
         PushColumn(Group, CS(MemStats.Pushes),                 &Style);
         PushColumn(Group, CS(Current->ThreadId),               &Style);
@@ -1506,7 +1517,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
       /* PushTableStart(Group); */
         /* PushNewRow(Group); */
-        PushColumn(Group, CS(Current->Name));
+        PushColumn(Group, CS(Current->SourceLocation));
+        PushColumn(Group, CS(Current->UserSuppliedName));
         PushNewRow(Group);
         PushColumn(Group, TitleStats);
         PushNewRow(Group);

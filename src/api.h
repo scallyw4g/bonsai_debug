@@ -146,7 +146,7 @@ struct debug_state
 #if 1
   debug_frame_end_proc                      FrameEnd;
   debug_frame_begin_proc                    FrameBegin;
-  debug_register_arena_proc                 RegisterArena;
+  debug_register_arena_proc                 DebugRegisterArena;
   debug_unregister_arena_proc               UnregisterArena;
   debug_worker_thread_advance_data_system   WorkerThreadAdvanceDebugSystem;
   debug_main_thread_advance_data_system     MainThreadAdvanceDebugSystem;

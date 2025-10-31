@@ -221,7 +221,7 @@ InitDebugState(debug_state *DebugState)
   // such that we have a well-working state to go from
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;
-  DebugState->RegisterArena                   = RegisterArena;
+  DebugState->DebugRegisterArena                   = DebugRegisterArena;
   DebugState->UnregisterArena                 = UnregisterArena;
   DebugState->WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
   DebugState->MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;

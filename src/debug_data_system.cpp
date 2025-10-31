@@ -78,43 +78,102 @@ GetThreadLocalState()
 /****************************                       **************************/
 
 
-void
-RegisterArena(const char *Name, memory_arena *Arena, s32 ThreadId)
+link_internal void
+DebugSanityCheckArenaRegistration(memory_arena *Arena)
 {
   debug_state* DebugState = GetDebugState();
-  b32 Registered = False;
+  Assert(DebugState);
+
+  b32 Found = False;;
   for ( u32 Index = 0;
         Index < REGISTERED_MEMORY_ARENA_COUNT;
         ++Index )
   {
     registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
 
-    const char *CurrentName = Current->Name;
-    if (CurrentName == 0)
-    {
-      if (AtomicCompareExchange( (volatile void **)&Current->Name, (void*)Name, (void*)CurrentName ))
-      {
-        Current->Arena = Arena;
-        Current->ThreadId = ThreadId;
-        Registered = True;
-        break;
-      }
-      else
-      {
-        continue;
-      }
-    }
-  }
+    b32 ArenasMatch = (Current->Arena == Arena && Current->Tombstone == False);
 
-  if (!Registered)
-  {
-    SoftError("Registering Arena (%s); too many arenas registered.  Discarding.", Name);
-  }
+    if (Found) { Assert(ArenasMatch == False); }
 
-  return;
+    Found |= ArenasMatch;
+  }
 }
 
-void
+link_internal void
+DebugRegisterArena(const char *SourceLocation, memory_arena *Arena, s32 ThreadId)
+{
+  debug_state* DebugState = GetDebugState();
+
+  if (DebugState)
+  {
+    DebugSanityCheckArenaRegistration(Arena);
+
+    b32 Registered = False;
+    for ( u32 Index = 0;
+          Index < REGISTERED_MEMORY_ARENA_COUNT;
+          ++Index )
+    {
+      registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+
+      const char *AtLoc = Current->SourceLocation;
+      if (AtLoc == 0)
+      {
+        if (AtomicCompareExchange( (volatile void **)&Current->SourceLocation, (void*)SourceLocation, (void*)AtLoc ))
+        {
+          Current->Arena = Arena;
+          Current->ThreadId = ThreadId;
+          Registered = True;
+          break;
+        }
+      }
+    }
+
+    if (!Registered)
+    {
+      SoftError("Registering Arena (%s); too many arenas registered!", SourceLocation);
+    }
+  }
+  else
+  {
+    Warn("Attempted to register arena from (%s) before DebugState was initialized", SourceLocation);
+  }
+}
+
+link_internal void
+DebugRegisterArenaName(const char *Name, memory_arena *Arena)
+{
+  debug_state* DebugState = GetDebugState();
+
+  if (DebugState)
+  {
+    DebugSanityCheckArenaRegistration(Arena);
+    b32 Found = False;
+    for ( u32 Index = 0;
+              Index < REGISTERED_MEMORY_ARENA_COUNT;
+            ++Index )
+    {
+      registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+      if (Current->Arena == Arena)
+      {
+        Current->UserSuppliedName = Name;
+        Found = True;
+        break;
+      }
+    }
+
+    if (Found == False)
+    {
+      SoftError("Attempted to register arena name (%s), but arena was not registered!", Name);
+    }
+  }
+  else
+  {
+    Warn("Attempted to register arena name (%s) before DebugState was initialized", Name);
+  }
+
+}
+
+link_internal void
 UnregisterArena(memory_arena *Arena)
 {
   debug_state* DebugState = GetDebugState();
@@ -354,8 +413,8 @@ TrackAllocation(void* Source, umm StructSize, umm StructCount, const char *Alloc
 void*
 DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char *AllocationUUID, s32 Line, const char *File, umm Alignment, b32 MemProtect)
 {
-  umm PushSize = StructCount * StructSize;
-  void* Result = PushStruct( Arena, PushSize, Alignment, MemProtect);
+  umm Size = StructCount * StructSize;
+  void* Result = PushSize( Arena, Size, Alignment, MemProtect, AllocationUUID);
 
   memory_record ArenaMetadata =
   {
