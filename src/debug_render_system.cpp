@@ -1321,7 +1321,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
             }
             else
             {
-              const char *Name = GetNullTerminated(FSz("Unknown Arena : memory_location(%p)", Meta->ArenaMemoryBlock), &Global_PermDebugMemory);
+              const char *Name = GetNullTerminated(FSz("memory_location(%p)", Meta->ArenaMemoryBlock), &Global_PermDebugMemory);
+              DebugRegisterArena("Unknown Source Location", (memory_arena*)Meta->ArenaMemoryBlock, INVALID_THREAD_LOCAL_THREAD_INDEX);
               DebugRegisterArenaName(Name, (memory_arena*)Meta->ArenaMemoryBlock);
             }
           }
@@ -1395,18 +1396,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     ui_style Style = Current->Expanded? DefaultSelectedStyle : DefaultStyle;
     interactable_handle ExpandInteraction;
 
-    // TODO(Jesse): Improve this behavior?
     if (Current->Tombstone)
     {
-      ExpandInteraction =
-      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(""),                              &Style);
-        PushColumn(Group, CS(""),                              &Style);
-        PushColumn(Group, CSz("Tombstoned"),                   &Style);
-        PushColumn(Group, CS(0),                               &Style);
-        PushColumn(Group, CS(Current->ThreadId),               &Style);
-        PushNewRow(Group);
-      PushButtonEnd(Group);
     }
     else
     {
@@ -1450,7 +1441,8 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       Style = DefaultDisabledStyle;
       ExpandInteraction =
       PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(Current->Name),     &Style);
+        PushColumn(Group, CS(Current->SourceLocation),     &Style);
+        PushColumn(Group, CS(Current->UserSuppliedName),     &Style);
         PushColumn(Group, CSz("- TOMBSTONED -"), &Style);
         PushColumn(Group, CS(Current->ThreadId), &Style);
         PushNewRow(Group);
