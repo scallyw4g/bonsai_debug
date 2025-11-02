@@ -23,7 +23,7 @@ struct memory_arena;
 struct mutex;
 struct heap_allocator;
 
-struct render_entity_to_texture_group;
+struct render_to_texture_group;
 struct picked_world_chunk_static_buffer;
 struct picked_world_chunk;
 struct thread_local_state;
@@ -237,7 +237,10 @@ struct debug_timed_function
   debug_profile_scope *Scope;
   debug_scope_tree *Tree;
 
+  u64 WarnCycles;
+
   debug_timed_function(const char *Name);
+  debug_timed_function(const char *Name, u64);
   ~debug_timed_function();
 };
 
@@ -250,6 +253,7 @@ struct debug_histogram_function : debug_timed_function
 link_export b32 InitDebugState(debug_state *DebugState);
 
 #define TIMED_FUNCTION() debug_timed_function FunctionTimer(__func__)
+#define WARN_TIMED_FUNCTION(MaxCycles) debug_timed_function FunctionTimer(__func__, MaxCycles)
 #define TIMED_NAMED_BLOCK(BlockName) debug_timed_function BlockName##_block_timer(STRINGIZE(BlockName))
 #define HISTOGRAM_FUNCTION() debug_histogram_function FunctionTimer(__func__)
 
@@ -279,6 +283,7 @@ void DebugTimedMutexReleased(mutex *Mut);
 #else // BONSAI_DEBUG_SYSTEM_API
 
 #define TIMED_FUNCTION(...)
+#define WARN_TIMED_FUNCTION(...)
 #define TIMED_NAMED_BLOCK(...)
 #define HISTOGRAM_FUNCTION(...)
 

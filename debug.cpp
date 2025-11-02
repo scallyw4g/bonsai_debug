@@ -263,6 +263,7 @@ debug_timed_function::debug_timed_function(const char *Name)
 {
   this->Scope = 0;
   this->Tree = 0;
+  this->WarnCycles = 0;
 
   debug_state *DebugState = GetDebugState();
   if (DebugState)
@@ -291,6 +292,12 @@ debug_timed_function::debug_timed_function(const char *Name)
 }
 
 #if !POOF_PREPROCESSOR
+debug_timed_function::debug_timed_function(const char *Name, u64 WarnCycles_in)
+  : debug_timed_function(Name)
+{
+  this->WarnCycles = WarnCycles_in;
+}
+
 debug_timed_function::~debug_timed_function()
 {
   debug_state *DebugState = GetDebugState();
@@ -300,6 +307,16 @@ debug_timed_function::~debug_timed_function()
     if (!this->Scope) return;
 
     this->Scope->EndingCycle = __rdtsc(); // Intentionally first;
+
+    u64 Total = this->Scope->EndingCycle - this->Scope->StartingCycle;
+
+    if (this->WarnCycles)
+    {
+      if (Total > this->WarnCycles)
+      {
+        Perf("TIMED_FUNCTION(%s) exceeded WarnCycles(%llu) by (%llu)", this->Scope->Name, this->WarnCycles, Total-WarnCycles);
+      }
+    }
 
     Assert(this->Scope->EndingCycle > this->Scope->StartingCycle);
     Assert(this->Scope->Parent != this->Scope);
