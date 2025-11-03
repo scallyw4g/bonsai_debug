@@ -626,10 +626,10 @@ WorkerThreadAdvanceDebugSystem()
 {
   Assert(ThreadLocal_ThreadIndex != INVALID_THREAD_LOCAL_THREAD_INDEX);
 
-  debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
+  debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
+  Assert(ThreadState != MainThreadState);
 
-  if (ThreadState != MainThreadState)
   {
     u32 NextFrameId = MainThreadState->WriteIndex;
 

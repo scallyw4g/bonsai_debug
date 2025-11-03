@@ -255,12 +255,52 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
 #endif
 
 
-      debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
-      if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
       {
-        debug_timed_function BlockTimer2("Push Scope Bars");
-        PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
+        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+        {
+          debug_timed_function BlockTimer2("Push Scope Bars");
+          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        }
       }
+
+      {
+        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 1) % DEBUG_FRAMES_TRACKED);
+        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+        {
+          debug_timed_function BlockTimer2("Push Scope Bars");
+          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        }
+      }
+
+      {
+        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 2) % DEBUG_FRAMES_TRACKED);
+        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+        {
+          debug_timed_function BlockTimer2("Push Scope Bars");
+          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        }
+      }
+
+      {
+        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex - 1) % DEBUG_FRAMES_TRACKED);
+        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+        {
+          debug_timed_function BlockTimer2("Push Scope Bars");
+          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        }
+      }
+
+      {
+        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex - 2) % DEBUG_FRAMES_TRACKED);
+        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+        {
+          debug_timed_function BlockTimer2("Push Scope Bars");
+          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+        }
+      }
+
+
 
       EndColumn(Group, StartIndex);
 
