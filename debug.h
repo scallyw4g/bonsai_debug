@@ -67,11 +67,11 @@ struct min_max_avg_dt
 };
 struct memory_arena_stats
 {
-  u64 Allocations;
-  u64 Pushes;
+  umm Allocations;
+  umm Pushes;
 
-  u64 TotalAllocated;
-  u64 Remaining;
+  umm TotalAllocated;
+  umm Remaining;
 };
 poof(are_equal(memory_arena_stats))
 #include <generated/are_equal_memory_arena_stats.h>
@@ -92,7 +92,7 @@ struct debug_context_switch_event
 {
   debug_context_switch_type Type;
   u32 ProcessorNumber;
-  u64 CycleCount;
+  umm CycleCount;
 
   /* context_switch_event *SystemEvent; */
 };
@@ -173,8 +173,8 @@ struct debug_thread_state
 
 
   // TODO(Jesse): Make a 32-bit define instead
-#if EMCC
-  u8 Pad[36];
+#if BONSAI_EMCC
+  u8 Pad[28];
 #else
   /* u8 Pad[12]; */
 #endif
@@ -208,8 +208,8 @@ struct selected_arenas
 
 struct frame_stats
 {
-  u64 TotalCycles;
-  u64 StartingCycle;
+  umm TotalCycles;
+  umm StartingCycle;
   r32 FrameMs;
 };
 

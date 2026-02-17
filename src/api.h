@@ -30,7 +30,7 @@ struct thread_local_state;
 
 
 
-#define BONSAI_NO_ARENA (0xFFFFFFFFFFFFFFFF)
+#define BONSAI_NO_ARENA umm(0xFFFFFFFFFFFFFFFF)
 struct memory_record
 {
   const char* Name;

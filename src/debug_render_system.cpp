@@ -684,7 +684,7 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
       PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
 
-    volatile umm MinCycles = u64_MAX;
+    volatile umm MinCycles = umm_MAX;
     volatile umm MaxCycles = 0;
 
     for ( u32 FrameIndex = 0;
@@ -1148,7 +1148,7 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, window_layout *Window, sel
       }
     }
 
-    u64 CurrentUsed = TotalSize(CurrentArena) - Remaining(CurrentArena);
+    umm CurrentUsed = TotalSize(CurrentArena) - Remaining(CurrentArena);
     r32 CurrentPerc = (r32)SafeDivide0(CurrentUsed, TotalSize(CurrentArena));
 
     interactable_handle Handle = PushArenaBargraph(Group, FColor, BColor, CurrentUsed, CurrentPerc, Remaining(CurrentArena), UiId(Window, "arena_bargraph", HashArena(CurrentArena)), Global_Font.Size.y*.5f);

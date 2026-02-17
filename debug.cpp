@@ -284,7 +284,7 @@ debug_timed_function::debug_timed_function(const char *Name)
       this->Tree->ParentOfNextScope = this->Scope;
 
       this->Scope->Name = Name;
-      this->Scope->StartingCycle = __rdtsc(); // Intentionally last
+      this->Scope->StartingCycle = GetCycleCount();
     }
   }
 
@@ -306,7 +306,7 @@ debug_timed_function::~debug_timed_function()
     if (!DebugState->DebugDoScopeProfiling) return;
     if (!this->Scope) return;
 
-    this->Scope->EndingCycle = __rdtsc(); // Intentionally first;
+    this->Scope->EndingCycle = GetCycleCount(); // Intentionally first;
 
     u64 Total = this->Scope->EndingCycle - this->Scope->StartingCycle;
 
@@ -341,7 +341,7 @@ debug_histogram_function::~debug_histogram_function()
     // NOTE(Jesse): Kinda henious hack because the constructor/destructor
     // ordering is the wrong way for this to work.  I couldn't think of a
     // better way to do this..
-    this->Scope->EndingCycle = __rdtsc();
+    this->Scope->EndingCycle = GetCycleCount();
     DebugState->PushHistogramDataPoint(this->Scope->EndingCycle-this->Scope->StartingCycle);
   }
 }
