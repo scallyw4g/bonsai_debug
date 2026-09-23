@@ -134,6 +134,7 @@ struct debug_state
 {
   b32 Initialized;
   u32 UIType = DebugUIType_None;
+  callgraph_window_view_mode CallgraphWindowViewMode;
 
   u64 BytesBufferedToCard;
   b32 DebugDoScopeProfiling;

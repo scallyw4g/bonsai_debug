@@ -124,6 +124,16 @@ struct debug_context_switch_event_buffer_stream
 };
 
 
+enum callgraph_window_view_mode
+{
+  CallgraphWindowViewMode_Frame,
+  CallgraphWindowViewMode_Jobs,
+};
+
+poof(string_and_value_tables(callgraph_window_view_mode))
+#include <generated/string_and_value_tables_XK4rBcRO.h>
+
+
 template <typename T> b32 BufferHasRoomFor(T *Buffer, u32 VertsToPush);
 
 link_internal debug_context_switch_event*

@@ -1,3 +1,6 @@
+poof(radio_button_group_for_enum(callgraph_window_view_mode))
+#include <generated/radio_button_group_for_enum_Hq6hgTBO.h>
+
 #include <bonsai_debug/src/debug_data_system.cpp>
 #include <bonsai_debug/src/debug_render_system.cpp>
 
@@ -5,6 +8,8 @@
 #include <bonsai_debug/src/platform/win32_etw.cpp>
 /* #include <bonsai_debug/src/platform/win32_pmc.cpp> */
 #endif
+
+
 
 link_internal void
 DebugFrameEnd(r32 dt)
@@ -181,7 +186,7 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     if (DebugState->UIType & DebugUIType_CallGraph)
     {
-      DebugDrawCallGraph(Ui, DebugState, Dt.Max);
+      DebugCallgraphWindow(Ui, DebugState, Dt.Max);
     }
 
     if (DebugState->UIType & DebugUIType_Memory)

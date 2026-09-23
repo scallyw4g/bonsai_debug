@@ -132,226 +132,241 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
 
   PushWindowStart(Group, &CycleGraphWindow);
 
-  cs ETStatusString = CSz("");
-  switch (Global_EventTracingStatus)
+  auto DebugState = GetDebugState();
+  ui_toggle_button_group ViewMode = RadioButtonGroup_callgraph_window_view_mode( Group, &CycleGraphWindow, CSz(""), &DebugState->CallgraphWindowViewMode);
+
+  switch (callgraph_window_view_mode(*ViewMode.EnumStorage))
   {
-    case EventTracingStatus_Unstarted:
+    case CallgraphWindowViewMode_Frame:
     {
-      ETStatusString = CSz("CSwitch Tracing: Unstarted");
-    } break;
-    case EventTracingStatus_Starting:
-    {
-      ETStatusString = CSz("CSwitch Tracing: Starting");
-    } break;
-    case EventTracingStatus_Running:
-    {
-      ETStatusString = CSz("CSwitch Tracing: Running");
-    } break;
-    case EventTracingStatus_Error:
-    {
-      ETStatusString = CSz("CSwitch Tracing: Error");
-    } break;
-  }
+      cs ETStatusString = CSz("");
+      switch (Global_EventTracingStatus)
+      {
+        case EventTracingStatus_Unstarted:
+        {
+          ETStatusString = CSz("CSwitch Tracing: Unstarted");
+        } break;
+        case EventTracingStatus_Starting:
+        {
+          ETStatusString = CSz("CSwitch Tracing: Starting");
+        } break;
+        case EventTracingStatus_Running:
+        {
+          ETStatusString = CSz("CSwitch Tracing: Running");
+        } break;
+        case EventTracingStatus_Error:
+        {
+          ETStatusString = CSz("CSwitch Tracing: Error");
+        } break;
+      }
 
-  Text(Group, ETStatusString);
-  PushNewRow(Group);
-  PushNewRow(Group);
+      Text(Group, ETStatusString);
+      PushNewRow(Group);
+      PushNewRow(Group);
 
 
-  /* PushTableStart(Group); */
+      /* PushTableStart(Group); */
 
-  s32 TotalThreadCount                 = (s32)GetTotalThreadCount();
-  frame_stats *FrameStats              = SharedState->Frames + SharedState->ReadScopeIndex;
-  cycle_range FrameCycles              = {FrameStats->StartingCycle, FrameStats->TotalCycles};
+      s32 TotalThreadCount                 = (s32)GetTotalThreadCount();
+      frame_stats *FrameStats              = SharedState->Frames + SharedState->ReadScopeIndex;
+      cycle_range FrameCycles              = {FrameStats->StartingCycle, FrameStats->TotalCycles};
 
-  r32 BarHeight = (r32)Global_Font.Size.y;
+      r32 BarHeight = (r32)Global_Font.Size.y;
 
 #if 1
-  /* r32 TotalMs = Max(33.333333f, (r32)FrameStats->FrameMs); */
-  r32 TotalMs = (r32)FrameStats->FrameMs;
+      /* r32 TotalMs = Max(33.333333f, (r32)FrameStats->FrameMs); */
+      r32 TotalMs = (r32)FrameStats->FrameMs;
 
-  if (TotalMs > 0.0f)
-  {
-    r32 MarkerWidth = 1.f;
-    r32 MinY = 0.f;
-    r32 TotalGraphHeight = TotalThreadCount * (Global_CoreBarHeight + (Global_CoreBarPadding*2.f) + BarHeight);
+      if (TotalMs > 0.0f)
+      {
+        r32 MarkerWidth = 1.f;
+        r32 MinY = 0.f;
+        r32 TotalGraphHeight = TotalThreadCount * (Global_CoreBarHeight + (Global_CoreBarPadding*2.f) + BarHeight);
 
-    {
-      r32 FramePerc = 16.666666f/TotalMs;
-      r32 xOffset = FramePerc*TotalGraphWidth;
-      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
-    }
-    {
-      r32 FramePerc = 33.333333f/TotalMs;
-      r32 xOffset = FramePerc*TotalGraphWidth;
-      PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
-    }
-  }
+        {
+          r32 FramePerc = 16.666666f/TotalMs;
+          r32 xOffset = FramePerc*TotalGraphWidth;
+          PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
+        }
+        {
+          r32 FramePerc = 33.333333f/TotalMs;
+          r32 xOffset = FramePerc*TotalGraphWidth;
+          PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
+        }
+      }
 #endif
 
 
-  debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
-  debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + SharedState->ReadScopeIndex;
+      debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
+      debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + SharedState->ReadScopeIndex;
 
-  /* PushTableStart(Group); */
-  for ( s32 ThreadIndex = 0;
-            ThreadIndex < TotalThreadCount;
-          ++ThreadIndex)
-  {
-    TIMED_NAMED_BLOCK(Thread_Loop);
+      /* PushTableStart(Group); */
+      for ( s32 ThreadIndex = 0;
+                ThreadIndex < TotalThreadCount;
+              ++ThreadIndex)
+      {
+        TIMED_NAMED_BLOCK(Thread_Loop);
 
-    PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
-    debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+        PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
+        debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
 
-    if (ThreadState->ThreadId)
-    {
-      u32 StartIndex = StartColumn(Group);
+        if (ThreadState->ThreadId)
+        {
+          u32 StartIndex = StartColumn(Group);
 
 #if 1
-      debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
-      debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
-      debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
-      while (CurrentBlock)
-      {
-        debug_context_switch_event_buffer *ContextSwitches = &CurrentBlock->Buffer;
-        debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
-
-        /* if (ThreadIndex == 0) */
-        /* { */
-        /*   DebugLine("%u", ContextSwitches->At); */
-        /* } */
-
-        b32 FoundOutOfOrderEvent = False;
-        for ( u32 ContextSwitchEventIndex = 1;
-                  ContextSwitchEventIndex < ContextSwitches->At;
-                ++ContextSwitchEventIndex )
-        {
-          debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
-
-          if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
-               RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
+          debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
+          debug_context_switch_event_buffer_stream_block *PrevBlock = 0;
+          debug_context_switch_event_buffer_stream_block *CurrentBlock = ContextSwitchStream->FirstBlock;
+          while (CurrentBlock)
           {
-            cycle_range Range = {
-              .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
-              .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
-            };
+            debug_context_switch_event_buffer *ContextSwitches = &CurrentBlock->Buffer;
+            debug_context_switch_event *LastCSwitchEvt = ContextSwitches->Events;
 
-            if (LastCSwitchEvt->Type == ContextSwitch_On)
+            /* if (ThreadIndex == 0) */
+            /* { */
+            /*   DebugLine("%u", ContextSwitches->At); */
+            /* } */
+
+            b32 FoundOutOfOrderEvent = False;
+            for ( u32 ContextSwitchEventIndex = 1;
+                      ContextSwitchEventIndex < ContextSwitches->At;
+                    ++ContextSwitchEventIndex )
             {
-              v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
-              ui_style Style = UiStyleFromLightestColor(CoreColor);
-              PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+              debug_context_switch_event *CSwitch = ContextSwitches->Events + ContextSwitchEventIndex;
+
+              if ( RangeContains(FrameStats->StartingCycle, CSwitch->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) ||
+                   RangeContains(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount, FrameStats->StartingCycle+FrameStats->TotalCycles) )
+              {
+                cycle_range Range = {
+                  .StartCycle = Max(FrameStats->StartingCycle, LastCSwitchEvt->CycleCount),
+                  .TotalCycles = CSwitch->CycleCount-LastCSwitchEvt->CycleCount
+                };
+
+                if (LastCSwitchEvt->Type == ContextSwitch_On)
+                {
+                  v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
+                  ui_style Style = UiStyleFromLightestColor(CoreColor);
+                  PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+                }
+              }
+
+              LastCSwitchEvt = CSwitch;
+            }
+
+            PrevBlock = CurrentBlock;
+            CurrentBlock = CurrentBlock->Next;
+          }
+
+          PushForceAdvance(Group, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
+#endif
+
+
+          {
+            debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
+            /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+            {
+              debug_timed_function BlockTimer2("Push Scope Bars");
+              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
-          LastCSwitchEvt = CSwitch;
-        }
+          {
+            debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 1) % DEBUG_FRAMES_TRACKED);
+            /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+            {
+              debug_timed_function BlockTimer2("Push Scope Bars");
+              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+            }
+          }
 
-        PrevBlock = CurrentBlock;
-        CurrentBlock = CurrentBlock->Next;
-      }
+          {
+            debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 2) % DEBUG_FRAMES_TRACKED);
+            /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+            {
+              debug_timed_function BlockTimer2("Push Scope Bars");
+              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+            }
+          }
 
-      PushForceAdvance(Group, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
-#endif
+          {
+            debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex - 1) % DEBUG_FRAMES_TRACKED);
+            /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+            {
+              debug_timed_function BlockTimer2("Push Scope Bars");
+              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+            }
+          }
 
-
-      {
-        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
-        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
-        {
-          debug_timed_function BlockTimer2("Push Scope Bars");
-          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
-        }
-      }
-
-      {
-        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 1) % DEBUG_FRAMES_TRACKED);
-        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
-        {
-          debug_timed_function BlockTimer2("Push Scope Bars");
-          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
-        }
-      }
-
-      {
-        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 2) % DEBUG_FRAMES_TRACKED);
-        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
-        {
-          debug_timed_function BlockTimer2("Push Scope Bars");
-          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
-        }
-      }
-
-      {
-        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex - 1) % DEBUG_FRAMES_TRACKED);
-        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
-        {
-          debug_timed_function BlockTimer2("Push Scope Bars");
-          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
-        }
-      }
-
-      {
-        debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex - 2) % DEBUG_FRAMES_TRACKED);
-        /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
-        {
-          debug_timed_function BlockTimer2("Push Scope Bars");
-          PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
-        }
-      }
+          {
+            debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex - 2) % DEBUG_FRAMES_TRACKED);
+            /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
+            {
+              debug_timed_function BlockTimer2("Push Scope Bars");
+              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+            }
+          }
 
 
 
-      EndColumn(Group, StartIndex);
+          EndColumn(Group, StartIndex);
 
-      PushNewRow(Group);
-    }
-    else
-    {
-      PushColumn(Group, CSz(" --- Thread Not Registered ---"));
-      PushNewRow(Group);
-    }
-  }
-
-  /* PushTableEnd(Group); */
-
-#if 0
-  u32 UnclosedMutexRecords = 0;
-  u32 TotalMutexRecords = 0;
-  TIMED_BLOCK("Mutex Record Collation");
-  for ( u32 ThreadIndex = 0;
-        ThreadIndex < TotalThreadCount;
-        ++ThreadIndex)
-  {
-    debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
-    mutex_op_array *MutexOps = ThreadState->MutexOps + SharedState->ReadScopeIndex;
-    mutex_op_record *FinalRecord = MutexOps->Records + MutexOps->NextRecord;
-
-    for (u32 OpRecordIndex = 0;
-        OpRecordIndex < MutexOps->NextRecord;
-        ++OpRecordIndex)
-    {
-      mutex_op_record *CurrentRecord = MutexOps->Records + OpRecordIndex;
-      if (CurrentRecord->Op == MutexOp_Waiting)
-      {
-        mutex_op_record *Aquired = FindRecord(CurrentRecord, FinalRecord, MutexOp_Aquired);
-        mutex_op_record *Released = FindRecord(CurrentRecord, FinalRecord, MutexOp_Released);
-        if (Aquired && Released)
-        {
-          r32 yOffset = ThreadIndex * Group->Font.LineHeight;
-          Layout->At.y += yOffset;
-          DrawWaitingBar(CurrentRecord, Aquired, Released, Group, Layout, &Group->Font, FrameStartingCycle, FrameTotalCycles, TotalGraphWidth);
-          Layout->At.y -= yOffset;
+          PushNewRow(Group);
         }
         else
         {
-          Warn("Unclosed Mutex Record at %u on thread %u", OpRecordIndex, ThreadIndex);
+          PushColumn(Group, CSz(" --- Thread Not Registered ---"));
+          PushNewRow(Group);
         }
       }
-    }
-  }
-  END_BLOCK("Mutex Record Collation");
+
+      /* PushTableEnd(Group); */
+
+#if 0
+      u32 UnclosedMutexRecords = 0;
+      u32 TotalMutexRecords = 0;
+      TIMED_BLOCK("Mutex Record Collation");
+      for ( u32 ThreadIndex = 0;
+            ThreadIndex < TotalThreadCount;
+            ++ThreadIndex)
+      {
+        debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+        mutex_op_array *MutexOps = ThreadState->MutexOps + SharedState->ReadScopeIndex;
+        mutex_op_record *FinalRecord = MutexOps->Records + MutexOps->NextRecord;
+
+        for (u32 OpRecordIndex = 0;
+            OpRecordIndex < MutexOps->NextRecord;
+            ++OpRecordIndex)
+        {
+          mutex_op_record *CurrentRecord = MutexOps->Records + OpRecordIndex;
+          if (CurrentRecord->Op == MutexOp_Waiting)
+          {
+            mutex_op_record *Aquired = FindRecord(CurrentRecord, FinalRecord, MutexOp_Aquired);
+            mutex_op_record *Released = FindRecord(CurrentRecord, FinalRecord, MutexOp_Released);
+            if (Aquired && Released)
+            {
+              r32 yOffset = ThreadIndex * Group->Font.LineHeight;
+              Layout->At.y += yOffset;
+              DrawWaitingBar(CurrentRecord, Aquired, Released, Group, Layout, &Group->Font, FrameStartingCycle, FrameTotalCycles, TotalGraphWidth);
+              Layout->At.y -= yOffset;
+            }
+            else
+            {
+              Warn("Unclosed Mutex Record at %u on thread %u", OpRecordIndex, ThreadIndex);
+            }
+          }
+        }
+      }
+      END_BLOCK("Mutex Record Collation");
 #endif
+    } break;
+
+    case CallgraphWindowViewMode_Jobs:
+    {
+      /* IterateOver(); */
+    } break;
+  }
+
   PushWindowEnd(Group, &CycleGraphWindow);
 }
 
@@ -750,7 +765,7 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
 }
 
 link_internal void
-DebugDrawCallGraph(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
+DebugCallgraphWindow(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
