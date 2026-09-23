@@ -7,7 +7,7 @@
 #if 0
 link_internal void
 DrawWaitingBar(mutex_op_record *WaitRecord, mutex_op_record *AquiredRecord, mutex_op_record *ReleasedRecord,
-               debug_ui_render_group *Group, layout *Layout, u64 FrameStartingCycle, u64 FrameTotalCycles, r32 TotalGraphWidth, r32 Z, v2 MaxClip)
+               renderer_2d *Ui, layout *Layout, u64 FrameStartingCycle, u64 FrameTotalCycles, r32 TotalGraphWidth, r32 Z, v2 MaxClip)
 {
   Assert(WaitRecord->Op == MutexOp_Waiting);
   Assert(AquiredRecord->Op == MutexOp_Aquired);
@@ -19,14 +19,14 @@ DrawWaitingBar(mutex_op_record *WaitRecord, mutex_op_record *AquiredRecord, mute
   u64 WaitCycleCount = AquiredRecord->Cycle - WaitRecord->Cycle;
   u64 AquiredCycleCount = ReleasedRecord->Cycle - AquiredRecord->Cycle;
 
-  untextured_2d_geometry_buffer *Geo = &Group->Geo;
+  untextured_2d_geometry_buffer *Geo = &Ui->Geo;
   cycle_range FrameRange = {FrameStartingCycle, FrameTotalCycles};
 
   cycle_range WaitRange = {WaitRecord->Cycle, WaitCycleCount};
-  DrawCycleBar( &WaitRange, &FrameRange, TotalGraphWidth, 0, V3(1, 0, 0), Group, Geo, Layout, Z, MaxClip, 0);
+  DrawCycleBar( &WaitRange, &FrameRange, TotalGraphWidth, 0, V3(1, 0, 0), Ui, Geo, Layout, Z, MaxClip, 0);
 
   cycle_range AquiredRange = {AquiredRecord->Cycle, AquiredCycleCount};
-  DrawCycleBar( &AquiredRange, &FrameRange, TotalGraphWidth, 0, V3(0, 1, 0), Group, Geo, Layout, Z, MaxClip, 0);
+  DrawCycleBar( &AquiredRange, &FrameRange, TotalGraphWidth, 0, V3(0, 1, 0), Ui, Geo, Layout, Z, MaxClip, 0);
 
   return;
 }
@@ -48,7 +48,7 @@ BuildNameStringFor(char Prefix, counted_string Name, u32 DepthAdvance)
 }
 
 link_internal void
-BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
+BufferScopeTreeEntry(renderer_2d *Ui, debug_profile_scope *Scope,
                      u64 TotalCycles, u64 TotalFrameCycles, u64 CallCount, u32 Depth)
 {
   Assert(TotalFrameCycles);
@@ -56,9 +56,9 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
   r32 Percentage = 100.0f * (r32)SafeDivide0((r64)TotalCycles, (r64)TotalFrameCycles);
   u64 AvgCycles = (u64)SafeDivide0(TotalCycles, CallCount);
 
-  PushColumn(Group, CS(Percentage));
-  PushColumn(Group, CS(AvgCycles));
-  PushColumn(Group, CS(CallCount));
+  PushColumn(Ui, CS(Percentage));
+  PushColumn(Ui, CS(AvgCycles));
+  PushColumn(Ui, CS(CallCount));
 
   char Prefix = ' ';
   if (Scope->Expanded && Scope->Child)
@@ -72,7 +72,7 @@ BufferScopeTreeEntry(debug_ui_render_group *Group, debug_profile_scope *Scope,
 
   u32 DepthSpaces = (Depth*2)+1;
   counted_string NameString = BuildNameStringFor(Prefix, CS(Scope->Name), DepthSpaces);
-  PushColumn(Group, NameString, &DefaultStyle, DefaultColumnPadding, UiElementAlignmentFlag_LeftAlign);
+  PushColumn(Ui, NameString, &DefaultStyle, DefaultColumnPadding, UiElementAlignmentFlag_LeftAlign);
 
   return;
 }
@@ -81,7 +81,7 @@ global_variable r32 Global_CoreBarHeight = 3.f;
 global_variable r32 Global_CoreBarPadding = 3.f;
 
 link_internal void
-PushScopeBarsRecursive( debug_ui_render_group *Group,
+PushScopeBarsRecursive( renderer_2d *Ui,
                         window_layout *Window,
                         debug_profile_scope *Scope,
                         cycle_range *Frame,
@@ -106,14 +106,14 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
 
     {
       cs ScopeName = CS(Scope->Name);
-      interactable_handle Bar = PushButtonStart(Group, UiId(Window, "CycleBarHoverInteraction", Scope));
-        PushCycleBar(Group, &Range, Frame, TotalGraphWidth, BarHeight, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
-      PushButtonEnd(Group);
-      if (Hover(Group, &Bar)) { PushTooltip(Group, ScopeName); }
-      if (Clicked(Group, &Bar)) { Scope->Expanded = !Scope->Expanded; }
+      interactable_handle Bar = PushButtonStart(Ui, UiId(Window, "CycleBarHoverInteraction", Scope));
+        PushCycleBar(Ui, &Range, Frame, TotalGraphWidth, BarHeight, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
+      PushButtonEnd(Ui);
+      if (Hover(Ui, &Bar)) { PushTooltip(Ui, ScopeName); }
+      if (Clicked(Ui, &Bar)) { Scope->Expanded = !Scope->Expanded; }
     }
 
-    if (Scope->Expanded) { PushScopeBarsRecursive(Group, Window, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
+    if (Scope->Expanded) { PushScopeBarsRecursive(Ui, Window, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
     Scope = Scope->Sibling;
   }
 
@@ -121,7 +121,7 @@ PushScopeBarsRecursive( debug_ui_render_group *Group,
 }
 
 link_internal void
-DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
+DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
 {
   TIMED_FUNCTION();
 
@@ -130,10 +130,14 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
   window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_Align_Bottom|WindowLayoutFlag_StartupSize_InferHeight);
   local_persist window_layout CycleGraphWindow = WindowLayout("Thread View", {}, V2(TotalGraphWidth+150.f, 0.f), Flags);
 
-  PushWindowStart(Group, &CycleGraphWindow);
+  PushWindowStart(Ui, &CycleGraphWindow);
 
   auto DebugState = GetDebugState();
-  ui_toggle_button_group ViewMode = RadioButtonGroup_callgraph_window_view_mode( Group, &CycleGraphWindow, CSz(""), &DebugState->CallgraphWindowViewMode);
+  ui_toggle_button_group ViewMode =
+    RadioButtonGroup_callgraph_window_view_mode( Ui,
+                                                &CycleGraphWindow,
+                                                  CSz(""),
+                                                &DebugState->CallgraphWindowViewMode);
 
   switch (callgraph_window_view_mode(*ViewMode.EnumStorage))
   {
@@ -160,12 +164,12 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
         } break;
       }
 
-      Text(Group, ETStatusString);
-      PushNewRow(Group);
-      PushNewRow(Group);
+      Text(Ui, ETStatusString);
+      PushNewRow(Ui);
+      PushNewRow(Ui);
 
 
-      /* PushTableStart(Group); */
+      /* PushTableStart(Ui); */
 
       s32 TotalThreadCount                 = (s32)GetTotalThreadCount();
       frame_stats *FrameStats              = SharedState->Frames + SharedState->ReadScopeIndex;
@@ -186,12 +190,12 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
         {
           r32 FramePerc = 16.666666f/TotalMs;
           r32 xOffset = FramePerc*TotalGraphWidth;
-          PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
+          PushUntexturedQuad(Ui, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
         }
         {
           r32 FramePerc = 33.333333f/TotalMs;
           r32 xOffset = FramePerc*TotalGraphWidth;
-          PushUntexturedQuad(Group, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
+          PushUntexturedQuad(Ui, V2(xOffset, 0.f), V2(MarkerWidth, TotalGraphHeight), zDepth_Border, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
         }
       }
 #endif
@@ -200,19 +204,19 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
       debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
       debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + SharedState->ReadScopeIndex;
 
-      /* PushTableStart(Group); */
+      /* PushTableStart(Ui); */
       for ( s32 ThreadIndex = 0;
                 ThreadIndex < TotalThreadCount;
               ++ThreadIndex)
       {
         TIMED_NAMED_BLOCK(Thread_Loop);
 
-        PushColumn(Group, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
+        PushColumn(Ui, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
         debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
 
         if (ThreadState->ThreadId)
         {
-          u32 StartIndex = StartColumn(Group);
+          u32 StartIndex = StartColumn(Ui);
 
 #if 1
           debug_context_switch_event_buffer_stream *ContextSwitchStream = ThreadState->ContextSwitches;
@@ -245,9 +249,9 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
 
                 if (LastCSwitchEvt->Type == ContextSwitch_On)
                 {
-                  v3 CoreColor = Group->DebugColors[LastCSwitchEvt->ProcessorNumber];
+                  v3 CoreColor = Ui->DebugColors[LastCSwitchEvt->ProcessorNumber];
                   ui_style Style = UiStyleFromLightestColor(CoreColor);
-                  PushCycleBar(Group, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
+                  PushCycleBar(Ui, &Range, &FrameCycles, TotalGraphWidth, Global_CoreBarHeight, 0, &Style, V4(0, 0, 0, Global_CoreBarHeight));
                 }
               }
 
@@ -258,7 +262,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             CurrentBlock = CurrentBlock->Next;
           }
 
-          PushForceAdvance(Group, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
+          PushForceAdvance(Ui, V2(0, Global_CoreBarHeight + Global_CoreBarPadding*2));
 #endif
 
 
@@ -267,7 +271,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
             {
               debug_timed_function BlockTimer2("Push Scope Bars");
-              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+              PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
@@ -276,7 +280,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
             {
               debug_timed_function BlockTimer2("Push Scope Bars");
-              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+              PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
@@ -285,7 +289,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
             {
               debug_timed_function BlockTimer2("Push Scope Bars");
-              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+              PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
@@ -294,7 +298,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
             {
               debug_timed_function BlockTimer2("Push Scope Bars");
-              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+              PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
@@ -303,24 +307,24 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
             {
               debug_timed_function BlockTimer2("Push Scope Bars");
-              PushScopeBarsRecursive(Group, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+              PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
 
 
-          EndColumn(Group, StartIndex);
+          EndColumn(Ui, StartIndex);
 
-          PushNewRow(Group);
+          PushNewRow(Ui);
         }
         else
         {
-          PushColumn(Group, CSz(" --- Thread Not Registered ---"));
-          PushNewRow(Group);
+          PushColumn(Ui, CSz(" --- Thread Not Registered ---"));
+          PushNewRow(Ui);
         }
       }
 
-      /* PushTableEnd(Group); */
+      /* PushTableEnd(Ui); */
 
 #if 0
       u32 UnclosedMutexRecords = 0;
@@ -345,9 +349,9 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
             mutex_op_record *Released = FindRecord(CurrentRecord, FinalRecord, MutexOp_Released);
             if (Aquired && Released)
             {
-              r32 yOffset = ThreadIndex * Group->Font.LineHeight;
+              r32 yOffset = ThreadIndex * Ui->Font.LineHeight;
               Layout->At.y += yOffset;
-              DrawWaitingBar(CurrentRecord, Aquired, Released, Group, Layout, &Group->Font, FrameStartingCycle, FrameTotalCycles, TotalGraphWidth);
+              DrawWaitingBar(CurrentRecord, Aquired, Released, Ui, Layout, &Ui->Font, FrameStartingCycle, FrameTotalCycles, TotalGraphWidth);
               Layout->At.y -= yOffset;
             }
             else
@@ -367,7 +371,7 @@ DrawThreadsWindow(debug_ui_render_group *Group, debug_state *SharedState)
     } break;
   }
 
-  PushWindowEnd(Group, &CycleGraphWindow);
+  PushWindowEnd(Ui, &CycleGraphWindow);
 }
 
 link_internal interactable_handle
@@ -396,12 +400,12 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
 
   random_series Entropy = {};
   window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupSize_InferHeight);
-  local_persist window_layout Window = WindowLayout("Histogram", Flags);
+  window_layout *Window = GetOrCreateWindow(Ui, "Histogram", Flags);
 
   r32 GraphHeight = 200.f;
-  PushWindowStart(Ui, &Window);
+  PushWindowStart(Ui, Window);
 
-  if (Button(Ui, CSz("Reset"), UiId(&Window, "Reset", 0u)))
+  if (Button(Ui, CSz("Reset"), UiId(Window, "Reset", 0u)))
   {
     for (u32 SampleIndex = 0; SampleIndex < DEBUG_HISTOGRAM_MAX_SAMPLES; ++SampleIndex)
     {
@@ -460,7 +464,7 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
       {
         r32 Perc = r32(r64(Sample)/r64(MaxCycles));
 
-        interactable_handle B = DrawHistogramCell(Ui, &Window, u32(SampleIndex), V2(1.f, GraphHeight), Perc, V3(1.f), V3(0.3f), V4(0.f));
+        interactable_handle B = DrawHistogramCell(Ui, Window, u32(SampleIndex), V2(1.f, GraphHeight), Perc, V3(1.f), V3(0.3f), V4(0.f));
 
         if (Hover(Ui, &B))
         {
@@ -475,7 +479,7 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
     }
   }
 
-  PushWindowEnd(Ui, &Window);
+  PushWindowEnd(Ui, Window);
 }
 
 
@@ -617,7 +621,7 @@ DumpScopeTreeDataToConsole_Internal(debug_profile_scope *Scope_in, debug_profile
 }
 
 link_internal void
-BufferFirstCallToEach(debug_ui_render_group *Group,
+BufferFirstCallToEach(renderer_2d *Ui,
                       debug_profile_scope *Scope_in,
                       debug_profile_scope *TreeRoot,
                       memory_arena *Memory,
@@ -652,15 +656,15 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
 
   while (UniqueScopes)
   {
-    interactable_handle ScopeTextInteraction = PushButtonStart(Group, UiId(Window, "profile_scope", UniqueScopes->Scope) );
-      BufferScopeTreeEntry(Group, UniqueScopes->Scope, UniqueScopes->TotalCycles, TotalFrameCycles, UniqueScopes->CallCount, Depth);
-    PushButtonEnd(Group);
-    PushNewRow(Group);
+    interactable_handle ScopeTextInteraction = PushButtonStart(Ui, UiId(Window, "profile_scope", UniqueScopes->Scope) );
+      BufferScopeTreeEntry(Ui, UniqueScopes->Scope, UniqueScopes->TotalCycles, TotalFrameCycles, UniqueScopes->CallCount, Depth);
+    PushButtonEnd(Ui);
+    PushNewRow(Ui);
 
     if (UniqueScopes->Scope->Expanded)
-      BufferFirstCallToEach(Group, UniqueScopes->Scope->Child, TreeRoot, Memory, Window, TotalFrameCycles, Depth+1);
+      BufferFirstCallToEach(Ui, UniqueScopes->Scope->Child, TreeRoot, Memory, Window, TotalFrameCycles, Depth+1);
 
-    if (Clicked(Group, &ScopeTextInteraction))
+    if (Clicked(Ui, &ScopeTextInteraction))
     {
       GetDebugState()->HotFunction = UniqueScopes->Scope;
       UniqueScopes->Scope->Expanded = !UniqueScopes->Scope->Expanded;
@@ -673,11 +677,11 @@ BufferFirstCallToEach(debug_ui_render_group *Group,
 }
 
 link_internal void
-DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state *DebugState, r32 MaxMs)
+DrawFrameTicker(renderer_2d *Ui, window_layout *Window, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
-  PushTableStart(Group);
+  PushTableStart(Ui);
 
     v4 Pad = V4(1, 0, 1, 0);
     v2 MaxBarDim = V2(15.0f, 80.0f);
@@ -689,14 +693,14 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
       r32 MsPerc = SafeDivide0(33.333f, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
-      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
+      PushUntexturedQuad(Ui, MinP, LineDim, zDepth_Text, &Global_DefaultWarnStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
 
     {
       r32 MsPerc = (r32)SafeDivide0(16.666f, MaxMs);
       r32 MinPOffset = MaxBarDim.y * MsPerc;
       v2 MinP = {{ 0.0f, MaxBarDim.y - MinPOffset }};
-      PushUntexturedQuad(Group, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
+      PushUntexturedQuad(Ui, MinP, LineDim, zDepth_Text, &Global_DefaultSuccessStyle, V4(0), UiElementLayoutFlag_NoAdvance);
     }
 
     volatile umm MinCycles = umm_MAX;
@@ -733,12 +737,12 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
          UiStyleFromLightestColor(V3(Brightness, Brightness, Brightness)) :
          DefaultBlurredStyle;
 
-      interactable_handle B = PushButtonStart(Group, UiId(Window, "FrameTickerHoverInteraction", FrameIndex) );
-        PushUntexturedQuad(Group, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, UiElementLayoutFlag_NoAdvance);
-        PushUntexturedQuad(Group, Offset, QuadDim, zDepth_Background, &Style, Pad);
-      PushButtonEnd(Group);
+      interactable_handle B = PushButtonStart(Ui, UiId(Window, "FrameTickerHoverInteraction", FrameIndex) );
+        PushUntexturedQuad(Ui, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, UiElementLayoutFlag_NoAdvance);
+        PushUntexturedQuad(Ui, Offset, QuadDim, zDepth_Background, &Style, Pad);
+      PushButtonEnd(Ui);
 
-      if (Clicked(Group, &B)) { DebugState->ReadScopeIndex = FrameIndex; }
+      if (Clicked(Ui, &B)) { DebugState->ReadScopeIndex = FrameIndex; }
     }
 
     DebugState->MaxCycles = MaxCycles;
@@ -746,17 +750,17 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
 
 
 
-  PushTableEnd(Group);
+  PushTableEnd(Ui);
 
   frame_stats *Frame = DebugState->Frames + DebugState->ReadScopeIndex;
 
   u32 TotalMutexOps = GetTotalMutexOpsForReadFrame();
-  PushTableStart(Group);
-    PushColumn(Group, CS(Frame->FrameMs));
-    PushColumn(Group, CS(Frame->TotalCycles));
-    PushColumn(Group, CS(TotalMutexOps));
-    PushNewRow(Group);
-  PushTableEnd(Group);
+  PushTableStart(Ui);
+    PushColumn(Ui, CS(Frame->FrameMs));
+    PushColumn(Ui, CS(Frame->TotalCycles));
+    PushColumn(Ui, CS(TotalMutexOps));
+    PushNewRow(Ui);
+  PushTableEnd(Ui);
 
   /* DebugState->DebugValue_u64(DebugState->MinCycles, "MinCycles"); */
   /* DebugState->DebugValue_u64(DebugState->MaxCycles, "MaxCycles"); */
@@ -765,14 +769,14 @@ DrawFrameTicker(debug_ui_render_group *Group, window_layout *Window, debug_state
 }
 
 link_internal void
-DebugCallgraphWindow(debug_ui_render_group *Group, debug_state *DebugState, r32 MaxMs)
+DebugCallgraphWindow(renderer_2d *Ui, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
-  DrawFrameTicker(Group, 0, DebugState, Max(33.3f, MaxMs));
+  DrawFrameTicker(Ui, 0, DebugState, Max(33.3f, MaxMs));
 
-  DrawThreadsWindow(Group, DebugState);
-  DrawHistogram(Group, DebugState);
+  DrawThreadsWindow(Ui, DebugState);
+  DrawHistogram(Ui, DebugState);
 
   debug_thread_state *MainThreadState  = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
@@ -780,13 +784,13 @@ DebugCallgraphWindow(debug_ui_render_group *Group, debug_state *DebugState, r32 
   TIMED_BLOCK("Call Graph");
     local_persist window_layout FunctionTreeWindow = WindowLayout("Function Tree", WindowLayoutFlag_Align_Right);
 
-    PushWindowStart(Group, &FunctionTreeWindow);
-      PushTableStart(Group);
-        PushColumn(Group, CSz("Frame %"));
-        PushColumn(Group, CSz("Cycles"));
-        PushColumn(Group, CSz("Calls"));
-        PushColumn(Group, CSz("Name"));
-        PushNewRow(Group);
+    PushWindowStart(Ui, &FunctionTreeWindow);
+      PushTableStart(Ui);
+        PushColumn(Ui, CSz("Frame %"));
+        PushColumn(Ui, CSz("Cycles"));
+        PushColumn(Ui, CSz("Calls"));
+        PushColumn(Ui, CSz("Name"));
+        PushNewRow(Ui);
 
         s32 TotalThreadCount = (s32)GetTotalThreadCount();
         for ( s32 ThreadIndex = 0;
@@ -800,11 +804,11 @@ DebugCallgraphWindow(debug_ui_render_group *Group, debug_state *DebugState, r32 
           if (Frame->TotalCycles && MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded)
           {
             debug_timed_function BlockTimer2("Buffer First Call To Each");
-            BufferFirstCallToEach(Group, ReadTree->Root, ReadTree->Root, ThreadsafeDebugMemoryAllocator(), &FunctionTreeWindow, Frame->TotalCycles, 0);
+            BufferFirstCallToEach(Ui, ReadTree->Root, ReadTree->Root, ThreadsafeDebugMemoryAllocator(), &FunctionTreeWindow, Frame->TotalCycles, 0);
           }
         }
-      PushTableEnd(Group);
-    PushWindowEnd(Group, &FunctionTreeWindow);
+      PushTableEnd(Ui);
+    PushWindowEnd(Ui, &FunctionTreeWindow);
 
   END_BLOCK("Call Graph");
 
@@ -889,7 +893,7 @@ PushCallgraphRecursive(debug_ui_render_group *Ui, window_layout *Window, debug_p
 }
 
 link_internal void
-DumpCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At, u32 Depth = 0)
+DumpCallgraphRecursive(renderer_2d *Ui, debug_profile_scope* At, u32 Depth = 0)
 {
   for (u32 DepthIndex = 0;
       DepthIndex < Depth;
@@ -903,29 +907,29 @@ DumpCallgraphRecursive(debug_ui_render_group *Group, debug_profile_scope* At, u3
 
   if (At->Child)
   {
-    DumpCallgraphRecursive(Group, At->Child, Depth+1);
+    DumpCallgraphRecursive(Ui, At->Child, Depth+1);
   }
 
   if (At->Sibling)
   {
-    DumpCallgraphRecursive(Group, At->Sibling, Depth);
+    DumpCallgraphRecursive(Ui, At->Sibling, Depth);
   }
 
   return;
 }
 
 link_internal void
-DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugState)
+DebugDrawCollatedFunctionCalls(renderer_2d *Ui, debug_state *DebugState)
 {
   TIMED_FUNCTION();
 #if 0
   debug_thread_state *MainThreadState = GetThreadLocalStateFor(0);
   debug_scope_tree *MainThreadReadTree = MainThreadState->ScopeTrees + DebugState->ReadScopeIndex;
   TIMED_BLOCK("Collated Function Calls");
-    local_persist window_layout FunctionCallWindow = WindowLayout("Functions", V2(0, 200));
+    window_layout FunctionCallWindow = GetOrCreateWindow(Ui, "Functions", V2(0, 200));
     CollateAllFunctionCalls(MainThreadReadTree->Root);
-    PushWindowStart(Group, &FunctionCallWindow);
-    PushTableStart(Group);
+    PushWindowStart(Ui, &FunctionCallWindow);
+    PushTableStart(Ui);
     for ( u32 FunctionIndex = 0;
         FunctionIndex < MAX_RECORDED_FUNCTION_CALLS;
         ++FunctionIndex)
@@ -933,13 +937,13 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
       called_function *Func = ProgramFunctionCalls + FunctionIndex;
       if (Func->Name)
       {
-        PushColumn(Group, CS(Func->Name));
-        PushColumn(Group, CS(Func->CallCount));
-        PushNewRow(Group);
+        PushColumn(Ui, CS(Func->Name));
+        PushColumn(Ui, CS(Func->CallCount));
+        PushNewRow(Ui);
       }
     }
-    PushTableEnd(Group);
-    PushWindowEnd(Group, &FunctionCallWindow);
+    PushTableEnd(Ui);
+    PushWindowEnd(Ui, &FunctionCallWindow);
   END_BLOCK("Collated Function Calls");
 #endif
 
@@ -987,8 +991,8 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
 
       {
         local_persist window_layout HotFunctionWindow = WindowLayout("Hot Function Window", V2(400, 200));
-        PushWindowStart(Group, &HotFunctionWindow);
-        PushTableStart(Group);
+        PushWindowStart(Ui, &HotFunctionWindow);
+        PushTableStart(Ui);
 
         for (u32 SortIndex = 0;
                  SortIndex < SortKeyCount;
@@ -1002,22 +1006,22 @@ DebugDrawCollatedFunctionCalls(debug_ui_render_group *Group, debug_state *DebugS
           DebugChars("\n");
           Print(CS(GetCycleCount(CurrentScope)));
           DebugChars("\n");
-          DumpCallgraphRecursive(Group, CurrentScope->Child);
+          DumpCallgraphRecursive(Ui, CurrentScope->Child);
           DebugChars("\n");
 #else
-          PushColumn(Group, CS(CurrentScope->Name));
-          PushColumn(Group, CS(GetCycleCount(CurrentScope)));
-          PushNewRow(Group);
-          PushNewRow(Group);
-          PushCallgraphRecursive(Group, &HotFunctionWindow, CurrentScope->Child);
-          PushNewRow(Group);
-          PushNewRow(Group);
+          PushColumn(Ui, CS(CurrentScope->Name));
+          PushColumn(Ui, CS(GetCycleCount(CurrentScope)));
+          PushNewRow(Ui);
+          PushNewRow(Ui);
+          PushCallgraphRecursive(Ui, &HotFunctionWindow, CurrentScope->Child);
+          PushNewRow(Ui);
+          PushNewRow(Ui);
 #endif
 
         }
 
-        PushTableEnd(Group);
-        PushWindowEnd(Group, &HotFunctionWindow);
+        PushTableEnd(Ui);
+        PushWindowEnd(Ui, &HotFunctionWindow);
       }
 #if TEXT_OUTPUT_FOR_FUNCTION_CALLS
       exit(0);
@@ -1074,19 +1078,19 @@ TrackDrawCall(const char* Caller, u32 VertexCount)
 }
 
 link_internal void
-DebugDrawDrawCalls(debug_ui_render_group *Group)
+DebugDrawDrawCalls(renderer_2d *Ui)
 {
   TIMED_FUNCTION();
 
-  local_persist window_layout DrawCallWindow = WindowLayout("Draw Calls", V2(0));
-  PushWindowStart(Group, &DrawCallWindow);
+  window_layout *DrawCallWindow = GetOrCreateWindow(Ui, "Draw Calls");
+  PushWindowStart(Ui, DrawCallWindow);
 
-  PushTableStart(Group);
+  PushTableStart(Ui);
 
-  PushColumn(Group, CSz("Caller"));
-  PushColumn(Group, CSz("Calls"));
-  PushColumn(Group, CSz("Bytes"));
-  PushNewRow(Group);
+  PushColumn(Ui, CSz("Caller"));
+  PushColumn(Ui, CSz("Calls"));
+  PushColumn(Ui, CSz("Bytes"));
+  PushNewRow(Ui);
 
   for( u32 DrawCountIndex = 0;
        DrawCountIndex < TRACKED_DRAW_CALLS_MAX;
@@ -1095,16 +1099,16 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
      debug_draw_call *DrawCall = &GetDebugState()->TrackedDrawCalls[DrawCountIndex];
      if (DrawCall->Caller)
      {
-       PushColumn(Group, CS(DrawCall->Caller));
-       PushColumn(Group, CS(DrawCall->Calls));
-       PushColumn(Group, CS(DrawCall->N));
-       PushNewRow(Group);
+       PushColumn(Ui, CS(DrawCall->Caller));
+       PushColumn(Ui, CS(DrawCall->Calls));
+       PushColumn(Ui, CS(DrawCall->N));
+       PushNewRow(Ui);
      }
   }
 
-  PushTableEnd(Group);
+  PushTableEnd(Ui);
 
-  PushWindowEnd(Group, &DrawCallWindow);
+  PushWindowEnd(Ui, DrawCallWindow);
   return;
 }
 
@@ -1116,35 +1120,35 @@ DebugDrawDrawCalls(debug_ui_render_group *Group)
 
 
 link_internal interactable_handle
-PushArenaBargraph(debug_ui_render_group *Group, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, ui_id InteractionId, r32 BarHeight)
+PushArenaBargraph(renderer_2d *Ui, v3 FColor, v3 BColor, umm TotalUsed, r32 TotalPerc, umm Remaining, ui_id InteractionId, r32 BarHeight)
 {
   counted_string StatsString = FormatCountedString(GetTranArena(), CSz("%S / %S (%S)"), MemorySize(TotalUsed), MemorySize(TotalUsed + Remaining), MemorySize(Remaining));
-  PushColumn(Group, StatsString);
-  PushNewRow(Group);
+  PushColumn(Ui, StatsString);
+  PushNewRow(Ui);
 
   r32 BargraphWidth = 800.f;
 
-  interactable_handle Handle = PushButtonStart(Group, InteractionId);
-    PushBargraph(Group, TotalPerc, FColor, BColor, BargraphWidth, &BarHeight);
-  PushButtonEnd(Group);
+  interactable_handle Handle = PushButtonStart(Ui, InteractionId);
+    PushBargraph(Ui, TotalPerc, FColor, BColor, BargraphWidth, &BarHeight);
+  PushButtonEnd(Ui);
 
-  PushNewRow(Group);
+  PushNewRow(Ui);
 
   return Handle;
 }
 
 link_internal void
-PushMemoryBargraphTable(debug_ui_render_group *Group, window_layout *Window, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
+PushMemoryBargraphTable(renderer_2d *Ui, window_layout *Window, selected_arenas *SelectedArenas, memory_arena_stats MemStats, umm TotalUsed, memory_arena *HeadArena)
 {
-  PushNewRow(Group);
+  PushNewRow(Ui);
   v3 DefaultForegroundColor =  V3(.25f, .1f, .35f);
   v3 DefaultBackgroundColor =  V3(.5f);
 
   r32 TotalPerc = (r32)SafeDivide0(TotalUsed, MemStats.TotalAllocated);
   // TODO(Jesse, id: 110, tags: ui, semantic): Should we do something special when interacting with this thing instead of Ignored-ing it?
   ui_id Ignored = {{1,2,3,4}};
-  PushArenaBargraph(Group, DefaultForegroundColor, DefaultBackgroundColor, TotalUsed, TotalPerc, MemStats.Remaining, Ignored, Global_Font.Size.y);
-  PushNewRow(Group);
+  PushArenaBargraph(Ui, DefaultForegroundColor, DefaultBackgroundColor, TotalUsed, TotalPerc, MemStats.Remaining, Ignored, Global_Font.Size.y);
+  PushNewRow(Ui);
 
   memory_arena *CurrentArena = HeadArena;
   while (CurrentArena && CurrentArena->Start)
@@ -1166,8 +1170,8 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, window_layout *Window, sel
     umm CurrentUsed = TotalSize(CurrentArena) - Remaining(CurrentArena);
     r32 CurrentPerc = (r32)SafeDivide0(CurrentUsed, TotalSize(CurrentArena));
 
-    interactable_handle Handle = PushArenaBargraph(Group, FColor, BColor, CurrentUsed, CurrentPerc, Remaining(CurrentArena), UiId(Window, "arena_bargraph", HashArena(CurrentArena)), Global_Font.Size.y*.5f);
-    if (Clicked(Group, &Handle))
+    interactable_handle Handle = PushArenaBargraph(Ui, FColor, BColor, CurrentUsed, CurrentPerc, Remaining(CurrentArena), UiId(Window, "arena_bargraph", HashArena(CurrentArena)), Global_Font.Size.y*.5f);
+    if (Clicked(Ui, &Handle))
     {
       selected_memory_arena *Found = 0;
       for (u32 ArenaIndex = 0;
@@ -1201,7 +1205,7 @@ PushMemoryBargraphTable(debug_ui_render_group *Group, window_layout *Window, sel
 }
 
 link_internal void
-PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Records, u64 RecordCount)
+PackSortAndBufferMemoryRecords(renderer_2d *Ui, memory_record *Records, u64 RecordCount)
 {
   // Densely pack collated records
   u32 PackedRecords = 0;
@@ -1251,23 +1255,23 @@ PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Reco
     if (Collated->Name)
     {
       umm AllocationSize = GetAllocationSize(Collated);
-      PushColumn(Group,  CS(Collated->ThreadId));
+      PushColumn(Ui,  CS(Collated->ThreadId));
 
       if (Collated->ArenaAddress == BONSAI_NO_ARENA && Collated->ArenaMemoryBlock)
       {
         // @ArenaMemoryBlock-as-char-pointer
-        PushColumn(Group,  CS((char*)Collated->ArenaMemoryBlock), &ArenaStyle);
+        PushColumn(Ui,  CS((char*)Collated->ArenaMemoryBlock), &ArenaStyle);
       }
       else
       {
-        PushColumn(Group,  CS((u16)HashValue), &ArenaStyle);
+        PushColumn(Ui,  CS((u16)HashValue), &ArenaStyle);
       }
 
-      PushColumn(Group,  MemorySize(AllocationSize));
-      PushColumn(Group,  FormatThousands(Collated->StructCount));
-      PushColumn(Group,  FormatThousands(Collated->PushCount));
-      PushColumn(Group, CS(Collated->Name));
-      PushNewRow(Group);
+      PushColumn(Ui,  MemorySize(AllocationSize));
+      PushColumn(Ui,  FormatThousands(Collated->StructCount));
+      PushColumn(Ui,  FormatThousands(Collated->PushCount));
+      PushColumn(Ui, CS(Collated->Name));
+      PushNewRow(Ui);
     }
 
     continue;
@@ -1275,24 +1279,24 @@ PackSortAndBufferMemoryRecords(debug_ui_render_group *Group, memory_record *Reco
 }
 
 link_internal void
-DebugMetadataHeading(debug_ui_render_group *Group)
+DebugMetadataHeading(renderer_2d *Ui)
 {
-  PushColumn(Group, CSz("Thread"));
-  PushColumn(Group, CSz("Arena"));
-  PushColumn(Group, CSz("Memory"));
-  PushColumn(Group, CSz("Structs"));
-  PushColumn(Group, CSz("Pushes"));
-  PushColumn(Group, CSz("Name"));
-  PushNewRow(Group);
+  PushColumn(Ui, CSz("Thread"));
+  PushColumn(Ui, CSz("Arena"));
+  PushColumn(Ui, CSz("Memory"));
+  PushColumn(Ui, CSz("Structs"));
+  PushColumn(Ui, CSz("Pushes"));
+  PushColumn(Ui, CSz("Name"));
+  PushNewRow(Ui);
 
 }
 
 link_internal void
-PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedArenas, umm CurrentMemoryBlock)
+PushDebugPushMetaData(renderer_2d *Ui, selected_arenas *SelectedArenas, umm CurrentMemoryBlock)
 {
   memory_record CollatedMetaTable[META_TABLE_SIZE] = {};
 
-  DebugMetadataHeading(Group);
+  DebugMetadataHeading(Ui);
 
   // Pick out relevant metadata and write to collation table
   u32 TotalThreadCount = GetWorkerThreadCount() + 1;
@@ -1322,14 +1326,14 @@ PushDebugPushMetaData(debug_ui_render_group *Group, selected_arenas *SelectedAre
     }
   }
 
-  PackSortAndBufferMemoryRecords(Group, CollatedMetaTable, META_TABLE_SIZE);
+  PackSortAndBufferMemoryRecords(Ui, CollatedMetaTable, META_TABLE_SIZE);
 
   return;
 }
 
 
 link_internal void
-DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
+DebugDrawMemoryHud(renderer_2d *Ui, debug_state *DebugState)
 {
   TIMED_FUNCTION();
 
@@ -1395,38 +1399,37 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
   v2 Basis = V2(20, 300);
-  local_persist window_layout MemoryArenaWindowInstance = WindowLayout("Memory Arena List", Basis);
-  window_layout* MemoryArenaList = &MemoryArenaWindowInstance;
+  window_layout *MemoryArenaList = GetOrCreateWindow(Ui, "Memory Arena List", Basis);
 
 
-  PushWindowStart(Group, MemoryArenaList);
-  PushTableStart(Group);
+  PushWindowStart(Ui, MemoryArenaList);
+  PushTableStart(Ui);
 
   /* v3 TitleColor = V3(.5f); */
   v3 TitleColor = V3(1.f, 1.f, 1.f);
   ui_style TitleStyle = UiStyleFromLightestColor(TitleColor);
 
 
-  PushColumn(Group, CSz("SourceLocation"),   &TitleStyle);
-  PushColumn(Group, CSz("Name"),   &TitleStyle);
-  PushColumn(Group, CSz("Size"),   &TitleStyle);
-  PushColumn(Group, CSz("Pushes"), &TitleStyle);
-  PushColumn(Group, CSz("Thread"), &TitleStyle);
-  PushNewRow(Group);
+  PushColumn(Ui, CSz("SourceLocation"),   &TitleStyle);
+  PushColumn(Ui, CSz("Name"),   &TitleStyle);
+  PushColumn(Ui, CSz("Size"),   &TitleStyle);
+  PushColumn(Ui, CSz("Pushes"), &TitleStyle);
+  PushColumn(Ui, CSz("Thread"), &TitleStyle);
+  PushNewRow(Ui);
 
   if (FoundUntrackedAllocations)
   {
     ui_style UnnamedStyle = UntrackedAllocationsExpanded ? DefaultSelectedStyle : DefaultStyle;
 
     interactable_handle UnknownAllocationsExpandInteraction =
-    PushButtonStart(Group, UiId(MemoryArenaList, "unnamed arenas memory_window_expand_interaction", 0ull));
-      PushColumn(Group, CSz("?"), &UnnamedStyle);
-      PushColumn(Group, CSz("?"), &UnnamedStyle);
-      PushColumn(Group, CSz("?"), &UnnamedStyle);
-      PushColumn(Group, CSz("Untracked Allocations"), &UnnamedStyle);
-      PushNewRow(Group);
-    PushButtonEnd(Group);
-    if (Clicked(Group, &UnknownAllocationsExpandInteraction))
+    PushButtonStart(Ui, UiId(MemoryArenaList, "unnamed arenas memory_window_expand_interaction", 0ull));
+      PushColumn(Ui, CSz("?"), &UnnamedStyle);
+      PushColumn(Ui, CSz("?"), &UnnamedStyle);
+      PushColumn(Ui, CSz("?"), &UnnamedStyle);
+      PushColumn(Ui, CSz("Untracked Allocations"), &UnnamedStyle);
+      PushNewRow(Ui);
+    PushButtonEnd(Ui);
+    if (Clicked(Ui, &UnknownAllocationsExpandInteraction))
     {
       UntrackedAllocationsExpanded = !UntrackedAllocationsExpanded;
     }
@@ -1460,17 +1463,17 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       u64 TotalUsed = MemStats.TotalAllocated - MemStats.Remaining;
 
       ExpandInteraction =
-      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(Current->SourceLocation),                   &Style);
-        PushColumn(Group, CS(Current->UserSuppliedName),                   &Style);
-        PushColumn(Group, MemorySize(MemStats.TotalAllocated), &Style);
-        PushColumn(Group, CS(MemStats.Pushes),                 &Style);
-        PushColumn(Group, CS(Current->ThreadId),               &Style);
-        PushNewRow(Group);
-      PushButtonEnd(Group);
+      PushButtonStart(Ui, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
+        PushColumn(Ui, CS(Current->SourceLocation),                   &Style);
+        PushColumn(Ui, CS(Current->UserSuppliedName),                   &Style);
+        PushColumn(Ui, MemorySize(MemStats.TotalAllocated), &Style);
+        PushColumn(Ui, CS(MemStats.Pushes),                 &Style);
+        PushColumn(Ui, CS(Current->ThreadId),               &Style);
+        PushNewRow(Ui);
+      PushButtonEnd(Ui);
     }
 
-    if (Clicked(Group, &ExpandInteraction))
+    if (Clicked(Ui, &ExpandInteraction))
     {
       Current->Expanded = !Current->Expanded;
     }
@@ -1495,18 +1498,18 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
     {
       Style = DefaultDisabledStyle;
       ExpandInteraction =
-      PushButtonStart(Group, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
-        PushColumn(Group, CS(Current->SourceLocation),     &Style);
-        PushColumn(Group, CS(Current->UserSuppliedName),     &Style);
-        PushColumn(Group, CSz("- TOMBSTONED -"), &Style);
-        PushColumn(Group, CS(Current->ThreadId), &Style);
-        PushNewRow(Group);
-      PushButtonEnd(Group);
+      PushButtonStart(Ui, UiId(MemoryArenaList, "MemoryWindowExpandInteraction", (void*)Current));
+        PushColumn(Ui, CS(Current->SourceLocation),     &Style);
+        PushColumn(Ui, CS(Current->UserSuppliedName),     &Style);
+        PushColumn(Ui, CSz("- TOMBSTONED -"), &Style);
+        PushColumn(Ui, CS(Current->ThreadId), &Style);
+        PushNewRow(Ui);
+      PushButtonEnd(Ui);
     }
   }
 
-  PushTableEnd(Group);
-  PushWindowEnd(Group, MemoryArenaList);
+  PushTableEnd(Ui);
+  PushWindowEnd(Ui, MemoryArenaList);
 
 
 
@@ -1516,18 +1519,17 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 
   Basis = BasisBelow(MemoryArenaList);
-  local_persist window_layout MemoryArenaDetailsInstance = WindowLayout("Memory Arena Details", Basis, DefaultWindowSize * V2(2.f, 1.f));
-  window_layout* MemoryArenaDetails = &MemoryArenaDetailsInstance;
+  window_layout *MemoryArenaDetails = GetOrCreateWindow(Ui, "Memory Arena Details", DefaultWindowSize * V2(2.f, 1.f), Basis);
 
-  PushWindowStart(Group, MemoryArenaDetails);
+  PushWindowStart(Ui, MemoryArenaDetails);
 
   if (FoundUntrackedAllocations && UntrackedAllocationsExpanded)
   {
-    PushTableStart(Group);
-    PushNewRow(Group);
-    DebugMetadataHeading(Group);
-    PackSortAndBufferMemoryRecords(Group, UnknownRecordTable, META_TABLE_SIZE);
-    PushTableEnd(Group);
+    PushTableStart(Ui);
+    PushNewRow(Ui);
+    DebugMetadataHeading(Ui);
+    PackSortAndBufferMemoryRecords(Ui, UnknownRecordTable, META_TABLE_SIZE);
+    PushTableEnd(Ui);
   }
 
   for ( u32 Index = 0;
@@ -1562,30 +1564,30 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
       /*                                                  MemStats.Remaining */
       /*                                                ); */
 
-      /* PushTableStart(Group); */
-        /* PushNewRow(Group); */
-        PushColumn(Group, CS(Current->SourceLocation));
-        PushColumn(Group, CS(Current->UserSuppliedName));
-        PushNewRow(Group);
-        PushColumn(Group, TitleStats);
-        PushNewRow(Group);
-      /* PushTableEnd(Group); */
+      /* PushTableStart(Ui); */
+        /* PushNewRow(Ui); */
+        PushColumn(Ui, CS(Current->SourceLocation));
+        PushColumn(Ui, CS(Current->UserSuppliedName));
+        PushNewRow(Ui);
+        PushColumn(Ui, TitleStats);
+        PushNewRow(Ui);
+      /* PushTableEnd(Ui); */
 
-      ui_element_reference BargraphTable = PushTableStart(Group);
-        PushMemoryBargraphTable(Group, MemoryArenaDetails, SelectedArenas, MemStats, TotalUsed, Current->Arena);
-      PushTableEnd(Group);
+      ui_element_reference BargraphTable = PushTableStart(Ui);
+        PushMemoryBargraphTable(Ui, MemoryArenaDetails, SelectedArenas, MemStats, TotalUsed, Current->Arena);
+      PushTableEnd(Ui);
 
-      PushTableStart(Group);
-        PushDebugPushMetaData(Group, SelectedArenas, HashArenaBlock(Current->Arena));
-      PushTableEnd(Group);
+      PushTableStart(Ui);
+        PushDebugPushMetaData(Ui, SelectedArenas, HashArenaBlock(Current->Arena));
+      PushTableEnd(Ui);
 
-      /* PushNewRow(Group); */
+      /* PushNewRow(Ui); */
     }
 
     continue;
   }
 
-  PushWindowEnd(Group, MemoryArenaDetails);
+  PushWindowEnd(Ui, MemoryArenaDetails);
 
   return;
 }
@@ -1600,25 +1602,25 @@ DebugDrawMemoryHud(debug_ui_render_group *Group, debug_state *DebugState)
 
 #if BONSAI_NETWORK_IMPLEMENTATION
 link_internal void
-DebugDrawNetworkHud(debug_ui_render_group *Group, network_connection *Network, server_state *ServerState)
+DebugDrawNetworkHud(renderer_2d *Ui, network_connection *Network, server_state *ServerState)
 {
-  local_persist window_layout NetworkWindow = WindowLayout("Network", V2(0));
+  window_layout NetworkWindow = GetOrCreateWindow(Ui, "Network", V2(0));
 
 #if (!EMCC)
   if (!ServerState) return;
 
-  PushWindowStart(Group, &NetworkWindow);
+  PushWindowStart(Ui, &NetworkWindow);
 
-  PushTableStart(Group);
+  PushTableStart(Ui);
   if (IsConnected(Network))
   {
-    PushColumn(Group, CSz("O"));
+    PushColumn(Ui, CSz("O"));
 
     if (Network->Client)
     {
-      PushColumn(Group, CSz("ClientId"));
-      PushColumn(Group, CS(Network->Client->Id));
-      PushNewRow(Group);
+      PushColumn(Ui, CSz("ClientId"));
+      PushColumn(Ui, CS(Network->Client->Id));
+      PushNewRow(Ui);
     }
 
     for (s32 ClientIndex = 0;
@@ -1632,20 +1634,20 @@ DebugDrawNetworkHud(debug_ui_render_group *Group, network_connection *Network, s
       if (Network->Client->Id == ClientIndex)
         Color = GREEN;
 
-      PushColumn(Group, CSz("Id:"));
-      PushColumn(Group, CS( Client->Id));
-      PushColumn(Group, CS(Client->Counter));
-      PushNewRow(Group);
+      PushColumn(Ui, CSz("Id:"));
+      PushColumn(Ui, CS( Client->Id));
+      PushColumn(Ui, CS(Client->Counter));
+      PushNewRow(Ui);
     }
 
   }
   else
   {
-    PushColumn(Group, CSz("X"));
-    PushNewRow(Group);
+    PushColumn(Ui, CSz("X"));
+    PushNewRow(Ui);
   }
-  PushTableEnd(Group);
-  PushWindowEnd(Group, &NetworkWindow);
+  PushTableEnd(Ui);
+  PushWindowEnd(Ui, &NetworkWindow);
 #endif
 
   return;
@@ -1661,12 +1663,12 @@ DebugDrawNetworkHud(debug_ui_render_group *Group, network_connection *Network, s
 
 
 link_internal void
-DebugDrawGraphicsHud(debug_ui_render_group *Group, debug_state *DebugState)
+DebugDrawGraphicsHud(renderer_2d *Ui, debug_state *DebugState)
 {
   TIMED_FUNCTION();
-  PushTableStart(Group);
-  PushColumn(Group, CS(DebugState->BytesBufferedToCard));
-  PushTableEnd(Group);
+  PushTableStart(Ui);
+  PushColumn(Ui, CS(DebugState->BytesBufferedToCard));
+  PushTableEnd(Ui);
   return;
 }
 
@@ -1703,55 +1705,55 @@ link_internal void
 DebugValue(v4 *Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = DebugState->UiGroup;
+  debug_ui_render_group* Ui = DebugState->UiGroup;
 
-  PushColumn(Group, Name);
-  PushColumn(Group, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->x), r64(Value->y), r64(Value->z), r64(Value->w)));
-  PushNewRow(Group);
+  PushColumn(Ui, Name);
+  PushColumn(Ui, FSz("(%.6f %.6f %.6f %.6f)", r64(Value->x), r64(Value->y), r64(Value->z), r64(Value->w)));
+  PushNewRow(Ui);
 }
 
 link_internal void
 DebugValue(v3 *Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = DebugState->UiGroup;
+  debug_ui_render_group* Ui = DebugState->UiGroup;
 
-  PushColumn(Group, Name);
-  PushColumn(Group, FSz("(%.2f %.2f %.2f)", r64(Value->x), r64(Value->y), r64(Value->z)));
-  PushNewRow(Group);
+  PushColumn(Ui, Name);
+  PushColumn(Ui, FSz("(%.2f %.2f %.2f)", r64(Value->x), r64(Value->y), r64(Value->z)));
+  PushNewRow(Ui);
 }
 
 link_internal void
 DebugValue(r32 Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = DebugState->UiGroup;
+  debug_ui_render_group* Ui = DebugState->UiGroup;
 
-  PushColumn(Group, Name);
-  PushColumn(Group, CS(Value));
-  PushNewRow(Group);
+  PushColumn(Ui, Name);
+  PushColumn(Ui, CS(Value));
+  PushNewRow(Ui);
 }
 
 link_internal void
 DebugValue(u32 Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = DebugState->UiGroup;
+  debug_ui_render_group* Ui = DebugState->UiGroup;
 
-  PushColumn(Group, Name);
-  PushColumn(Group, CS(Value));
-  PushNewRow(Group);
+  PushColumn(Ui, Name);
+  PushColumn(Ui, CS(Value));
+  PushNewRow(Ui);
 }
 
 link_internal void
 DebugValue(u64 Value, cs Name)
 {
   debug_state* DebugState = GetDebugState();
-  debug_ui_render_group* Group = DebugState->UiGroup;
+  debug_ui_render_group* Ui = DebugState->UiGroup;
 
-    PushColumn(Group, Name);
-    PushColumn(Group, CS(Value));
-    PushNewRow(Group);
+    PushColumn(Ui, Name);
+    PushColumn(Ui, CS(Value));
+    PushNewRow(Ui);
 }
 
 link_internal b32
