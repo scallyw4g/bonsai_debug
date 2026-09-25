@@ -1,5 +1,5 @@
 poof(radio_button_group_for_enum(callgraph_window_view_mode))
-#include <generated/radio_button_group_for_enum_Hq6hgTBO.h>
+#include <generated/radio_button_group_for_enum$callgraph_window_view_mode$VOMq9R8I.h>
 
 #include <bonsai_debug/src/debug_data_system.cpp>
 #include <bonsai_debug/src/debug_render_system.cpp>

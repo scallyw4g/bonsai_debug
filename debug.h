@@ -74,7 +74,7 @@ struct memory_arena_stats
   umm Remaining;
 };
 poof(are_equal(memory_arena_stats))
-#include <generated/are_equal_memory_arena_stats.h>
+#include <generated/are_equal$memory_arena_stats$3MrB5oRj.h>
 
 struct debug_profile_scope;
 struct debug_scope_tree;
@@ -131,7 +131,7 @@ enum callgraph_window_view_mode
 };
 
 poof(string_and_value_tables(callgraph_window_view_mode))
-#include <generated/string_and_value_tables_XK4rBcRO.h>
+#include <generated/string_and_value_tables$callgraph_window_view_mode$Oe1DWY2p.h>
 
 
 template <typename T> b32 BufferHasRoomFor(T *Buffer, u32 VertsToPush);

@@ -102,10 +102,10 @@ struct debug_profile_scope
 /* CAssert(sizeof(debug_profile_scope) == CACHE_LINE_SIZE); */
 
 poof(are_equal(debug_profile_scope))
-#include <generated/are_equal_debug_profile_scope.h>
+#include <generated/are_equal$debug_profile_scope$jKcaA5Os.h>
 
 poof(generate_cursor(debug_profile_scope))
-#include <generated/generate_cursor_debug_profile_scope.h>
+#include <generated/generate_cursor$debug_profile_scope$tJ2lV7HS.h>
 
 struct debug_scope_tree
 {
