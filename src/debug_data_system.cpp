@@ -177,14 +177,16 @@ link_internal void
 UnregisterArena(memory_arena *Arena)
 {
   debug_state* DebugState = GetDebugState();
-  b32 Found = False;
-  for ( u32 Index = 0;
-        Index < REGISTERED_MEMORY_ARENA_COUNT;
-        ++Index )
+  if (DebugState)
   {
-    registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
-    if (Current->Arena == Arena) { Found = True; Current->Tombstone = True; }
-    /* if (Current->Arena == Arena) { Found = True; *Current = {}; } */
+    b32 Found = False;
+    for ( u32 Index = 0;
+          Index < REGISTERED_MEMORY_ARENA_COUNT;
+          ++Index )
+    {
+      registered_memory_arena *Current = &DebugState->RegisteredMemoryArenas[Index];
+      if (Current->Arena == Arena) { Found = True; Current->Tombstone = True; }
+    }
   }
 }
 
