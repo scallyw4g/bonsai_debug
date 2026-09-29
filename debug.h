@@ -256,5 +256,8 @@ DebugRegisterArena(const char *SourceLocation, memory_arena *Arena, s32 ThreadId
 void
 RegisterThread(thread_local_state *Thread);
 
+link_internal void
+SetRenderer(renderer_2d *Renderer);
+
 #endif
 
