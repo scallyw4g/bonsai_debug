@@ -207,8 +207,11 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 }
 
 link_internal void
-SetRenderer(renderer_2d *Renderer)
+SetDebugRenderer(renderer_2d *Renderer)
 {
+  Assert(GetDebugState()->SelectedArenas == 0);
+  Assert(GetDebugState()->UiGroup == 0);
+
   GetDebugState()->SelectedArenas = Allocate(selected_arenas, ThreadsafeDebugMemoryAllocator(), 1);
   GetDebugState()->UiGroup = Renderer;
 }
@@ -248,7 +251,7 @@ InitDebugState(debug_state *DebugState)
   DebugState->WriteMemoryRecord               = WriteMemoryRecord;
   DebugState->ClearMemoryRecordsFor           = ClearMemoryRecordsFor;
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
-  DebugState->SetRenderer                     = SetRenderer;
+  /* DebugState->SetRenderer                     = SetRenderer; */
   DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
 
   DebugState->Initialized = True;

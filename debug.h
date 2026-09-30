@@ -257,7 +257,8 @@ void
 RegisterThread(thread_local_state *Thread);
 
 link_internal void
-SetRenderer(renderer_2d *Renderer);
+SetDebugRenderer(renderer_2d *Renderer);
 
 #endif
+
 
