@@ -251,7 +251,7 @@ InitDebugState(debug_state *DebugState)
   DebugState->WriteMemoryRecord               = WriteMemoryRecord;
   DebugState->ClearMemoryRecordsFor           = ClearMemoryRecordsFor;
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
-  /* DebugState->SetRenderer                     = SetRenderer; */
+  DebugState->SetRenderer                     = SetDebugRenderer;
   DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
 
   DebugState->Initialized = True;
