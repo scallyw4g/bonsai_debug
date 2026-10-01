@@ -120,8 +120,8 @@ PushScopeBarsRecursive( renderer_2d *Ui,
   return;
 }
 
-/* link_internal void */
-/* DoCallgraphWindowJobsView(renderer_2d *Ui, window_layout *Window); */
+link_internal void
+DoCallgraphWindowJobsView(renderer_2d *Ui, window_layout *Window);
 
 link_internal void
 DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
@@ -370,7 +370,7 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
 
     case CallgraphWindowViewMode_Jobs:
     {
-      /* DoCallgraphWindowJobsView(Ui, &CycleGraphWindow); */
+      DoCallgraphWindowJobsView(Ui, &CycleGraphWindow);
     } break;
   }
 
