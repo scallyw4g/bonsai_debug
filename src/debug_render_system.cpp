@@ -402,8 +402,7 @@ DrawHistogram(debug_ui_render_group *Ui, debug_state *SharedState)
   TIMED_FUNCTION();
 
   random_series Entropy = {};
-  window_layout_flags Flags =  Cast(window_layout_flags, WindowLayoutFlag_StartupSize_InferHeight);
-  window_layout *Window = GetOrCreateWindow(Ui, "Histogram", Flags);
+  window_layout *Window = GetOrCreateWindow(Ui, "Histogram");
 
   r32 GraphHeight = 200.f;
   PushWindowStart(Ui, Window);
