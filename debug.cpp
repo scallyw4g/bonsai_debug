@@ -326,7 +326,8 @@ debug_timed_function::~debug_timed_function()
       }
     }
 
-    Assert(this->Scope->EndingCycle > this->Scope->StartingCycle);
+    // Short scopes can share a timer tick, notably under Rosetta.
+    Assert(this->Scope->EndingCycle >= this->Scope->StartingCycle);
     Assert(this->Scope->Parent != this->Scope);
     Assert(this->Scope->Sibling != this->Scope);
     Assert(this->Scope->Child != this->Scope);
