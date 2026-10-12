@@ -78,7 +78,7 @@ BufferScopeTreeEntry(renderer_2d *Ui, debug_profile_scope *Scope,
 }
 
 global_variable r32 Global_CoreBarHeight = 3.f;
-global_variable r32 Global_CoreBarPadding = 3.f;
+global_variable r32 Global_CoreBarPadding = 12.f;
 
 link_internal void
 PushScopeBarsRecursive( renderer_2d *Ui,
@@ -97,9 +97,10 @@ PushScopeBarsRecursive( renderer_2d *Ui,
     /* umm NameHash = Hash(CS(Scope->Name)) ^ Hash(CS(Scope->Location)); */
 
     random_series ScopeSeries = {.Seed = (u64)Scope};
-    r32 Tint = RandomBetween(0.5f, &ScopeSeries, 1.0f);
+    r32 Tint = RandomBetween(0.9f, &ScopeSeries, 1.0f);
+    /* r32 Tint = 1.f; */
 
-    umm NameHash = Hash(CS(Scope->Name));
+    u32 NameHash = Hash(Trim(CS(Scope->Name)));
     v3 FunctionColor = ColorFromHash(NameHash) * Tint;
     ui_style FunctionStyle = UiStyleFromLightestColor(FunctionColor);
     r32 yOffsetFunction = Depth * BarHeight;
@@ -118,6 +119,18 @@ PushScopeBarsRecursive( renderer_2d *Ui,
   }
 
   return;
+}
+
+link_internal u32
+GetMaxScopeDepth(debug_profile_scope *Scope)
+{
+  u32 Result = 0;
+  while (Scope)
+  {
+    Result = Max(Result, 1 + GetMaxScopeDepth(Scope->Child));
+    Scope = Scope->Sibling;
+  }
+  return Result;
 }
 
 link_internal void
@@ -214,8 +227,37 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
       {
         TIMED_NAMED_BLOCK(Thread_Loop);
 
-        PushColumn(Ui, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
         debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
+#if 0
+        r32 ThreadHeight = BarHeight;
+        if (ThreadState->ThreadId)
+        {
+          u32 ReadScopeIndex = SharedState->ReadScopeIndex;
+          u32 FrameIndices[] = {
+            ReadScopeIndex,
+            (ReadScopeIndex + 1) % DEBUG_FRAMES_TRACKED,
+            (ReadScopeIndex + 2) % DEBUG_FRAMES_TRACKED,
+            (ReadScopeIndex + DEBUG_FRAMES_TRACKED - 1) % DEBUG_FRAMES_TRACKED,
+            (ReadScopeIndex + DEBUG_FRAMES_TRACKED - 2) % DEBUG_FRAMES_TRACKED,
+          };
+
+          u32 MaxScopeDepth = 0;
+          for (u32 FrameIndex = 0; FrameIndex < ArrayCount(FrameIndices); ++FrameIndex)
+          {
+            debug_scope_tree *ReadTree = ThreadState->ScopeTrees + FrameIndices[FrameIndex];
+            MaxScopeDepth = Max(MaxScopeDepth, GetMaxScopeDepth(ReadTree->Root));
+          }
+
+          ThreadHeight = Max(ThreadHeight,
+                             Global_CoreBarHeight + Global_CoreBarPadding + MaxScopeDepth*BarHeight);
+        }
+
+        v3 Color = V3(0.5f, 0.2f, 0.4f);
+        v4 Thickness = V4(3.f);
+        PushRelativeBorder(Ui, V2(TotalGraphWidth+150.f, ThreadHeight), Color, Thickness);
+#endif
+
+        PushColumn(Ui, FormatCountedString(GetTranArena(), CSz("T %u "), ThreadIndex));
 
         if (ThreadState->ThreadId)
         {
@@ -269,6 +311,7 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
 #endif
 
 
+
           {
             debug_scope_tree *ReadTree = ThreadState->ScopeTrees + SharedState->ReadScopeIndex;
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
@@ -278,6 +321,7 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
             }
           }
 
+#if 0
           {
             debug_scope_tree *ReadTree = ThreadState->ScopeTrees + ((SharedState->ReadScopeIndex + 1) % DEBUG_FRAMES_TRACKED);
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
@@ -313,8 +357,7 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
               PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
-
-
+#endif
 
           EndColumn(Ui, StartIndex);
 
@@ -728,7 +771,7 @@ DrawFrameTicker(renderer_2d *Ui, window_layout *Window, debug_state *DebugState,
       v2 QuadDim = MaxBarDim * V2(1.0f, Perc);
       v2 Offset = V2(0.f, VerticalAdvance-QuadDim.y);
 
-      r32 Brightness = 0.35f;
+      r32 Brightness = 0.75f;
 
       ui_style Style =
         FrameIndex == DebugState->ReadScopeIndex ?
@@ -740,7 +783,7 @@ DrawFrameTicker(renderer_2d *Ui, window_layout *Window, debug_state *DebugState,
          DefaultBlurredStyle;
 
       interactable_handle B = PushButtonStart(Ui, UiId(Window, "FrameTickerHoverInteraction", FrameIndex) );
-        PushUntexturedQuad(Ui, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, UiElementLayoutFlag_NoAdvance);
+        PushUntexturedQuad(Ui, V2(Pad.x, 0), MaxBarDim, zDepth_Background, &BackgroundStyle, {}, UiElementLayoutFlag_NoAdvanceLayout);
         PushUntexturedQuad(Ui, Offset, QuadDim, zDepth_Background, &Style, Pad);
       PushButtonEnd(Ui);
 
@@ -775,7 +818,7 @@ DebugCallgraphWindow(renderer_2d *Ui, debug_state *DebugState, r32 MaxMs)
 {
   TIMED_FUNCTION();
 
-  DrawFrameTicker(Ui, 0, DebugState, Max(33.3f, MaxMs));
+  DrawFrameTicker(Ui, 0, DebugState, Max(16.6f*3.f, MaxMs));
 
   DrawThreadsWindow(Ui, DebugState);
   DrawHistogram(Ui, DebugState);
@@ -1251,7 +1294,7 @@ PackSortAndBufferMemoryRecords(renderer_2d *Ui, memory_record *Records, u64 Reco
       ++MetaIndex)
   {
     memory_record *Collated = Records + MetaIndex;
-    u64 HashValue = (Collated->ArenaMemoryBlock) * 2654435761;
+    u32 HashValue = HashPointer((void*)Collated->ArenaMemoryBlock);
     v3 ArenaColor = ColorFromHash(HashValue) * 1.2f;
     ui_style ArenaStyle = UiStyleFromLightestColor(ArenaColor);
     if (Collated->Name)
@@ -1768,4 +1811,3 @@ InitDebugRenderSystem(heap_allocator *Heap, memory_arena *Memory)
 
   return Result;
 }
-
