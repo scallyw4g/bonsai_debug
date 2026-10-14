@@ -53,7 +53,7 @@ typedef void                 (*debug_frame_begin_proc)                 (renderer
 typedef void                 (*debug_register_arena_proc)              (const char*, memory_arena*, s32);
 typedef void                 (*debug_unregister_arena_proc)            (memory_arena*);
 typedef void                 (*debug_worker_thread_advance_data_system)(void);
-typedef void                 (*debug_main_thread_advance_data_system)  (f32);
+typedef void                 (*debug_main_thread_advance_data_system)  (f32, u32);
 
 typedef void                 (*debug_mutex_waiting_proc)               (mutex*);
 typedef void                 (*debug_mutex_aquired_proc)               (mutex*);
@@ -275,7 +275,7 @@ void DebugTimedMutexReleased(mutex *Mut);
 #define TIMED_MUTEX_AQUIRED(Mut)  do {GetDebugState()->MutexAquired(Mut);} while (false)
 #define TIMED_MUTEX_RELEASED(Mut) do {GetDebugState()->MutexReleased(Mut);} while (false)
 
-#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt);} while (false)
+#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt, frameIndex)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt, frameIndex);} while (false)
 #define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {GetDebugState()->WorkerThreadAdvanceDebugSystem();} while (false)
 
 #define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)              do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)

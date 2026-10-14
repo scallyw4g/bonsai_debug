@@ -221,6 +221,7 @@ struct frame_stats
   umm TotalCycles;
   umm StartingCycle;
   r32 FrameMs;
+  u32 Index;
 };
 
 struct registered_memory_arena

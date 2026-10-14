@@ -649,7 +649,7 @@ WorkerThreadAdvanceDebugSystem()
 }
 
 void
-MainThreadAdvanceDebugSystem(r32 Dt)
+MainThreadAdvanceDebugSystem(r32 Dt, u32 CurrentFrameIndex)
 {
   TIMED_FUNCTION();
   Assert(ThreadLocal_ThreadIndex == 0);
@@ -682,6 +682,7 @@ MainThreadAdvanceDebugSystem(r32 Dt)
     frame_stats *NextFrame = SharedState->Frames + NextFrameWriteIndex;
     *NextFrame = {};
     NextFrame->StartingCycle = CurrentCycles;
+    NextFrame->Index = CurrentFrameIndex;
   }
 }
 

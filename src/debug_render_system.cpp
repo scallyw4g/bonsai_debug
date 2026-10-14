@@ -149,13 +149,13 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
   PushWindowStart(Ui, &CycleGraphWindow);
 
   auto DebugState = GetDebugState();
-  ui_toggle_button_group ViewMode =
-    RadioButtonGroup_callgraph_window_view_mode( Ui,
-                                                &CycleGraphWindow,
-                                                  CSz(""),
-                                                &DebugState->CallgraphWindowViewMode);
 
-  switch (callgraph_window_view_mode(*ViewMode.EnumStorage))
+  RadioButtonGroup_callgraph_window_view_mode( Ui,
+                                              &CycleGraphWindow,
+                                                CSz(""),
+                                              &DebugState->CallgraphWindowViewMode);
+
+  switch (DebugState->CallgraphWindowViewMode)
   {
     case CallgraphWindowViewMode_Frame:
     {
@@ -838,9 +838,7 @@ DebugCallgraphWindow(renderer_2d *Ui, debug_state *DebugState, r32 MaxMs)
         PushNewRow(Ui);
 
         s32 TotalThreadCount = (s32)GetTotalThreadCount();
-        for ( s32 ThreadIndex = 0;
-                  ThreadIndex < TotalThreadCount;
-                ++ThreadIndex )
+        For(ThreadIndex, TotalThreadCount)
         {
           debug_thread_state *ThreadState = GetThreadLocalStateFor(ThreadIndex);
           debug_scope_tree *ReadTree = ThreadState->ScopeTrees + DebugState->ReadScopeIndex;
