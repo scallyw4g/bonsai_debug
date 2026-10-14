@@ -144,6 +144,9 @@ struct debug_state
   u32 DrawCallCountLastFrame;
   u32 VertexCountLastFrame;
 
+
+  work_queue_job_stats *SelectedStats;
+
 #if 1
   debug_frame_end_proc                      FrameEnd;
   debug_frame_begin_proc                    FrameBegin;
