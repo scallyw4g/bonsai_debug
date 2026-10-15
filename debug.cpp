@@ -55,6 +55,10 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
   if (ToggleProfiling)
   {
     State->DebugDoScopeProfiling = !State->DebugDoScopeProfiling;
+    if (State->DebugDoScopeProfiling)
+    {
+      State->SelectedStats = 0;
+    }
   }
 
   /* DebugLine("State->UiGroup.NumMinimizedWindowsDrawn (%u)", State->UiGroup.NumMinimizedWindowsDrawn ); */

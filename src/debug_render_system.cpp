@@ -80,6 +80,17 @@ BufferScopeTreeEntry(renderer_2d *Ui, debug_profile_scope *Scope,
 global_variable r32 Global_CoreBarHeight = 3.f;
 global_variable r32 Global_CoreBarPadding = 12.f;
 
+
+link_internal void
+DrawEntireScopeTree( renderer_2d *Ui,
+                      window_layout *Window,
+                debug_profile_scope *Scope,
+                        cycle_range *Frame,
+                                r32  TotalGraphWidth,
+                                r32  BarHeight,
+                      random_series *Entropy,
+                                u32  Depth = 0 );
+
 link_internal void
 DrawScopeAndChildren( renderer_2d *Ui,
                       window_layout *Window,
@@ -90,41 +101,52 @@ DrawScopeAndChildren( renderer_2d *Ui,
                       random_series *Entropy,
                                 u32  Depth = 0 )
 {
-  cycle_range Range = {Scope->StartingCycle, GetCycleCount(Scope)};
-
-  /* umm NameHash = Hash(CS(Scope->Name)) ^ Hash(CS(Scope->Location)); */
-
-  random_series ScopeSeries = {.Seed = (u64)Scope};
-  r32 Tint = RandomBetween(0.9f, &ScopeSeries, 1.0f);
-  /* r32 Tint = 1.f; */
-
-  u32 NameHash = Hash(Trim(CS(Scope->Name)));
-  v3 FunctionColor = ColorFromHash(NameHash) * Tint;
-  ui_style FunctionStyle = UiStyleFromLightestColor(FunctionColor);
-  r32 yOffsetFunction = Depth * BarHeight;
-
+  if (Scope)
   {
-    cs ScopeName = CS(Scope->Name);
-    interactable_handle Bar = PushButtonStart(Ui, UiId(Window, "CycleBarHoverInteraction", Scope));
-      PushCycleBar(Ui, &Range, Frame, TotalGraphWidth, BarHeight, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
-    PushButtonEnd(Ui);
-    if (Hover(Ui, &Bar)) { PushTooltip(Ui, ScopeName); }
-    if (Clicked(Ui, &Bar)) { Scope->Expanded = !Scope->Expanded; }
+    cycle_range Range = {Scope->StartingCycle, GetCycleCount(Scope)};
+
+    /* umm NameHash = Hash(CS(Scope->Name)) ^ Hash(CS(Scope->Location)); */
+
+    random_series ScopeSeries = {.Seed = (u64)Scope};
+    r32 Tint = RandomBetween(0.9f, &ScopeSeries, 1.0f);
+    /* r32 Tint = 1.f; */
+
+    u32 NameHash = Hash(Trim(CS(Scope->Name)));
+    v3 FunctionColor = ColorFromHash(NameHash) * Tint;
+    ui_style FunctionStyle = UiStyleFromLightestColor(FunctionColor);
+    r32 yOffsetFunction = Depth * BarHeight;
+
+    {
+      /* r32 FramePerc = (r32)Range->TotalCycles / (r32)Frame->TotalCycles; */
+      /* r32 BarWidth = FramePerc*TotalGraphWidth; */
+      /* BarWidth = Max(BarWidth, 1.f); */
+      /* if (BarWidth > 5.f) */
+      {
+        cs ScopeName = CS(Scope->Name);
+        interactable_handle Bar = PushButtonStart(Ui, UiId(Window, "CycleBarHoverInteraction", Scope));
+          PushCycleBar(Ui, &Range, Frame, TotalGraphWidth, BarHeight, yOffsetFunction, &FunctionStyle, V4(0), ScopeName);
+        PushButtonEnd(Ui);
+        if (Hover(Ui, &Bar)) { PushTooltip(Ui, ScopeName); }
+        if (Clicked(Ui, &Bar)) { Scope->Expanded = !Scope->Expanded; }
+      }
+    }
+
+    if (Scope->Expanded) { DrawEntireScopeTree(Ui, Window, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
+
+    /* Scope = Scope->Sibling; */
   }
-
-  if (Scope->Expanded) { DrawScopeAndChildren(Ui, Window, Scope->Child, Frame, TotalGraphWidth, BarHeight, Entropy, Depth+1); }
-
-  return;
 }
+
+#if 1
 link_internal void
-PushScopeBarsRecursive( renderer_2d *Ui,
-                      window_layout *Window,
-                debug_profile_scope *Scope,
-                        cycle_range *Frame,
-                                r32  TotalGraphWidth,
-                                r32  BarHeight,
-                      random_series *Entropy,
-                                u32  Depth = 0 )
+DrawEntireScopeTree( renderer_2d *Ui,
+                   window_layout *Window,
+             debug_profile_scope *Scope,
+                     cycle_range *Frame,
+                             r32  TotalGraphWidth,
+                             r32  BarHeight,
+                   random_series *Entropy,
+                             u32  Depth /* = 0 */ )
 {
   while (Scope)
   {
@@ -132,6 +154,7 @@ PushScopeBarsRecursive( renderer_2d *Ui,
     Scope = Scope->Sibling;
   }
 }
+#endif
 
 link_internal u32
 GetMaxScopeDepth(debug_profile_scope *Scope)
@@ -329,7 +352,7 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
             /* if (MainThreadReadTree->FrameRecorded == ReadTree->FrameRecorded) */
             {
               debug_timed_function BlockTimer2("Push Scope Bars");
-              PushScopeBarsRecursive(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
+              DrawEntireScopeTree(Ui, &CycleGraphWindow, ReadTree->Root, &FrameCycles, TotalGraphWidth, BarHeight, &Entropy);
             }
           }
 
