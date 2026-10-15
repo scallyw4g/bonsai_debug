@@ -79,28 +79,6 @@ typedef void                 (*debug_redraw_window_proc)               ();
 
 
 
-struct debug_profile_scope
-{
-  u64 StartingCycle;
-  u64 EndingCycle;
-  const char* Name;
-
-  b32 Expanded;
-
-  debug_profile_scope* Sibling;
-  debug_profile_scope* Child;
-  debug_profile_scope* Parent;
-
-  /* b64 Pad; */
-};
-// NOTE(Jesse): I thought maybe this would increase perf .. it had a negligible
-// effect These structs are per-thread so there's no sense in having them
-// cache-line sized.  Something that would probably speed this up is not storing
-// the sibling/child/parent pointers and instead store a one-past-last index into
-// a statically allocated buffer (instead of dynamically allocating new scopes
-// every time we need another one)
-/* CAssert(sizeof(debug_profile_scope) == CACHE_LINE_SIZE); */
-
 poof(are_equal(debug_profile_scope))
 #include <generated/are_equal$debug_profile_scope$jKcaA5Os.h>
 

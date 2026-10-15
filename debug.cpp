@@ -285,6 +285,8 @@ debug_timed_function::debug_timed_function(const char *Name)
 
     if (this->Scope && this->Tree)
     {
+      this->Scope->ThreadIndex = ThreadLocal_ThreadIndex;
+
       (*this->Tree->WriteScope) = this->Scope;
       this->Tree->WriteScope = &this->Scope->Child;
 
