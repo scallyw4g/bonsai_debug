@@ -674,7 +674,7 @@ MainThreadAdvanceDebugSystem(r32 Dt, u32 CurrentFrameIndex)
     /* Record frame cycle counts */
 
     frame_stats *ThisFrame = SharedState->Frames + ThisFrameWriteIndex;
-    ThisFrame->FrameMs = Dt * 1000.f;
+    ThisFrame->FrameMs = Dt;
     ThisFrame->TotalCycles = CurrentCycles - ThisFrame->StartingCycle;
 
 
