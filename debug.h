@@ -284,6 +284,33 @@ struct renderer_2d;
 link_internal void
 SetDebugRenderer(renderer_2d *Renderer);
 
+inline void
+ClearMemoryRecordsFor(memory_arena *Arena);
+
+inline void
+MutexReleased(mutex *Mutex);
+
+inline void
+MutexWait(mutex *Mutex);
+
+inline void
+MutexAquired(mutex *Mutex);
+
+void
+MainThreadAdvanceDebugSystem(r32 Dt, u32 CurrentFrameIndex);
+
+link_internal void
+WorkerThreadAdvanceDebugSystem();
+
+link_internal debug_thread_state*
+GetThreadLocalDebugState();
+
+link_internal void
+DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling);
+
+link_internal void
+DebugFrameEnd(r32 dt);
+
 #endif
 
 

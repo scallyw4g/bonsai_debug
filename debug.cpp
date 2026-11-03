@@ -229,11 +229,12 @@ InitDebugState(debug_state *DebugState)
 
   DebugState->Frames[1].StartingCycle = GetCycleCount();
 
+#if 0
   // NOTE(Jesse): hook debug functions up before we make any function calls
   // such that we have a well-working state to go from
   DebugState->FrameEnd                        = DebugFrameEnd;
   DebugState->FrameBegin                      = DebugFrameBegin;
-  DebugState->DebugRegisterArena                   = DebugRegisterArena;
+  DebugState->DebugRegisterArena              = DebugRegisterArena;
   DebugState->UnregisterArena                 = UnregisterArena;
   DebugState->WorkerThreadAdvanceDebugSystem  = WorkerThreadAdvanceDebugSystem;
   DebugState->MainThreadAdvanceDebugSystem    = MainThreadAdvanceDebugSystem;
@@ -257,6 +258,7 @@ InitDebugState(debug_state *DebugState)
   DebugState->InitializeRenderSystem          = InitDebugRenderSystem;
   DebugState->SetRenderer                     = SetDebugRenderer;
   DebugState->PushHistogramDataPoint          = PushHistogramDataPoint;
+#endif
 
   DebugState->Initialized = True;
 
@@ -284,8 +286,8 @@ debug_timed_function::debug_timed_function(const char *Name)
 
     ++DebugState->NumScopes;
 
-    this->Scope = DebugState->GetProfileScope();
-    this->Tree = DebugState->GetWriteScopeTree();
+    this->Scope = GetDebugProfileScope();
+    this->Tree = GetDebugWriteScopeTree();
 
     if (this->Scope && this->Tree)
     {
@@ -357,7 +359,7 @@ debug_histogram_function::~debug_histogram_function()
     // ordering is the wrong way for this to work.  I couldn't think of a
     // better way to do this..
     this->Scope->EndingCycle = GetCycleCount();
-    DebugState->PushHistogramDataPoint(this->Scope->EndingCycle-this->Scope->StartingCycle);
+    PushHistogramDataPoint(this->Scope->EndingCycle-this->Scope->StartingCycle);
   }
 }
 #endif

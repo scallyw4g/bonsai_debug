@@ -7,11 +7,11 @@ debug_scope_tree* GetReadScopeTree(u32 ThreadIndex)
   return RootScope;
 }
 
-debug_scope_tree* GetWriteScopeTree()
+debug_scope_tree* GetDebugWriteScopeTree()
 {
   debug_scope_tree* Result = 0;
 
-  debug_thread_state* ThreadState = GetDebugState()->GetThreadLocalState();
+  debug_thread_state* ThreadState = GetThreadLocalDebugState();
   if (ThreadState)
   {
     Result = ThreadState->ScopeTrees + (ThreadState->WriteIndex % DEBUG_FRAMES_TRACKED);
@@ -64,8 +64,8 @@ RegisterThread(thread_local_state *Thread)
   ThreadState->ThreadId = GetCurrentThreadId();
 }
 
-inline debug_thread_state*
-GetThreadLocalState()
+link_internal debug_thread_state*
+GetThreadLocalDebugState()
 {
   debug_thread_state* Result = GetThreadLocalStateFor(ThreadLocal_ThreadIndex);
   return Result;
@@ -412,8 +412,8 @@ TrackAllocation(void* Source, umm StructSize, umm StructCount, const char *Alloc
 }
 #endif
 
-void*
-DEBUG_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char *AllocationUUID, s32 Line, const char *File, umm Alignment, b32 MemProtect)
+link_internal void*
+Debug_Allocate(memory_arena* Arena, umm StructSize, umm StructCount, const char *AllocationUUID, s32 Line, const char *File, umm Alignment, b32 MemProtect)
 {
   umm Size = StructCount * StructSize;
   void* Result = PushSize( Arena, Size, Alignment, MemProtect, AllocationUUID);
@@ -623,7 +623,7 @@ AdvanceThreadState(debug_thread_state *ThreadState, u32 NextFrameId)
   return;
 }
 
-inline void
+link_internal void
 WorkerThreadAdvanceDebugSystem()
 {
   Assert(ThreadLocal_ThreadIndex != INVALID_THREAD_LOCAL_THREAD_INDEX);
@@ -739,10 +739,10 @@ ThreadsafeDebugMemoryAllocator()
 
 
 debug_profile_scope *
-GetProfileScope()
+GetDebugProfileScope()
 {
   debug_profile_scope *Result = 0;
-  debug_thread_state *State = GetThreadLocalState();
+  debug_thread_state *State = GetThreadLocalDebugState();
 
   if (State)
   {

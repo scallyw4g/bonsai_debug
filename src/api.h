@@ -125,7 +125,7 @@ struct debug_state
 
   work_queue_job_stats *SelectedStats;
 
-#if 1
+#if 0
   debug_frame_end_proc                      FrameEnd;
   debug_frame_begin_proc                    FrameBegin;
   debug_register_arena_proc                 DebugRegisterArena;
@@ -157,6 +157,7 @@ struct debug_state
   b32  (*InitializeRenderSystem)(heap_allocator*, memory_arena*);
   void (*SetRenderer)(renderer_2d*);
   void (*PushHistogramDataPoint)(u64);
+#endif
 
   get_read_scope_tree_proc GetReadScopeTree;
   get_write_scope_tree_proc GetWriteScopeTree;
@@ -165,7 +166,6 @@ struct debug_state
   // of the library.
   picked_world_chunk *PickedChunk;
   picked_world_chunk *HoverChunk;
-#endif
 
   // TODO(Jesse): Can this go away ..?
   debug_thread_state *ThreadStates;
@@ -245,22 +245,22 @@ link_export b32 InitDebugState(debug_state *DebugState);
 #define DEBUG_VALUE(Pointer) do {DebugValue((Pointer), CSz(#Pointer));} while (false)
 
 #define DEBUG_FRAME_RECORD(...) DoDebugFrameRecord(__VA_ARGS__)
-#define DEBUG_FRAME_END(dt) do {GetDebugState()->FrameEnd(dt);} while (false)
-#define DEBUG_FRAME_BEGIN(Ui, PrevDt, bToggleMenu, bToggleProfile) do {GetDebugState()->FrameBegin(Ui, PrevDt, bToggleMenu, bToggleProfile);} while (false)
+#define DEBUG_FRAME_END(dt) do {DebugFrameEnd(dt);} while (false)
+#define DEBUG_FRAME_BEGIN(Ui, PrevDt, bToggleMenu, bToggleProfile) do {DebugFrameBegin(Ui, PrevDt, bToggleMenu, bToggleProfile);} while (false)
 
 void DebugTimedMutexWaiting(mutex *Mut);
 void DebugTimedMutexAquired(mutex *Mut);
 void DebugTimedMutexReleased(mutex *Mut);
 
-#define TIMED_MUTEX_WAITING(Mut)  do {GetDebugState()->MutexWait(Mut);} while (false)
-#define TIMED_MUTEX_AQUIRED(Mut)  do {GetDebugState()->MutexAquired(Mut);} while (false)
-#define TIMED_MUTEX_RELEASED(Mut) do {GetDebugState()->MutexReleased(Mut);} while (false)
+#define TIMED_MUTEX_WAITING(Mut)  do {MutexWait(Mut);} while (false)
+#define TIMED_MUTEX_AQUIRED(Mut)  do {MutexAquired(Mut);} while (false)
+#define TIMED_MUTEX_RELEASED(Mut) do {MutexReleased(Mut);} while (false)
 
-#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt, frameIndex)               do {GetDebugState()->MainThreadAdvanceDebugSystem(dt, frameIndex);} while (false)
-#define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {GetDebugState()->WorkerThreadAdvanceDebugSystem();} while (false)
+#define MAIN_THREAD_ADVANCE_DEBUG_SYSTEM(dt, frameIndex)               do {MainThreadAdvanceDebugSystem(dt, frameIndex);} while (false)
+#define WORKER_THREAD_ADVANCE_DEBUG_SYSTEM()               do {WorkerThreadAdvanceDebugSystem();} while (false)
 
-#define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)              do {GetDebugState()->ClearMemoryRecordsFor(Arena);} while (false)
-#define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {GetDebugState()->TrackDrawCall(CallingFunction, VertCount);} while (false)
+#define DEBUG_CLEAR_MEMORY_RECORDS_FOR(Arena)              do {ClearMemoryRecordsFor(Arena);} while (false)
+#define DEBUG_TRACK_DRAW_CALL(CallingFunction, VertCount)  do {TrackDrawCall(CallingFunction, VertCount);} while (false)
 
 #else // BONSAI_DEBUG_SYSTEM_API
 
