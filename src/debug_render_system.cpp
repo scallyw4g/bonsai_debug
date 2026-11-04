@@ -187,14 +187,14 @@ DrawThreadsWindow(renderer_2d *Ui, debug_state *SharedState)
 
   RadioButtonGroup_callgraph_window_view_mode( Ui,
                                               &CycleGraphWindow,
-                                                CSz(""),
+                                              {},
                                               &DebugState->CallgraphWindowViewMode);
 
   switch (DebugState->CallgraphWindowViewMode)
   {
     case CallgraphWindowViewMode_Frame:
     {
-      cs ETStatusString = CSz("");
+      cs ETStatusString = {};
       switch (Global_EventTracingStatus)
       {
         case EventTracingStatus_Unstarted:
