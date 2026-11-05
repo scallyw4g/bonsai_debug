@@ -1377,7 +1377,7 @@ PushDebugPushMetaData(renderer_2d *Ui, selected_arenas *SelectedArenas, umm Curr
   DebugMetadataHeading(Ui);
 
   // Pick out relevant metadata and write to collation table
-  u32 TotalThreadCount = GetWorkerThreadCount() + 1;
+  u32 TotalThreadCount = GetTotalThreadCount();
 
 
   for ( u32 ThreadIndex = 0;
