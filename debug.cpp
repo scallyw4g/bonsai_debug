@@ -117,13 +117,13 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
     v4 Padding = V4(15,5,15,5);
 
-    {
-      ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(Ui, CS("Graphics"), UiId(0, "Graphics", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics);
-      }
-    }
+    /* { */
+    /*   ui_style *Style = (DebugState->UIType & DebugUIType_Graphics) ? &DefaultSelectedStyle : &DefaultStyle; */
+    /*   if (Button(Ui, CS("Graphics"), UiId(0, "Graphics", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding)) */
+    /*   { */
+    /*     ToggleBitfieldValue(DebugState->UIType, DebugUIType_Graphics); */
+    /*   } */
+    /* } */
 
     {
       /* ui_style *Style = &DefaultStyle; */
@@ -159,13 +159,13 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
       }
     }
 
-    {
-      ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle;
-      if (Button(Ui, CS("DrawCalls"), UiId(0, "DrawCalls", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding))
-      {
-        ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls);
-      }
-    }
+    /* { */
+    /*   ui_style *Style = (DebugState->UIType & DebugUIType_DrawCalls) ? &DefaultSelectedStyle : &DefaultStyle; */
+    /*   if (Button(Ui, CS("DrawCalls"), UiId(0, "DrawCalls", u32(DebugState->UIType)), Style, &DefaultButtonBackgroundStyle, Padding)) */
+    /*   { */
+    /*     ToggleBitfieldValue(DebugState->UIType, DebugUIType_DrawCalls); */
+    /*   } */
+    /* } */
 
     PushNewRow(Ui);
     PushTableEnd(Ui);
@@ -173,10 +173,10 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
 
 
 
-    if (DebugState->UIType & DebugUIType_Graphics)
-    {
-      DebugDrawGraphicsHud(Ui, DebugState);
-    }
+    /* if (DebugState->UIType & DebugUIType_Graphics) */
+    /* { */
+    /*   DebugDrawGraphicsHud(Ui, DebugState); */
+    /* } */
 
     /* if (DebugState->UIType & DebugUIType_Network) */
     /* { */
@@ -198,10 +198,10 @@ DebugFrameBegin(renderer_2d *Ui, r32 PrevDt, b32 ToggleMenu, b32 ToggleProfiling
       DebugDrawMemoryHud(Ui, DebugState);
     }
 
-    if (DebugState->UIType & DebugUIType_DrawCalls)
-    {
-      DebugDrawDrawCalls(Ui);
-    }
+    /* if (DebugState->UIType & DebugUIType_DrawCalls) */
+    /* { */
+    /*   DebugDrawDrawCalls(Ui); */
+    /* } */
 
   }
 
